@@ -1,0 +1,22 @@
+{
+    "name": "crysalead/router",
+    "description": "HTTP Request Router",
+    "keywords": ["Router"],
+    "license": "MIT",
+    "require": {
+        "php": ">=5.5"
+    },
+    "require-dev": {
+        "crysalead/kahlan": "~2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Lead\\Router\\": "src/",
+            "Lead\\Router\\Spec\\": "spec/"
+        }
+    },
+    "config": {
+        "bin-dir": "bin"
+    },
+    "minimum-stability": "dev"
+}

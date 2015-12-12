@@ -1,0 +1,25 @@
+sudo: false
+language: php
+
+php:
+  - 5.5
+  - 5.6
+  - 7.0
+  - hhvm
+
+matrix:
+  allow_failures:
+    - php: 7.0
+  fast_finish: true
+
+before_script:
+  - composer config -g github-oauth.github.com $GITHUB_COMPOSER_AUTH
+  - composer install
+  - if [[ $TRAVIS_PHP_VERSION =~ ^hhvm ]]; then echo 'xdebug.enable = On' >> /etc/hhvm/php.ini; fi
+
+script: bin/kahlan --coverage=3 --clover=clover.xml
+
+after_success:
+  - "if [ $(phpenv version-name) = '5.6' ]; then wget https://scrutinizer-ci.com/ocular.phar; fi"
+  - "if [ $(phpenv version-name) = '5.6' ]; then php ocular.phar code-coverage:upload --format=php-clover 'clover.xml'; fi"
+
