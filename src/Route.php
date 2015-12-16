@@ -13,11 +13,11 @@ class Route
     public $scheme = '*';
 
     /**
-     * Matching doamin.
+     * Matching host.
      *
      * @var string
      */
-    public $domain = '*';
+    public $host = '*';
 
     /**
      * Matching HTTP method.
@@ -72,7 +72,7 @@ class Route
     public function __construct($config = []) {
         $defaults = [
             'scheme'    => '*',
-            'domain'    => '*',
+            'host'      => '*',
             'method'    => '*',
             'pattern'   => '',
             'name'      => '',
@@ -83,7 +83,7 @@ class Route
         $config += $defaults;
 
         $this->scheme($config['scheme']);
-        $this->domain($config['domain']);
+        $this->host($config['host']);
         $this->method($config['method']);
         $this->pattern($config['pattern']);
         $this->name($config['name']);
@@ -93,7 +93,7 @@ class Route
     }
 
     /**
-     * Gets/sets the route scheme.
+     * Gets/sets the route's scheme.
      *
      * @param  array      $scheme The scheme to set or none to get the setted one.
      * @return array|self
@@ -108,22 +108,22 @@ class Route
     }
 
     /**
-     * Gets/sets the route domain.
+     * Gets/sets the route's host.
      *
-     * @param  array      $domain The domain to set or none to get the setted one.
+     * @param  array      $host The host to set or none to get the setted one.
      * @return array|self
      */
-    public function domain($domain = null)
+    public function host($host = null)
     {
         if (func_num_args() === 0) {
-            return $this->_domain;
+            return $this->_host;
         }
-        $this->_domain = $domain;
+        $this->_host = $host;
         return $this;
     }
 
     /**
-     * Gets/sets the route method.
+     * Gets/sets the route's method.
      *
      * @param  array      $method The method to set or none to get the setted one.
      * @return array|self
@@ -138,7 +138,7 @@ class Route
     }
 
     /**
-     * Gets/sets the route pattern.
+     * Gets/sets the route's pattern.
      *
      * @param  array      $pattern The pattern to set or none to get the setted one.
      * @return array|self
@@ -153,7 +153,7 @@ class Route
     }
 
     /**
-     * Gets/sets the route name.
+     * Gets/sets the route's name.
      *
      * @param  array      $name The name to set or none to get the setted one.
      * @return array|self
@@ -168,7 +168,7 @@ class Route
     }
 
     /**
-     * Gets/sets the route namespace.
+     * Gets/sets the route's namespace.
      *
      * @param  array      $namespace The namespace to set or none to get the setted one.
      * @return array|self
@@ -183,7 +183,7 @@ class Route
     }
 
     /**
-     * Gets/sets the route params.
+     * Gets/sets the route's params.
      *
      * @param  array      $params The params to set or none to get the setted one.
      * @return array|self
@@ -198,7 +198,7 @@ class Route
     }
 
     /**
-     * Gets/sets the route handler.
+     * Gets/sets the route's handler.
      *
      * @param  array      $handler The route handler.
      * @return array|self
@@ -216,13 +216,30 @@ class Route
     }
 
     /**
+     * Gets/sets the route's request.
+     *
+     * @param  array      $request The request to set or none to get the setted one.
+     * @return array|self
+     */
+    public function request($request = null)
+    {
+        if (func_num_args() === 0) {
+            return $this->_request;
+        }
+        $this->_request = $request;
+        return $this;
+    }
+
+    /**
      * Dispatches the route.
      *
+     * @param mixed  $request The dispatched request.
      * @return mixed
      */
-    public function dispatch()
+    public function dispatch($request)
     {
-        $handler = $this->_handler;
+        $handler = $this->handler();
+        $this->request($request);
         return call_user_func_array($handler, $this->params());
     }
 }

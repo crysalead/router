@@ -110,11 +110,27 @@ describe("Router", function() {
 
         });
 
-        it("supports domain variables", function() {
+        it("supports routes with optional variables with multiple segments and `''` as empty route", function() {
 
             $r = $this->router;
-            $r->get('foo/{var1:\d+}', ['domain' => 'foo.{domain}.bar'], function() { return $this->params() + ['tld' => 'bar']; });
-            $r->get('foo/{var1:\d+}', ['domain' => 'foo.{domain}.baz'], function() { return $this->params() + ['tld' => 'baz']; });
+            $r->get('[{var1}[/{var2}]]', function() { return $this->params(); });
+
+            $response = $r->dispatch('', 'GET');
+            expect($response)->toBe([]);
+
+            $response = $r->dispatch('foo', 'GET');
+            expect($response)->toBe(['var1' => 'foo']);
+
+            $response = $r->dispatch('foo/bar', 'GET');
+            expect($response)->toBe(['var1' => 'foo', 'var2' => 'bar']);
+
+        });
+
+        it("supports host variables", function() {
+
+            $r = $this->router;
+            $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.bar'], function() { return $this->params() + ['tld' => 'bar']; });
+            $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function() { return $this->params() + ['tld' => 'baz']; });
 
             $response = $r->dispatch('foo/25', 'GET', 'foo.biz.bar');
             expect($response)->toBe(['domain' => 'biz', 'var1' => '25', 'tld' => 'bar']);
@@ -124,10 +140,10 @@ describe("Router", function() {
 
         });
 
-        it("supports constrained domain variables", function() {
+        it("supports constrained host variables", function() {
 
             $r = $this->router;
-            $r->get('foo/{var1:\d+}', ['domain' => '{subdomain:foo}.{domain}.bar'], function() { return $this->params(); });
+            $r->get('foo/{var1:\d+}', ['host' => '{subdomain:foo}.{domain}.bar'], function() { return $this->params(); });
             $response = $r->dispatch('foo/25', 'GET', 'foo.biz.bar');
             expect($response)->toBe([ 'subdomain' => 'foo', 'domain' => 'biz', 'var1' => '25']);
 
@@ -143,7 +159,7 @@ describe("Router", function() {
 
             $r = $this->router;
             $r->get('foo/{var1}[/{var2}]',
-                ['domain' => '{subdomain}.{domain}.bar'],
+                ['host' => '{subdomain}.{domain}.bar'],
                 function($subdomain, $domain, $var1, $var2 = 'default') {
                     return [$subdomain, $domain, $var1, $var2];
                 }
@@ -153,6 +169,20 @@ describe("Router", function() {
 
             $response = $r->dispatch('foo/25/bar', 'GET', 'foo.biz.bar');
             expect($response)->toBe(['foo', 'biz', '25', 'bar']);
+
+        });
+
+        it("supports absolute URL", function() {
+
+            $r = $this->router;
+            $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.bar'], function() { return $this->params() + ['tld' => 'bar']; });
+            $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function() { return $this->params() + ['tld' => 'baz']; });
+
+            $response = $r->dispatch('http://foo.biz.bar/foo/25', 'GET');
+            expect($response)->toBe(['domain' => 'biz', 'var1' => '25', 'tld' => 'bar']);
+
+            $response = $r->dispatch('http://foo.buz.baz/foo/50', 'GET');
+            expect($response)->toBe(['domain' => 'buz', 'var1' => '50', 'tld' => 'baz']);
 
         });
 
@@ -222,6 +252,37 @@ describe("Router", function() {
             };
 
             expect($closure)->toThrow(new RouterException("The route `*:*:GET:/foo/bar` conflicts with a previously defined one on `*:*:*:/foo/bar`."));
+
+        });
+
+    });
+
+    describe("->mount()", function() {
+
+        it("mounts nested routes on a prefix", function() {
+
+            $r = $this->router;
+            $r->mount('foo', function($r) {
+                $r->route('bar', function () { return 'hello'; });
+            });
+
+            $response = $r->dispatch('foo/bar', 'GET');
+            expect($response)->toBe('hello');
+
+        });
+
+        it("mounts nested routes on a prefix and a host constraint", function() {
+
+            $r = $this->router;
+            $r->mount('{var1}', ['host' => 'foo.{domain}.bar'], function($r) {
+                $r->route('bar', function () { return $this->params(); });
+            });
+
+            $response = $r->dispatch('http://foo.hello.bar/foo/bar', 'GET');
+            expect($response)->toBe([
+                'domain' => 'hello',
+                'var1'   => 'foo'
+            ]);
 
         });
 

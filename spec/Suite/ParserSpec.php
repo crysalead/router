@@ -151,6 +151,16 @@ describe("Parser", function() {
 
         });
 
+        it("throws an exception when a placeholder is present several time", function() {
+
+            $closure = function() {
+                Parser::parse('/test/{var}/{var}/required');
+            };
+
+            expect($closure)->toThrow(new RouterException("Cannot use the same placeholder `var` twice."));
+
+        });
+
 
     });
 

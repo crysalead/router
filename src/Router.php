@@ -33,6 +33,11 @@ class Router
     protected $_chunkSize = null;
 
     /**
+     * Dispatching strategies.
+     */
+    protected $_strategies = [];
+
+    /**
      * Constructor
      *
      * @param array $config
@@ -50,10 +55,10 @@ class Router
         $config += $defaults;
         $this->_classes = $config['classes'];
         $this->_scopes[] = $config['scope'] + [
-            'scheme' => '*',
-            'domain' => '*',
-            'method' => '*',
-            'pattern' => ''
+            'scheme'  => '*',
+            'host'    => '*',
+            'method'  => '*',
+            'pattern' => '/'
         ];
         $this->_chunkSize = $config['chunkSize'];
     }
@@ -72,21 +77,22 @@ class Router
             $handler = $options;
             $options = [];
         }
-        $options += [
-            'scheme'  => '*',
-            'domain'  => '*',
-            'method'  => '*'
-        ];
         if (!is_callable($handler)) {
             throw new RouterException("The handler needs to be callable.");
         }
         $scope = end($this->_scopes);
-        $options['pattern'] = $scope['pattern'] . '/' . (trim($pattern, '/'));
-        $options += $scope;
+
+        $options['pattern'] = $scope['pattern'] . (trim($pattern, '/'));
+        $options += $scope + [
+            'scheme'  => '*',
+            'host'    => '*',
+            'method'  => '*'
+        ];
         $options['handler'] = $handler;
         $route = $this->_classes['route'];
+
         $instance = new $route($options);
-        $this->_routes[$options['scheme']][$options['domain']][$options['method']][] = $instance;
+        $this->_routes[$options['scheme']][$options['host']][$options['method']][] = $instance;
         return $instance;
     }
 
@@ -96,29 +102,33 @@ class Router
      * @param string|array  $scope
      * @param Closure       $callback
      */
-    public function group($pattern, $options, $handler = null)
+    public function mount($pattern, $options, $handler = null)
     {
         if (is_callable($options)) {
             $handler = $options;
-            $options = [];
+            $options = $pattern;
         }
         if (!is_callable($handler)) {
             throw new RouterException("The handler needs to be callable.");
         }
-        $parent = end($this->_scopes);
+        $scope = end($this->_scopes);
 
-        $pattern = isset($options['pattern']) ? $options['pattern'] : '';
-        $options['pattern'] = trim(trim($parent['pattern'], '/') . '/' . $pattern, '/');
-
-        if ($parent['scheme'] !== '*' && $parent['scheme'] !== $scope['scheme']) {
-            throw new Exception("Parent's scope requires `'{$parent['scheme']}'` as scheme, but current is `'{$scope['scheme']}'`.");
+        if (is_string($options)) {
+            $pattern = $options;
+            $options = [];
         }
 
-        if ($parent['domain'] !== '*' && $parent['domain'] !== $scope['domain']) {
-            throw new Exception("Parent's scope requires `'{$parent['domain']}'` as domain, but current is `'{$scope['domain']}'`.");
+        $options['pattern'] = $scope['pattern'] . trim($pattern, '/') . '/';
+
+        if ($scope['scheme'] !== '*' && $scope['scheme'] !== $options['scheme']) {
+            throw new Exception("Parent's scope requires `'{$scope['scheme']}'` as scheme, but current is `'{$options['scheme']}'`.");
         }
 
-        $this->_scopes[] = $scope;
+        if ($scope['host'] !== '*' && $scope['host'] !== $options['host']) {
+            throw new Exception("Parent's scope requires `'{$scope['host']}'` as host, but current is `'{$options['host']}'`.");
+        }
+
+        $this->_scopes[] = $options + $scope;
 
         $handler($this);
 
@@ -126,32 +136,77 @@ class Router
     }
 
     /**
+     * Dispatches a Request.
+     *
      * @return mixed
      */
     public function dispatch($request)
     {
-        $parser = $this->_classes['parser'];
-
-        if (!is_array($request)) {
-            $request = array_combine(['path', 'method', 'domain', 'scheme'], func_get_args() + ['/', 'GET', '*', '*']);
+        if (is_object($request)) {
+            $r = [
+                'scheme' => $request->getScheme(),
+                'host'   => $request->getHost(),
+                'method' => $request->getMethod(),
+                'path'   => $request->getRequestTarget(),
+            ];
+        } elseif (!is_array($request)) {
+            $r = array_combine(['path', 'method', 'host', 'scheme'], func_get_args() + ['/', 'GET', '*', '*']);
+        } else {
+            $r = $request;
         }
-        $request['path'] = '/' . (ltrim($request['path'], '/'));
+        $r = $this->_normalizeRequest($r);
 
-        $schemes = array_unique([$request['scheme'] => $request['scheme']]);
-        $methods = array_unique([$request['method'] => $request['method'], '*' => '*']);
-        $rules = [];
+        $rules = $this->_buildRules($r['method'], $r['host'], $r['scheme']);
 
-        if ($request['method'] === 'HEAD') {
+        if ($route = $this->_dispatch($rules, $r['path'])) {
+            return $route->dispatch(is_object($request) ? $request : $r);
+        }
+        throw new RouterException("No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:{$r['path']}`.", 404);
+    }
+
+    /**
+     * Normalize the request
+     *
+     * @param  array $request The request to normalize.
+     * @return array          The normalized request.
+     */
+    protected function _normalizeRequest($request)
+    {
+        if (preg_match('~^(?:[a-z]+:)?//~i', $request['path'])) {
+            $parsed = array_intersect_key(parse_url($request['path']), $request);
+            $request = $parsed + $request;
+        }
+        $request['path'] = '/' . (ltrim(strtok($request['path'], '?'), '/'));
+        return $request;
+    }
+
+    /**
+     * Builds all route rules available for a request.
+     *
+     * @param  string $method The HTTP method constraint.
+     * @param  string $host   The host constraint.
+     * @param  string $scheme The scheme constraint.
+     * @return array          The available rules.
+     */
+    protected function _buildRules($method, $host = '*', $scheme = '*')
+    {
+        $parser = $this->_classes['parser'];
+        $schemes = array_unique([$scheme => $scheme, '*' => '*']);
+        $methods = array_unique([$method => $method, '*' => '*']);
+
+        if ($method === 'HEAD') {
             $methods += ['GET' => 'GET'];
         }
 
-        foreach ($this->_routes as $scheme => $domainBasedRoutes) {
+        $rulesMap = [];
+
+        foreach ($this->_routes as $scheme => $hostBasedRoutes) {
             if (!isset($schemes[$scheme])) {
                 continue;
             }
-            foreach ($domainBasedRoutes as $domain => $methodBasedRoutes) {
-                $domainVariables = [];
-                if (!$this->_matchDomain($request['domain'], $domain, $domainVariables)) {
+            foreach ($hostBasedRoutes as $routeDomain => $methodBasedRoutes) {
+                $hostVariables = [];
+                if (!$this->_matchDomain($host, $routeDomain, $hostVariables)) {
                     continue;
                 }
                 foreach ($methodBasedRoutes as $method => $routes) {
@@ -162,16 +217,16 @@ class Router
                         $parses = $parser::parse($route->pattern());
                         foreach ($parses as $parse) {
                             list($pattern, $varNames) = $parse;
-                            if (isset($rules['*'][$pattern])) {
-                                $old = $rules['*'][$pattern][0];
+                            if (isset($rulesMap['*'][$pattern])) {
+                                $old = $rulesMap['*'][$pattern][0];
                             } elseif (isset($rules[$method][$pattern])) {
-                                $old = $rules[$method][$pattern][0];
+                                $old = $rulesMap[$method][$pattern][0];
                             } else {
-                                $rules[$method][$pattern] = [$route, $varNames, $domainVariables];
+                                $rulesMap[$method][$pattern] = [$route, $varNames, $hostVariables];
                                 continue;
                             }
-                            $error  = "The route `{$scheme}:{$domain}:{$method}:{$pattern}` conflicts with a previously ";
-                            $error .= "defined one on `{$old->scheme()}:{$old->domain()}:{$old->method()}:{$pattern}`.";
+                            $error  = "The route `{$scheme}:{$routeDomain}:{$method}:{$pattern}` conflicts with a previously ";
+                            $error .= "defined one on `{$old->scheme()}:{$old->host()}:{$old->method()}:{$pattern}`.";
                             throw new RouterException($error);
                         }
                     }
@@ -179,16 +234,12 @@ class Router
             }
         }
 
-        $all = [];
+        $rules = [];
 
         foreach ($methods as $method) {
-            $all += (isset($rules[$method]) ? $rules[$method] : []);
+            $rules += (isset($rulesMap[$method]) ? $rulesMap[$method] : []);
         }
-
-        if ($route = $this->_dispatch($all, $request['path'])) {
-            return $route->dispatch();
-        }
-        throw new RouterException("No route found for `{$request['scheme']}:{$request['domain']}:{$request['method']}:{$request['path']}`.", 404);
+        return $rules;
     }
 
     /**
@@ -206,13 +257,13 @@ class Router
             if (!preg_match($combinedRule['regex'], $path, $matches)) {
                 continue;
             }
-            list($route, $varNames, $domainVariables) = $combinedRule['map'][count($matches)];
+            list($route, $varNames, $hostVariables) = $combinedRule['map'][count($matches)];
             $variables = [];
             $i = 0;
             foreach ($varNames as $varName) {
                 $variables[$varName] = $matches[++$i];
             }
-            $route->params($domainVariables + $variables);
+            $route->params($hostVariables + $variables);
             return $route;
         }
     }
@@ -248,13 +299,13 @@ class Router
     }
 
     /**
-     * Checks if a domain matches a domain pattern.
+     * Checks if a host matches a host pattern.
      *
-     * @param  string  $domain  The domain to check.
+     * @param  string  $host    The host to check.
      * @param  string  $pattern The pattern to use for checking.
      * @return boolean          Returns `true` on success, false otherwise.
      */
-    protected function _matchDomain($domain, $pattern, &$variables)
+    protected function _matchDomain($host, $pattern, &$variables)
     {
         if ($pattern === '*') {
             $rules = [['.*', []]];
@@ -263,7 +314,7 @@ class Router
             $rules = $parser::parse($pattern, '[^.]+');
         }
         foreach ($rules as $rule) {
-            if (preg_match('~^(?|' . $rule[0] . ')$~', $domain, $matches)) {
+            if (preg_match('~^(?|' . $rule[0] . ')$~', $host, $matches)) {
                 $i = 0;
                 foreach ($rule[1] as $name) {
                     $variables[$name] = $matches[++$i];
