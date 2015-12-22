@@ -11,38 +11,52 @@ describe("Parser", function() {
         it("parses an empty url", function() {
 
             $result = Parser::parse('');
-            expect($result)->toBe([['', []]]);
+            expect($result)->toBe([['']]);
 
         });
 
         it("parses a static url", function() {
 
             $result = Parser::parse('/test');
-            expect($result)->toBe([['/test', []]]);
+            expect($result)->toBe([['/test']]);
 
         });
 
         it("parses an url with a variable", function() {
 
             $result = Parser::parse('/test/{param}');
-            expect($result)->toBe([['/test/([^/]+)', ['param' => 'param']]]);
+            expect($result)->toBe([[
+                '/test/',
+                ['param', '[^/]+']
+            ]]);
 
         });
 
         it("parses an url with several variables", function() {
 
             $result = Parser::parse('/test/{param1}/test2/{param2}');
-            expect($result)->toBe([['/test/([^/]+)/test2/([^/]+)', ['param1' => 'param1', 'param2' => 'param2']]]);
+            expect($result)->toBe([[
+                '/test/',
+                ['param1', '[^/]+'],
+                '/test2/',
+                ['param2', '[^/]+']
+            ]]);
 
         });
 
         it("parses an url with a variable with a custom regex", function() {
 
             $result = Parser::parse('/test/{param:\d+}');
-            expect($result)->toBe([['/test/(\d+)', ['param' => 'param']]]);
+            expect($result)->toBe([[
+                '/test/',
+                ['param', '\d+']
+            ]]);
 
             $result = Parser::parse('/test/{ param : \d{1,9} }');
-            expect($result)->toBe([['/test/(\d{1,9})', ['param' => 'param']]]);
+            expect($result)->toBe([[
+                '/test/',
+                ['param', '\d{1,9}']
+            ]]);
 
         });
 
@@ -50,8 +64,8 @@ describe("Parser", function() {
 
             $result = Parser::parse('/test[opt]');
             expect($result)->toBe([
-                ['/test', []],
-                ['/testopt', []]
+                ['/test'],
+                ['/testopt']
             ]);
 
         });
@@ -60,8 +74,8 @@ describe("Parser", function() {
 
             $result = Parser::parse('[test]');
             expect($result)->toBe([
-                ['', []],
-                ['test', []]
+                [''],
+                ['test']
             ]);
 
         });
@@ -70,8 +84,8 @@ describe("Parser", function() {
 
             $result = Parser::parse('/test[/{param}]');
             expect($result)->toBe([
-                ['/test', []],
-                ['/test/([^/]+)', ['param' => 'param']]
+                ['/test'],
+                ['/test/', ['param', '[^/]+']]
             ]);
 
         });
@@ -80,8 +94,8 @@ describe("Parser", function() {
 
             $result = Parser::parse('/{param}[opt]');
             expect($result)->toBe([
-                ['/([^/]+)', ['param' => 'param']],
-                ['/([^/]+)opt', ['param' => 'param']]
+                ['/', ['param', '[^/]+']],
+                ['/', ['param', '[^/]+'], 'opt']
             ]);
 
         });
@@ -90,9 +104,9 @@ describe("Parser", function() {
 
             $result = Parser::parse('/test[/{name}[/{id:[0-9]+}]]');
             expect($result)->toBe([
-                ['/test', []],
-                ['/test/([^/]+)', ['name' => 'name']],
-                ['/test/([^/]+)/([0-9]+)', ['name' => 'name', 'id' => 'id']]
+                ['/test'],
+                ['/test/', ['name', '[^/]+']],
+                ['/test/', ['name', '[^/]+'], '/', ['id', '[0-9]+']]
             ]);
 
         });
@@ -151,16 +165,31 @@ describe("Parser", function() {
 
         });
 
+    });
+
+    describe("::rules()", function() {
+
+        it("creates rules from a parsed pattern", function() {
+
+            $data = Parser::parse('/test[/{name}[/{id:[0-9]+}]]');
+            $rules = Parser::rules($data);
+            expect($rules)->toBe([
+                ['/test', []],
+                ['/test/([^/]+)', ['name' => 'name']],
+                ['/test/([^/]+)/([0-9]+)', ['name' => 'name', 'id' => 'id']]
+            ]);
+
+        });
+
         it("throws an exception when a placeholder is present several time", function() {
 
             $closure = function() {
-                Parser::parse('/test/{var}/{var}/required');
+                Parser::rules(Parser::parse('/test/{var}/{var}/required'));
             };
 
             expect($closure)->toThrow(new RouterException("Cannot use the same placeholder `var` twice."));
 
         });
-
 
     });
 

@@ -4,10 +4,13 @@
     "keywords": ["Router"],
     "license": "MIT",
     "require": {
-        "php": ">=5.5"
+        "php": ">=5.5",
+        "crysalead/collection": "~2.0",
+        "psr/http-message": "~1.0"
     },
     "require-dev": {
-        "crysalead/kahlan": "~2.0"
+        "crysalead/kahlan": "~2.0",
+        "crysalead/net": "dev-master"
     },
     "autoload": {
         "psr-4": {

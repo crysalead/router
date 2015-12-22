@@ -6,6 +6,20 @@ use Closure;
 class Route
 {
     /**
+     * Class dependencies.
+     *
+     * @var array
+     */
+    protected $_classes = [];
+
+    /**
+     * Route's name.
+     *
+     * @var string
+     */
+    public $name = '';
+
+    /**
      * Maching scheme.
      *
      * @var string
@@ -34,40 +48,65 @@ class Route
     public $pattern = '';
 
     /**
-     * Attached namespace.
+     * Route's arguments.
      *
-     * @var string
+     * @var array
      */
-    public $namespace = '';
+    public $args = [];
 
     /**
-     * Route's name.
-     *
-     * @var string
-     */
-    public $name = '';
-
-    /**
-     * Handler callable.
-     *
-     * @var mixed
-     */
-    public $handler = null;
-
-    /**
-     * Params.
+     * Named parameter.
      *
      * @var array
      */
     public $params = [];
 
     /**
+     * Namespace.
+     *
+     * @var string
+     */
+    public $namespace = '';
+
+    /**
+     * Request.
+     *
+     * @var mixed
+     */
+    public $request = null;
+
+    /**
+     * Response.
+     *
+     * @var mixed
+     */
+    public $response = null;
+
+    /**
+     * Data extracted from route's pattern.
+     *
+     * @var string
+     */
+    protected $_data = null;
+
+    /**
+     * Rules extracted from route's data.
+     *
+     * @var string
+     */
+    protected $_rules = null;
+
+    /**
+     * Handler.
+     *
+     * @var Closure
+     */
+    protected $_handler = null;
+
+    /**
      * Constructs a route
      *
-     * @param string $httpMethod
-     * @param mixed  $handler
-     * @param string $regex
-     * @param array  $variables
+     * @param array $config The config array.
      */
     public function __construct($config = []) {
         $defaults = [
@@ -78,123 +117,51 @@ class Route
             'name'      => '',
             'namespace' => '',
             'handler'   => null,
-            'params'    => []
+            'params'    => [],
+            'classes'   => [
+                'parser' => 'Lead\Router\Parser'
+            ]
         ];
         $config += $defaults;
 
-        $this->scheme($config['scheme']);
-        $this->host($config['host']);
-        $this->method($config['method']);
-        $this->pattern($config['pattern']);
-        $this->name($config['name']);
-        $this->ns($config['namespace']);
-        $this->params($config['params']);
+        $this->_classes = $config['classes'];
+        $this->scheme = $config['scheme'];
+        $this->host = $config['host'];
+        $this->method = $config['method'];
+        $this->pattern = $config['pattern'];
+        $this->name = $config['name'];
+        $this->namespace = $config['namespace'];
+        $this->params = $config['params'];
         $this->handler($config['handler']);
     }
 
     /**
-     * Gets/sets the route's scheme.
+     * Returns the route's data.
      *
-     * @param  array      $scheme The scheme to set or none to get the setted one.
-     * @return array|self
+     * @return array A collection of routes splited in segments.
      */
-    public function scheme($scheme = null)
+    public function data($matchAnything = 'args')
     {
-        if (func_num_args() === 0) {
-            return $this->_scheme;
+        if ($this->_data === null) {
+            $parser = $this->_classes['parser'];
+            $this->_rules = null;
+            $this->_data = $parser::parse($this->pattern, '[^/]+', $matchAnything);
         }
-        $this->_scheme = $scheme;
-        return $this;
+        return $this->_data;
     }
 
     /**
-     * Gets/sets the route's host.
+     * Returns the route's rules.
      *
-     * @param  array      $host The host to set or none to get the setted one.
-     * @return array|self
+     * @return array A collection of route patterns and their associated variable names.
      */
-    public function host($host = null)
+    public function rules()
     {
-        if (func_num_args() === 0) {
-            return $this->_host;
+        if ($this->_data === null) {
+            $parser = $this->_classes['parser'];
+            $this->_rules = $parser::rules($this->data());
         }
-        $this->_host = $host;
-        return $this;
-    }
-
-    /**
-     * Gets/sets the route's method.
-     *
-     * @param  array      $method The method to set or none to get the setted one.
-     * @return array|self
-     */
-    public function method($method = null)
-    {
-        if (func_num_args() === 0) {
-            return $this->_method;
-        }
-        $this->_method = $method;
-        return $this;
-    }
-
-    /**
-     * Gets/sets the route's pattern.
-     *
-     * @param  array      $pattern The pattern to set or none to get the setted one.
-     * @return array|self
-     */
-    public function pattern($pattern = null)
-    {
-        if (func_num_args() === 0) {
-            return $this->_pattern;
-        }
-        $this->_pattern = $pattern;
-        return $this;
-    }
-
-    /**
-     * Gets/sets the route's name.
-     *
-     * @param  array      $name The name to set or none to get the setted one.
-     * @return array|self
-     */
-    public function name($name = null)
-    {
-        if (func_num_args() === 0) {
-            return $this->_name;
-        }
-        $this->_name = $name;
-        return $this;
-    }
-
-    /**
-     * Gets/sets the route's namespace.
-     *
-     * @param  array      $namespace The namespace to set or none to get the setted one.
-     * @return array|self
-     */
-    public function ns($namespace = null)
-    {
-        if (func_num_args() === 0) {
-            return $this->_namespace;
-        }
-        $this->_namespace = $namespace;
-        return $this;
-    }
-
-    /**
-     * Gets/sets the route's params.
-     *
-     * @param  array      $params The params to set or none to get the setted one.
-     * @return array|self
-     */
-    public function params($params = null)
-    {
-        if (func_num_args() === 0) {
-            return $this->_params;
-        }
-        $this->_params = $params;
-        return $this;
+        return $this->_rules;
     }
 
     /**
@@ -216,30 +183,88 @@ class Route
     }
 
     /**
-     * Gets/sets the route's request.
-     *
-     * @param  array      $request The request to set or none to get the setted one.
-     * @return array|self
-     */
-    public function request($request = null)
-    {
-        if (func_num_args() === 0) {
-            return $this->_request;
-        }
-        $this->_request = $request;
-        return $this;
-    }
-
-    /**
      * Dispatches the route.
      *
      * @param mixed  $request The dispatched request.
      * @return mixed
      */
-    public function dispatch($request)
+    public function dispatch($request, $response = null)
     {
         $handler = $this->handler();
-        $this->request($request);
-        return call_user_func_array($handler, $this->params());
+        $this->request = $request;
+        $this->response = $response;
+        return call_user_func_array($handler, $this->params);
     }
+
+    /**
+     * Returns the route link
+     *
+     * @param  array  $params  The route parameters.
+     * @param  array  $options Options for generating the proper prefix. Accepted values are:
+     *                         - `'absolute'` _boolean_: `true` or `false`
+     *                         - `'scheme'`   _string_ : The scheme
+     *                         - `'host'`     _string_ : The host name
+     *                         - `'basePath'` _string_ : The base path
+     * @return string          The prefixed path, depending on the passed options.
+     */
+    public function link($params = [], $options = [])
+    {
+        $defaults = [
+            'absolute' => false,
+            'scheme'   => 'http',
+            'host'     => 'localhost',
+            'basePath' => '',
+            'query'    => '',
+            'fragment' => ''
+        ];
+        $options += [
+            'scheme' => $this->scheme,
+            'host'   => $this->host
+        ];
+
+        $options = array_filter($options, function($value) { return $value !== '*'; });
+
+        $options += $defaults;
+
+        $data = array_reverse($this->data());
+
+        foreach ($data as $segments) {
+            $link = '';
+            $missing = null;
+
+            foreach ($segments as $segment) {
+                if (is_string($segment)) {
+                    $link .= $segment;
+                    continue;
+                }
+                if (!array_key_exists($segment[0], $params)) {
+                    $missing = $segment[0];
+                    break;
+                }
+                $link .= $params[$segment[0]];
+            }
+            if (!$missing) {
+                break;
+            }
+        }
+        if (!empty($missing)) {
+            throw new RouterException("Missing parameters `'{$segment[0]}'` for route: `'{$this->name}#{$this->pattern}'`.");
+        }
+        $basePath = trim($options['basePath'], '/');
+        if ($options['basePath']) {
+            $basePath = '/' . $basePath;
+        }
+        $link = isset($link) ? ltrim($link, '/') : '';
+        $link = $basePath . ($link ? '/' . $link : $link);
+        $query = $options['query'] ? '?' . $options['query'] : '';
+        $fragment = $options['fragment'] ? '#' . $options['fragment'] : '';
+
+        if ($options['absolute']) {
+            $scheme = $options['scheme'] ? $options['scheme'] . '://' : '//';
+            $link = "{$scheme}{$options['host']}{$link}";
+        }
+
+        return $link . $query . $fragment;
+    }
+
 }

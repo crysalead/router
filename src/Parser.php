@@ -31,26 +31,26 @@ REGEX;
      *
      * @param string $pattern      A route pattern
      * @param string $segmentRegex The regular expression for variable segment.
-     * @param array                Returns a collection of route patterns and their associated variable names.
+     * @param array                Returns a collection of route patterns splitted in segments.
      */
-    public static function parse($pattern, $segmentRegex = '[^/]+')
+    public static function parse($pattern, $segmentRegex = '[^/]+', $matchAnything = 'args')
     {
         $patternWithoutClosingOptionals = rtrim($pattern, ']');
         $numOptionals = strlen($pattern) - strlen($patternWithoutClosingOptionals);
 
-        $segments = preg_split('~' . static::VARIABLE_REGEX . '(*SKIP)(*F) | \[~x', $patternWithoutClosingOptionals);
+        $parts = preg_split('~' . static::VARIABLE_REGEX . '(*SKIP)(*F) | \[~x', $patternWithoutClosingOptionals);
 
-        if ($numOptionals !== count($segments) - 1) {
+        if ($numOptionals !== count($parts) - 1) {
             if (preg_match('~' . static::VARIABLE_REGEX . '(*SKIP)(*F) | \]~x', $patternWithoutClosingOptionals)) {
                 throw new RouterException("Optional segments can only occur at the end of a route.");
             }
             throw new RouterException("Number of opening '[' and closing ']' does not match.");
         }
 
-        $parses = [];
+        $data = [];
         $currentPattern = '';
 
-        foreach ($segments as $n => $part) {
+        foreach ($parts as $n => $part) {
             if (!$part) {
                 if ($n !== 0) {
                     throw new RouterException("Empty optional part.");
@@ -58,9 +58,9 @@ REGEX;
             } else {
                 $currentPattern = $part[0] === '/' ? rtrim($currentPattern, '/') . $part : $currentPattern . $part;
             }
-            $parses[] = static::_parse($currentPattern, $segmentRegex);
+            $data[] = static::_parse($currentPattern, $segmentRegex, $matchAnything);
         }
-        return $parses;
+        return $data;
     }
 
     /**
@@ -68,12 +68,12 @@ REGEX;
      *
      * @param string $pattern      A route pattern
      * @param string $segmentRegex The regular expression for variable segment.
-     * @param array                Returns a collection of route patterns and their associated variable names.
+     * @param array                An array containing a regex pattern and its associated variable names.
      */
-    protected static function _parse($pattern, $segmentRegex)
+    protected static function _parse($pattern, $segmentRegex, $matchAnything)
     {
         if (!preg_match_all('~' . static::VARIABLE_REGEX . '~x', $pattern, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
-            return static::_buildPattern([$pattern]);
+            return [$pattern];
         }
         $offset = 0;
         $patternData = [];
@@ -83,32 +83,47 @@ REGEX;
             }
             $patternData[] = [
                 $set[1][0],
-                isset($set[2]) ? trim($set[2][0]) : $segmentRegex
+                isset($set[2]) ? trim($set[2][0]) : ($set[1][0] === $matchAnything ? '.+' : $segmentRegex)
             ];
             $offset = $set[0][1] + strlen($set[0][0]);
         }
         if ($offset != strlen($pattern)) {
             $patternData[] = substr($pattern, $offset);
         }
-        return static::_buildPattern($patternData);
+        return $patternData;
     }
 
     /**
-     * Build a regex pattern from a pattern data.
+     * Returns a collection of route patterns and their associated variable names.
      *
-     * @param  array $patternData A pattern data
-     * @return array              An array containing a regex pattern and its associated variable names.
+     * @param  array $data Some route parsed data.
+     * @return array       A collection of route patterns and their associated variable names.
      */
-    protected static function _buildPattern($patternData)
+    public static function rules($data)
+    {
+        $rules = [];
+        foreach ($data as $segments) {
+            $rules[] = static::rule($segments);
+        }
+        return $rules;
+    }
+
+    /**
+     * Build a regex pattern from a route rule.
+     *
+     * @param  array $rule A collection of route segment.
+     * @return array       An array containing a regex pattern and its associated variable names.
+     */
+    public static function rule($segments)
     {
         $regex = '';
         $variables = [];
-        foreach ($patternData as $part) {
-            if (is_string($part)) {
-                $regex .= preg_quote($part, '~');
+        foreach ($segments as $segment) {
+            if (is_string($segment)) {
+                $regex .= preg_quote($segment, '~');
                 continue;
             }
-            list($varName, $regexPart) = $part;
+            list($varName, $regexPart) = $segment;
             if (isset($variables[$varName])) {
                 throw new RouterException("Cannot use the same placeholder `{$varName}` twice.");
             }

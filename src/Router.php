@@ -2,9 +2,10 @@
 namespace Lead\Router;
 
 use Closure;
+use Psr\Http\Message\RequestInterface;
 use Lead\Router\RouterException;
 
-class Router
+class Router extends \Lead\Collection\Collection
 {
     /**
      * Class dependencies.
@@ -14,9 +15,18 @@ class Router
     protected $_classes = [];
 
     /**
+     * Routes.
+     *
      * @var array
      */
     protected $_routes = [];
+
+    /**
+     * Named routes.
+     *
+     * @var array
+     */
+    protected $_data = [];
 
     /**
      * Scopes definition.
@@ -33,9 +43,25 @@ class Router
     protected $_chunkSize = null;
 
     /**
+     * Base path.
+     *
+     * @param string
+     */
+    protected $_basePath = '';
+
+    /**
      * Dispatching strategies.
+     *
+     * @param array
      */
     protected $_strategies = [];
+
+    /**
+     * Slash insensitive param name.
+     *
+     * @param array
+     */
+    protected $_matchAnything = 'args';
 
     /**
      * Constructor
@@ -45,22 +71,45 @@ class Router
     public function __construct($config = [])
     {
         $defaults = [
-            'classes'   => [
-                'parser' => 'Lead\Router\Parser',
-                'route'  => 'Lead\Router\Route'
+            'basePath'      => '',
+            'scope'         => [],
+            'chunkSize'     => 10,
+            'strategies'    => $this->_strategies(),
+            'classes'       => [
+                'parser'    => 'Lead\Router\Parser',
+                'route'     => 'Lead\Router\Route'
             ],
-            'scope'     => [],
-            'chunkSize' => 10
+            'matchAnything' => 'args'
         ];
         $config += $defaults;
         $this->_classes = $config['classes'];
         $this->_scopes[] = $config['scope'] + [
-            'scheme'  => '*',
-            'host'    => '*',
-            'method'  => '*',
-            'pattern' => '/'
+            'name'      => '',
+            'scheme'    => '*',
+            'host'      => '*',
+            'method'    => '*',
+            'pattern'   => '/',
+            'namespace' => ''
         ];
+        $this->_basePath = $config['basePath'];
         $this->_chunkSize = $config['chunkSize'];
+        $this->_strategies = $config['strategies'];
+        $this->_matchAnything = $config['matchAnything'];
+    }
+
+    /**
+     * Gets/sets the base path of the router.
+     *
+     * @param  string      $basePath The base path to set or none to get the setted one.
+     * @return string|self
+     */
+    public function basePath($basePath = null)
+    {
+        if (!func_num_args()) {
+            return $this->_basePath;
+        }
+        $this->_basePath = $basePath && $basePath !== '/' ? '/' . trim($basePath, '/') : '';
+        return $this;
     }
 
     /**
@@ -71,61 +120,73 @@ class Router
      * @param  Closure|null  $handler The handler callback.
      * @return self
      */
-    public function route($pattern, $options, $handler = null)
+    public function add($pattern, $options, $handler = null)
     {
-        if (is_callable($options)) {
+        if ($options instanceof Closure) {
             $handler = $options;
             $options = [];
         }
-        if (!is_callable($handler)) {
-            throw new RouterException("The handler needs to be callable.");
+        if (!$handler instanceof Closure) {
+            throw new RouterException("The handler needs to be an instance of `Closure`.");
         }
         $scope = end($this->_scopes);
 
+        if (strpos($pattern, '#')) {
+            list($name, $pattern) = explode('#', $pattern, 2);
+            $name = $scope['name'] ?  $scope['name'] . '/' . $name : $name;
+        }
+
         $options['pattern'] = $scope['pattern'] . (trim($pattern, '/'));
-        $options += $scope + [
-            'scheme'  => '*',
-            'host'    => '*',
-            'method'  => '*'
-        ];
+
+        if (isset($options['namespace'])) {
+            $options['namespace'] = $scope['namespace'] . trim($options['namespace'], '\\') . '\\';
+        }
+
+        $options += $scope;
         $options['handler'] = $handler;
         $route = $this->_classes['route'];
 
         $instance = new $route($options);
         $this->_routes[$options['scheme']][$options['host']][$options['method']][] = $instance;
+        if (isset($name)) {
+            $this->_data[$name] = $instance;
+        }
         return $instance;
     }
 
     /**
      * Groups some routes inside a scope
      *
-     * @param string|array  $scope
-     * @param Closure       $callback
+     * @param string|array $scope
+     * @param Closure      $callback
      */
-    public function mount($pattern, $options, $handler = null)
+    public function group($pattern, $options, $handler = null)
     {
-        if (is_callable($options)) {
+        if ($options instanceof Closure) {
             $handler = $options;
-            $options = $pattern;
+            if (is_string($pattern)) {
+                $options = [];
+            } else {
+                $options = $pattern;
+                $pattern = '';
+            }
         }
-        if (!is_callable($handler)) {
-            throw new RouterException("The handler needs to be callable.");
+        if (!$handler instanceof Closure) {
+            throw new RouterException("The handler needs to be an instance of `Closure`.");
         }
         $scope = end($this->_scopes);
 
-        if (is_string($options)) {
-            $pattern = $options;
-            $options = [];
+
+
+        if (strpos($pattern, '#')) {
+            list($name, $pattern) = explode('#', $pattern, 2);
+            $options['name'] = $scope['name'] ?  $scope['name'] . '/' . $name : $name;
         }
 
         $options['pattern'] = $scope['pattern'] . trim($pattern, '/') . '/';
 
-        if ($scope['scheme'] !== '*' && $scope['scheme'] !== $options['scheme']) {
-            throw new Exception("Parent's scope requires `'{$scope['scheme']}'` as scheme, but current is `'{$options['scheme']}'`.");
-        }
-
-        if ($scope['host'] !== '*' && $scope['host'] !== $options['host']) {
-            throw new Exception("Parent's scope requires `'{$scope['host']}'` as host, but current is `'{$options['host']}'`.");
+        if (isset($options['namespace'])) {
+            $options['namespace'] = $scope['namespace'] . trim($options['namespace'], '\\') . '\\';
         }
 
         $this->_scopes[] = $options + $scope;
@@ -138,28 +199,40 @@ class Router
     /**
      * Dispatches a Request.
      *
+     * @param  mixed $request The request to route.
      * @return mixed
      */
-    public function dispatch($request)
+    public function dispatch($request, $response = null)
     {
-        if (is_object($request)) {
+        $defaults = [
+            'path'   => '/',
+            'method' => 'GET',
+            'host'   => '*',
+            'scheme' => '*'
+        ];
+
+        if ($request instanceof RequestInterface) {
+            $uri = $request->getUri();
             $r = [
-                'scheme' => $request->getScheme(),
-                'host'   => $request->getHost(),
+                'scheme' => $uri->getScheme(),
+                'host'   => $uri->getHost(),
                 'method' => $request->getMethod(),
-                'path'   => $request->getRequestTarget(),
+                'path'   => $uri->getPath()
             ];
+            if (method_exists($request, 'basePath')) {
+                $this->basePath($request->basePath());
+            }
         } elseif (!is_array($request)) {
-            $r = array_combine(['path', 'method', 'host', 'scheme'], func_get_args() + ['/', 'GET', '*', '*']);
+            $r = array_combine(array_keys($defaults), func_get_args() + array_values($defaults));
         } else {
-            $r = $request;
+            $r = $request + $defaults;
         }
         $r = $this->_normalizeRequest($r);
 
         $rules = $this->_buildRules($r['method'], $r['host'], $r['scheme']);
 
         if ($route = $this->_dispatch($rules, $r['path'])) {
-            return $route->dispatch(is_object($request) ? $request : $r);
+            return $route->dispatch(is_object($request) ? $request : $r, $response);
         }
         throw new RouterException("No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:{$r['path']}`.", 404);
     }
@@ -190,7 +263,6 @@ class Router
      */
     protected function _buildRules($method, $host = '*', $scheme = '*')
     {
-        $parser = $this->_classes['parser'];
         $schemes = array_unique([$scheme => $scheme, '*' => '*']);
         $methods = array_unique([$method => $method, '*' => '*']);
 
@@ -214,26 +286,25 @@ class Router
                         continue;
                     }
                     foreach ($routes as $route) {
-                        $parses = $parser::parse($route->pattern());
-                        foreach ($parses as $parse) {
-                            list($pattern, $varNames) = $parse;
+                        $rules = $route->rules();
+                        foreach ($rules as $rule) {
+                            list($pattern, $varNames) = $rule;
                             if (isset($rulesMap['*'][$pattern])) {
                                 $old = $rulesMap['*'][$pattern][0];
-                            } elseif (isset($rules[$method][$pattern])) {
+                            } elseif (isset($rulesMap[$method][$pattern])) {
                                 $old = $rulesMap[$method][$pattern][0];
                             } else {
                                 $rulesMap[$method][$pattern] = [$route, $varNames, $hostVariables];
                                 continue;
                             }
                             $error  = "The route `{$scheme}:{$routeDomain}:{$method}:{$pattern}` conflicts with a previously ";
-                            $error .= "defined one on `{$old->scheme()}:{$old->host()}:{$old->method()}:{$pattern}`.";
+                            $error .= "defined one on `{$old->scheme}:{$old->host}:{$old->method}:{$pattern}`.";
                             throw new RouterException($error);
                         }
                     }
                 }
             }
         }
-
         $rules = [];
 
         foreach ($methods as $method) {
@@ -252,6 +323,7 @@ class Router
     protected function _dispatch($rules, $path)
     {
         $combinedRules = $this->_combineRules($rules, $this->_chunkSize);
+        $matchAnything = $this->_matchAnything;
 
         foreach ($combinedRules as $combinedRule) {
             if (!preg_match($combinedRule['regex'], $path, $matches)) {
@@ -263,7 +335,13 @@ class Router
             foreach ($varNames as $varName) {
                 $variables[$varName] = $matches[++$i];
             }
-            $route->params($hostVariables + $variables);
+            if (isset($variables[$matchAnything])) {
+                $args = explode('/', $variables[$matchAnything]);
+                $route->args = array_merge(array_values(array_slice($variables, 0, -1)), $args);
+            } else {
+                $route->args = array_values($variables);
+            }
+            $route->params = $hostVariables + $variables;
             return $route;
         }
     }
@@ -311,7 +389,7 @@ class Router
             $rules = [['.*', []]];
         } else {
             $parser = $this->_classes['parser'];
-            $rules = $parser::parse($pattern, '[^.]+');
+            $rules = $parser::rules($parser::parse($pattern, '[^.]+'));
         }
         foreach ($rules as $rule) {
             if (preg_match('~^(?|' . $rule[0] . ')$~', $host, $matches)) {
@@ -326,22 +404,173 @@ class Router
     }
 
     /**
-     * Adds a route.
+     * Gets/sets router methods.
      *
-     * @param  string $name   The HTTP verb to route on.
-     * @param  array  $params The parameters to pass to the route.
+     * @param  string       $name    A router method name
+     * @param  Closure|null $handler The method handler or `null` to get the setted one.
+     * @return mixed                 A method handler, `null` if not found or self on set.
+     */
+    public function strategy($name, $handler = null)
+    {
+        if (func_num_args() === 1) {
+            if (!isset($this->_strategies[$name])) {
+                return;
+            }
+            return $this->_strategies[$name];
+        }
+        if (!$handler instanceof Closure) {
+            throw new RouterException("The handler needs to be an instance of `Closure`.");
+        }
+        $this->_strategies[$name] = $handler;
+        return $this;
+    }
+
+    /**
+     * Examples of routing strategy.
+     *
+     * @return array
+     */
+    protected function _strategies()
+    {
+        $camelize = function($word) {
+            $upper = function($matches) {
+                return strtoupper($matches[0]);
+            };
+            $camelized = str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', strtolower($word))));
+            return preg_replace_callback('/(\\\[a-z])/', $upper, $camelized);
+        };
+
+        $underscore = function($word) {
+            return strtolower(strtr(preg_replace('/(?<=\\w)([A-Z])/', '_\\1', $word), '-', '_'));
+        };
+
+        return [
+            'controller' => function($path, $options, $controller = null) use ($camelize) {
+                if (!is_array($options)) {
+                    $controller = $options;
+                    $options = [];
+                }
+                $options += ['suffix' => 'Controller'];
+                $this->add($path, $options, function() use ($controller, $camelize, $options) {
+                    $controller = $controller ?: $camelize($this->params['controller']) . $options['suffix'];
+                    $controller = $this->namespace . $controller;
+                    $instance = new $controller();
+                    return $instance($this->args, $this->params, $this->request, $this->response);
+                });
+            },
+            'resource' => function($resource, $options = []) use ($camelize, $underscore) {
+                $options += [
+                    'suffix' => 'Resource',
+                    'id'     => '[0-9a-f]{24}|[0-9]+'
+                ];
+                $id = function($id) use ($options) {
+                    return '/{' . $id . ':' . $options['id'] . '}';
+                };
+
+                if (strpos($resource, '/') !== false) {
+                    throw new Exception("Invalid resource string definition: `'{$resource}'`.");
+                }
+
+                $resources = explode('#', $resource);
+                $resource = $resources[count($resources) - 1];
+                $path = $underscore($resource);
+
+                for ($i = count($resources) - 2; $i >= 0; $i--) {
+                    $path = $underscore($resources[$i]) . $id($underscore($resources[$i])) . '/' . $path;
+                }
+
+                $run = function($route, $action) use ($resource, $camelize, $options) {
+                    $count = count($route->params);
+                    if (isset($route->params['id'])) {
+                        $id = $route->params['id'];
+                        unset($route->params['id']);
+                    }
+                    $relations = $route->params;
+                    $route->params = [];
+                    $route->params['relations'] = $relations;
+                    $route->params['resource'] = $resource;
+                    if (isset($id)) {
+                        $route->params['id'] = $id;
+                    }
+                    $route->params['action'] = $action;
+                    $resource = $camelize($resource) . $options['suffix'];
+                    $resource = $route->namespace . $resource;
+                    $instance = new $resource();
+                    return $instance($route->args, $route->params, $route->request, $route->response);
+                };
+
+                $this->get($path, $options, function() use ($run) {
+                    return $run($this, 'index');
+                });
+                $this->get($path . $id('id'), $options, function() use ($run) {
+                    return $run($this, 'show');
+                });
+                $this->get($path . '/add', $options, function() use ($run) {
+                    return $run($this, 'add');
+                });
+                $this->post($path, $options, function() use ($run) {
+                    return $run($this, 'create');
+                });
+                $this->get($path . $id('id') .'/edit', $options, function() use ($run) {
+                    return $run($this, 'edit');
+                });
+                $this->put($path . $id('id'), $options, function() use ($run) {
+                    return $run($this, 'update');
+                });
+                $this->delete($path . $id('id'), $options, function() use ($run) {
+                    return $run($this, 'delete');
+                });
+            }
+        ];
+    }
+
+    /**
+     * Adds custom route.
+     *
+     * @param  string $name   The HTTP verb to define a route on.
+     * @param  array  $params The route's parameters.
      */
     public function __call($name, $params)
     {
-        if (func_num_args() < 2) {
-            throw new RouterException("Adding a route require at least 2 parameters.");
-        }
         $method = strtoupper($name);
+        if ($strategy = $this->strategy($name)) {
+            $strategy->bindTo($this);
+            return call_user_func_array($strategy, $params);
+        }
         if (is_callable($params[1])) {
             $params[2] = $params[1];
             $params[1] = [];
         }
         $params[1]['method'] = $method;
-        return call_user_func_array([$this, 'route'], $params);
+        return call_user_func_array([$this, 'add'], $params);
+    }
+
+    /**
+     * Generates an URL to a named route.
+     */
+    public function link($name, $params = [], $options = [])
+    {
+        $defaults = [
+            'basePath' => $this->basePath()
+        ];
+        $options += $defaults;
+
+        $route = $this[$name];
+        return $route->link($params, $options);
+    }
+
+    /**
+     * Clears routes.
+     */
+    public function clear()
+    {
+        $this->_routes = [];
+        $this->_scopes = [[
+            'scheme'    => '*',
+            'host'      => '*',
+            'method'    => '*',
+            'pattern'   => '/',
+            'namespace' => ''
+        ]];
     }
 }
