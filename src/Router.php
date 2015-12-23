@@ -418,6 +418,10 @@ class Router extends \Lead\Collection\Collection
             }
             return $this->_strategies[$name];
         }
+        if ($handler === false) {
+            unset($this->_strategies[$name]);
+            return;
+        }
         if (!$handler instanceof Closure) {
             throw new RouterException("The handler needs to be an instance of `Closure`.");
         }

@@ -611,6 +611,20 @@ describe("Router", function() {
 
         });
 
+        it("unsets a strategy", function() {
+
+            $r = $this->router;
+
+            $mystrategy = function() {};
+
+            $r->strategy('mystrategy', $mystrategy);
+            expect($r->strategy('mystrategy'))->toBe($mystrategy);
+
+            $r->strategy('mystrategy', false);
+            expect($r->strategy('mystrategy'))->toBe(null);
+
+        });
+
         it("throws an exception when the handler is not a closure", function() {
 
             $closure = function() {
