@@ -440,10 +440,6 @@ class Router extends \Lead\Collection\Collection
             return preg_replace_callback('/(\\\[a-z])/', $upper, $camelized);
         };
 
-        $underscore = function($word) {
-            return strtolower(strtr(preg_replace('/(?<=\\w)([A-Z])/', '_\\1', $word), '-', '_'));
-        };
-
         return [
             'controller' => function($path, $options, $controller = null) use ($camelize) {
                 if (!is_array($options)) {
@@ -456,69 +452,6 @@ class Router extends \Lead\Collection\Collection
                     $controller = $this->namespace . $controller;
                     $instance = new $controller();
                     return $instance($this->args, $this->params, $this->request, $this->response);
-                });
-            },
-            'resource' => function($resource, $options = []) use ($camelize, $underscore) {
-                $options += [
-                    'suffix' => 'Resource',
-                    'id'     => '[0-9a-f]{24}|[0-9]+'
-                ];
-                $id = function($id) use ($options) {
-                    return '/{' . $id . ':' . $options['id'] . '}';
-                };
-
-                if (strpos($resource, '/') !== false) {
-                    throw new Exception("Invalid resource string definition: `'{$resource}'`.");
-                }
-
-                $resources = explode('#', $resource);
-                $resource = $resources[count($resources) - 1];
-                $path = $underscore($resource);
-
-                for ($i = count($resources) - 2; $i >= 0; $i--) {
-                    $path = $underscore($resources[$i]) . $id($underscore($resources[$i])) . '/' . $path;
-                }
-
-                $run = function($route, $action) use ($resource, $camelize, $options) {
-                    $count = count($route->params);
-                    if (isset($route->params['id'])) {
-                        $id = $route->params['id'];
-                        unset($route->params['id']);
-                    }
-                    $relations = $route->params;
-                    $route->params = [];
-                    $route->params['relations'] = $relations;
-                    $route->params['resource'] = $resource;
-                    if (isset($id)) {
-                        $route->params['id'] = $id;
-                    }
-                    $route->params['action'] = $action;
-                    $resource = $camelize($resource) . $options['suffix'];
-                    $resource = $route->namespace . $resource;
-                    $instance = new $resource();
-                    return $instance($route->args, $route->params, $route->request, $route->response);
-                };
-
-                $this->get($path, $options, function() use ($run) {
-                    return $run($this, 'index');
-                });
-                $this->get($path . $id('id'), $options, function() use ($run) {
-                    return $run($this, 'show');
-                });
-                $this->get($path . '/add', $options, function() use ($run) {
-                    return $run($this, 'add');
-                });
-                $this->post($path, $options, function() use ($run) {
-                    return $run($this, 'create');
-                });
-                $this->get($path . $id('id') .'/edit', $options, function() use ($run) {
-                    return $run($this, 'edit');
-                });
-                $this->put($path . $id('id'), $options, function() use ($run) {
-                    return $run($this, 'update');
-                });
-                $this->delete($path . $id('id'), $options, function() use ($run) {
-                    return $run($this, 'delete');
                 });
             }
         ];
