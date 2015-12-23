@@ -467,7 +467,7 @@ class Router extends \Lead\Collection\Collection
     {
         $method = strtoupper($name);
         if ($strategy = $this->strategy($name)) {
-            $strategy->bindTo($this);
+            $strategy = $strategy->bindTo($this);
             return call_user_func_array($strategy, $params);
         }
         if (is_callable($params[1])) {

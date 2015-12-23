@@ -590,4 +590,38 @@ describe("Router", function() {
 
     });
 
+    describe("->strategy()", function() {
+
+        it("sets a strategy", function() {
+
+            $r = $this->router;
+
+            $mystrategy = function() {
+                $this->add('foo/bar', function(){
+                    return 'Hello World!';
+                });
+            };
+
+            $r->strategy('mystrategy', $mystrategy);
+            expect($r->strategy('mystrategy'))->toBe($mystrategy);
+
+            $r->mystrategy();
+            $response = $r->dispatch('foo/bar');
+            expect($response)->toBe('Hello World!');
+
+        });
+
+        it("throws an exception when the handler is not a closure", function() {
+
+            $closure = function() {
+                $r = $this->router;
+                $r->strategy('mystrategy', "substr");
+            };
+
+            expect($closure)->toThrow(new RouterException("The handler needs to be an instance of `Closure`."));
+
+        });
+
+    });
+
 });
