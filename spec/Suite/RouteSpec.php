@@ -25,12 +25,12 @@ describe("Route", function() {
                 }
             );
 
-            $route = $r->route('foo/25', 'GET', 'foo.biz.bar');
-            $response = $route->dispatch();
+            $routing = $r->route('foo/25', 'GET', 'foo.biz.bar');
+            $response = $routing->route()->dispatch();
             expect($response)->toBe(['foo', 'biz', '25', 'default']);
 
-            $route = $r->route('foo/25/bar', 'GET', 'foo.biz.bar');
-            $response = $route->dispatch();
+            $routing = $r->route('foo/25/bar', 'GET', 'foo.biz.bar');
+            $response = $routing->route()->dispatch();
             expect($response)->toBe(['foo', 'biz', '25', 'bar']);
 
         });

@@ -3,7 +3,7 @@ namespace Lead\Router\Spec\Mock;
 
 use Exception;
 
-class TestController
+class RoutingTestController
 {
     public $args = [];
 

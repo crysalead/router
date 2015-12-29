@@ -77,7 +77,8 @@ class Router extends \Lead\Collection\Collection
             'strategies'    => $this->_strategies(),
             'classes'       => [
                 'parser'    => 'Lead\Router\Parser',
-                'route'     => 'Lead\Router\Route'
+                'route'     => 'Lead\Router\Route',
+                'routing'   => 'Lead\Router\Routing'
             ],
             'matchAnything' => 'args'
         ];
@@ -228,12 +229,26 @@ class Router extends \Lead\Collection\Collection
         $r = $this->_normalizeRequest($r);
 
         $rules = $this->_buildRules($r['method'], $r['host'], $r['scheme']);
+        $routing = $this->_classes['routing'];
 
-        if (!$route = $this->_route($rules, $r['path'])) {
-            throw new RouterException("No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:{$r['path']}`.", 404);
+        $error = $routing::FOUND;
+        $message = 'OK';
+
+        if ($route = $this->_route($rules, $r['path'])) {
+            $route->request = is_object($request) ? $request : $r;
+        } else {
+            $rules = $this->_buildRules('*', $r['host'], $r['scheme']);
+            if ($route = $this->_route($rules, $r['path'])) {
+                $error = $routing::METHOD_NOT_ALLOWED;
+                $message = "Method `{$r['method']}` Not Allowed for `{$r['scheme']}:{$r['host']}:{$r['path']}`.";
+                $route = null;
+            } else {
+                $error = $routing::NOT_FOUND;
+                $message = "No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:{$r['path']}`.";
+            }
         }
-        $route->request = is_object($request) ? $request : $r;
-        return $route;
+
+        return new $routing(compact('error', 'message', 'route'));
     }
 
     /**
@@ -255,24 +270,25 @@ class Router extends \Lead\Collection\Collection
     /**
      * Builds all route rules available for a request.
      *
-     * @param  string $method The HTTP method constraint.
-     * @param  string $host   The host constraint.
-     * @param  string $scheme The scheme constraint.
-     * @return array          The available rules.
+     * @param  string $httpMethod The HTTP method constraint.
+     * @param  string $host       The host constraint.
+     * @param  string $scheme     The scheme constraint.
+     * @return array              The available rules.
      */
-    protected function _buildRules($method, $host = '*', $scheme = '*')
+    protected function _buildRules($httpMethod, $host = '*', $scheme = '*')
     {
-        $schemes = array_unique([$scheme => $scheme, '*' => '*']);
-        $methods = array_unique([$method => $method, '*' => '*']);
-
-        if ($method === 'HEAD') {
-            $methods += ['GET' => 'GET'];
-        }
+        $allowedSchemes = array_unique([$scheme => $scheme, '*' => '*']);
+        $allowedMethods = array_unique([$httpMethod => $httpMethod, '*' => '*']);
 
         $rulesMap = [];
 
+        if ($httpMethod === 'HEAD') {
+            $allowedMethods += ['GET' => 'GET'];
+            $rulesMap['HEAD'] = [];
+        }
+
         foreach ($this->_routes as $scheme => $hostBasedRoutes) {
-            if (!isset($schemes[$scheme])) {
+            if (!isset($allowedSchemes[$scheme])) {
                 continue;
             }
             foreach ($hostBasedRoutes as $routeDomain => $methodBasedRoutes) {
@@ -281,7 +297,7 @@ class Router extends \Lead\Collection\Collection
                     continue;
                 }
                 foreach ($methodBasedRoutes as $method => $routes) {
-                    if (!isset($methods[$method])) {
+                    if (!isset($allowedMethods[$method]) && $httpMethod !== '*') {
                         continue;
                     }
                     foreach ($routes as $route) {
@@ -306,8 +322,8 @@ class Router extends \Lead\Collection\Collection
         }
         $rules = [];
 
-        foreach ($methods as $method) {
-            $rules += (isset($rulesMap[$method]) ? $rulesMap[$method] : []);
+        foreach ($rulesMap as $method => $value) {
+            $rules += $value;
         }
         return $rules;
     }
@@ -435,23 +451,18 @@ class Router extends \Lead\Collection\Collection
      */
     protected function _strategies()
     {
-        $camelize = function($word) {
-            $upper = function($matches) {
-                return strtoupper($matches[0]);
-            };
-            $camelized = str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', strtolower($word))));
-            return preg_replace_callback('/(\\\[a-z])/', $upper, $camelized);
-        };
-
         return [
-            'controller' => function($path, $options, $controller = null) use ($camelize) {
+            'controller' => function($path, $options, $controller = null) {
                 if (!is_array($options)) {
                     $controller = $options;
                     $options = [];
                 }
                 $options += ['suffix' => 'Controller'];
-                $this->add($path, $options, function() use ($controller, $camelize, $options) {
-                    $controller = $controller ?: $camelize($this->params['controller']) . $options['suffix'];
+                $this->add($path, $options, function() use ($controller, $options) {
+                    if (!$controller) {
+                        $controller  = str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', strtolower($this->params['controller']))));
+                        $controller .= $options['suffix'];
+                    }
                     $controller = $this->namespace . $controller;
                     $instance = new $controller();
                     return $instance($this->args, $this->params, $this->request, $this->response);
