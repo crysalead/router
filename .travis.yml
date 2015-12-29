@@ -23,3 +23,6 @@ after_success:
   - "if [ $(phpenv version-name) = '5.6' ]; then wget https://scrutinizer-ci.com/ocular.phar; fi"
   - "if [ $(phpenv version-name) = '5.6' ]; then php ocular.phar code-coverage:upload --format=php-clover 'clover.xml'; fi"
 
+env:
+  global:
+    secure: fKBejHRg4E9OtxYxFiCSz20RcuG96MNhYoeIiIbJ+daGX3vileCSTQkkMcDbtwRjmTdlrEijiH4MxSJ3Na4RsXQP7ROk07aQhlCrBbthW7EycwNwRvhC9auAxmqEkiUauzE1/II3+AQrWi/VWSt+1WfQqJcbK6l0wC1yJbehkEH+mzrRe5H9TkJfmdWt6j1Xwz19QwCqrsIr7OuB6udvOBpv49WbrV4ynlyO9rnAq8HzD2nO9F0QojmjAeW4ahaHisfuZyxoI8L7ODH0i0o5p+8MWxf7muaYYXhke8E3bchrxxBV4ZM0eHw+oEn1aNXkut5LWZNd3vQbb1DEWH6gS1+PyW3KKcpRRUVJYTeSBSXozPoZ6vYEyak5DFRjGzI1yXhsA/FjKbC4NNa6lvWjBUU1eQIfaZzccA0qyiC9kgZd+gMjmOwtU/NKyhX0mz04uJkiUJlYgNESk9+J5tFXaohN3O3tvIhCfK9tjPo4Bmbqu6l9e1eIebEdUvgB0ILdLihOP2XMKqUhlq5W+GWopIiScg6wJ9lGicmNJXE5vxMAh4jJlFgyyVIzkWAjqwo7lgw2t7jmoWeEQe6h/rMZDy4IlBkCxFqtB2q6U0TRnOqIu9QO+XPoTAHKpHtjO4tPuD2oZ7unCfyzlgnp62PQRptPpmepCvnvOGiO9DM9v3k=
