@@ -95,57 +95,64 @@ describe("Router", function() {
             $closure = function() {
                 $r = $this->router;
                 $r->add('foo#foo/{bar}', function () {});
-
-                var_dump($r->link('foo'));
+                $r->link('foo');
             };
 
-            expect($closure)->toThrow(new RouterException("Missing parameters `'bar'` for route: `'#/foo/{bar}'`."));
+            expect($closure)->toThrow(new RouterException("Missing parameters `'bar'` for route: `'foo#/foo/{bar}'`."));
 
         });
 
     });
 
-    describe("->dispatch()", function() {
+    describe("->route()", function() {
 
-        it("dispatches a simple route", function() {
+        it("routes on a simple route", function() {
 
             $r = $this->router;
-            $r->add('foo/bar', function () { return 'hello'; });
-            $response = $r->dispatch('foo/bar', 'GET');
-            expect($response)->toBe('hello');
+            $r->add('foo/bar', function () {});
+
+            $route = $r->route('foo/bar', 'GET');
+            expect($route->request)->toBe([
+                'path'   => '/foo/bar',
+                'method' => 'GET',
+                'host'   => '*',
+                'scheme' => '*'
+            ]);
 
             $closure = function() use ($r) {
-                $r->dispatch('bar/foo', 'GET');
+                $r->route('foo/baz', 'GET');
             };
 
-            expect($closure)->toThrow(new RouterException("No route found for `*:*:GET:/bar/foo`.", 404));
+            expect($closure)->toThrow(new RouterException("No route found for `*:*:GET:/foo/baz`.", 404));
 
         });
 
-        it("dispatches a named route", function() {
+        it("routes on a named route", function() {
 
             $r = $this->router;
-            $r->add('foo#foo/bar', function () { return 'hello'; });
-            $response = $r->dispatch('foo/bar', 'GET');
-            expect($response)->toBe('hello');
+            $r->add('foo#foo/bar', function () {});
+
+            $route = $r->route('foo/bar', 'GET');
+            expect($route->name)->toBe('foo');
 
             $closure = function() use ($r) {
-                $r->dispatch('bar/foo', 'GET');
+                $r->route('foo/baz', 'GET');
             };
 
-            expect($closure)->toThrow(new RouterException("No route found for `*:*:GET:/bar/foo`.", 404));
+            expect($closure)->toThrow(new RouterException("No route found for `*:*:GET:/foo/baz`.", 404));
 
         });
 
         it("supports route variables", function() {
 
             $r = $this->router;
-            $r->get('foo/{param}', function() { return $this->params; });
-            $response = $r->dispatch('foo/bar', 'GET');
-            expect($response)->toBe(['param' => 'bar']);
+            $r->get('foo/{param}', function() {});
+
+            $route = $r->route('foo/bar', 'GET');
+            expect($route->params)->toBe(['param' => 'bar']);
 
             $closure = function() use ($r) {
-                $r->dispatch('bar/foo', 'GET');
+                $r->route('bar/foo', 'GET');
             };
 
             expect($closure)->toThrow(new RouterException("No route found for `*:*:GET:/bar/foo`.", 404));
@@ -155,12 +162,13 @@ describe("Router", function() {
         it("supports constrained route variables", function() {
 
             $r = $this->router;
-            $r->get('foo/{var1:\d+}', function() { return $this->params; });
-            $response = $r->dispatch('foo/25', 'GET');
-            expect($response)->toBe(['var1' => '25']);
+            $r->get('foo/{var1:\d+}', function() {});
+
+            $route = $r->route('foo/25', 'GET');
+            expect($route->params)->toBe(['var1' => '25']);
 
             $closure = function() use ($r) {
-                $r->dispatch('foo/bar', 'GET');
+                 $r->route('foo/bar', 'GET');
             };
 
             expect($closure)->toThrow(new RouterException("No route found for `*:*:GET:/foo/bar`.", 404));
@@ -169,29 +177,29 @@ describe("Router", function() {
         it("supports optional route variables", function() {
 
             $r = $this->router;
-            $r->get('foo[/{var1}]', function() { return $this->params; });
+            $r->get('foo[/{var1}]', function() {});
 
-            $response = $r->dispatch('foo', 'GET');
-            expect($response)->toBe([]);
+            $route = $r->route('foo', 'GET');
+            expect($route->params)->toBe([]);
 
-            $response = $r->dispatch('foo/bar', 'GET');
-            expect($response)->toBe(['var1' => 'bar']);
+            $route = $r->route('foo/bar', 'GET');
+            expect($route->params)->toBe(['var1' => 'bar']);
 
         });
 
         it("supports optional constrained route variables", function() {
 
             $r = $this->router;
-            $r->get('foo[/{var1:\d+}]', function() { return $this->params; });
+            $r->get('foo[/{var1:\d+}]', function() {});
 
-            $response = $r->dispatch('foo', 'GET');
-            expect($response)->toBe([]);
+            $route = $r->route('foo', 'GET');
+            expect($route->params)->toBe([]);
 
-            $response = $r->dispatch('foo/25', 'GET');
-            expect($response)->toBe(['var1' => '25']);
+            $route = $r->route('foo/25', 'GET');
+            expect($route->params)->toBe(['var1' => '25']);
 
             $closure = function() use ($r) {
-                $r->dispatch('foo/bar', 'GET');
+                $r->route('foo/bar', 'GET');
             };
 
             expect($closure)->toThrow(new RouterException("No route found for `*:*:GET:/foo/bar`.", 404));
@@ -209,16 +217,16 @@ describe("Router", function() {
             $r = $this->router;
 
             foreach ($patterns as $pattern) {
-                $r->get($pattern, function() { return $this->params; });
+                $r->get($pattern, function() {});
 
-                $response = $r->dispatch('', 'GET');
-                expect($response)->toBe([]);
+                $route = $r->route('', 'GET');
+                expect($route->params)->toBe([]);
 
-                $response = $r->dispatch('foo', 'GET');
-                expect($response)->toBe(['var1' => 'foo']);
+                $route = $r->route('foo', 'GET');
+                expect($route->params)->toBe(['var1' => 'foo']);
 
-                $response = $r->dispatch('foo/bar', 'GET');
-                expect($response)->toBe(['var1' => 'foo', 'var2' => 'bar']);
+                $route = $r->route('foo/bar', 'GET');
+                expect($route->params)->toBe(['var1' => 'foo', 'var2' => 'bar']);
 
                 $r->clear();
 
@@ -229,94 +237,82 @@ describe("Router", function() {
         it("supports host variables", function() {
 
             $r = $this->router;
-            $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.bar'], function() { return $this->params + ['tld' => 'bar']; });
-            $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function() { return $this->params + ['tld' => 'baz']; });
+            $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.bar'], function() {});
+            $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function() {});
 
-            $response = $r->dispatch('foo/25', 'GET', 'foo.biz.bar');
-            expect($response)->toBe(['domain' => 'biz', 'var1' => '25', 'tld' => 'bar']);
+            $route = $r->route('foo/25', 'GET', 'foo.biz.bar');
+            expect($route->host)->toBe('foo.{domain}.bar');
+            expect($route->params)->toBe(['domain' => 'biz', 'var1' => '25']);
 
-            $response = $r->dispatch('foo/50', 'GET', 'foo.buz.baz');
-            expect($response)->toBe(['domain' => 'buz', 'var1' => '50', 'tld' => 'baz']);
+            $route = $r->route('foo/50', 'GET', 'foo.buz.baz');
+            expect($route->host)->toBe('foo.{domain}.baz');
+            expect($route->params)->toBe(['domain' => 'buz', 'var1' => '50']);
 
         });
 
         it("supports constrained host variables", function() {
 
             $r = $this->router;
-            $r->get('foo/{var1:\d+}', ['host' => '{subdomain:foo}.{domain}.bar'], function() { return $this->params; });
-            $response = $r->dispatch('foo/25', 'GET', 'foo.biz.bar');
-            expect($response)->toBe([ 'subdomain' => 'foo', 'domain' => 'biz', 'var1' => '25']);
+            $r->get('foo/{var1:\d+}', ['host' => '{subdomain:foo}.{domain}.bar'], function() {});
+
+            $route = $r->route('foo/25', 'GET', 'foo.biz.bar');
+            expect($route->params)->toBe([ 'subdomain' => 'foo', 'domain' => 'biz', 'var1' => '25']);
 
             $closure = function() use ($r) {
-                $r->dispatch('foo/bar', 'GET', 'foo.biz.bar');
+                $r->route('foo/bar', 'GET', 'foo.biz.bar');
             };
 
             expect($closure)->toThrow(new RouterException("No route found for `*:foo.biz.bar:GET:/foo/bar`.", 404));
 
         });
 
-        it("passes route variables to the handler function", function() {
-
-            $r = $this->router;
-            $r->get('foo/{var1}[/{var2}]',
-                ['host' => '{subdomain}.{domain}.bar'],
-                function($subdomain, $domain, $var1, $var2 = 'default') {
-                    return [$subdomain, $domain, $var1, $var2];
-                }
-            );
-            $response = $r->dispatch('foo/25', 'GET', 'foo.biz.bar');
-            expect($response)->toBe(['foo', 'biz', '25', 'default']);
-
-            $response = $r->dispatch('foo/25/bar', 'GET', 'foo.biz.bar');
-            expect($response)->toBe(['foo', 'biz', '25', 'bar']);
-
-        });
-
         it("supports absolute URL", function() {
 
             $r = $this->router;
-            $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.bar'], function() { return $this->params + ['tld' => 'bar']; });
-            $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function() { return $this->params + ['tld' => 'baz']; });
+            $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.bar'], function() {});
+            $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function() {});
 
-            $response = $r->dispatch('http://foo.biz.bar/foo/25', 'GET');
-            expect($response)->toBe(['domain' => 'biz', 'var1' => '25', 'tld' => 'bar']);
+            $route = $r->route('http://foo.biz.bar/foo/25', 'GET');
+            expect($route->host)->toBe('foo.{domain}.bar');
+            expect($route->params)->toBe(['domain' => 'biz', 'var1' => '25']);
 
-            $response = $r->dispatch('http://foo.buz.baz/foo/50', 'GET');
-            expect($response)->toBe(['domain' => 'buz', 'var1' => '50', 'tld' => 'baz']);
+            $route = $r->route('http://foo.buz.baz/foo/50', 'GET');
+            expect($route->host)->toBe('foo.{domain}.baz');
+            expect($route->params)->toBe(['domain' => 'buz', 'var1' => '50']);
 
         });
 
         it("supports RESTful routes", function() {
 
             $r = $this->router;
-            $r->get('foo/bar', function () { return 'GET'; });
-            $r->head('foo/bar', function () { return 'HEAD'; });
-            $r->post('foo/bar', function () { return 'POST'; });
-            $r->put('foo/bar', function () { return 'PUT'; });
-            $r->patch('foo/bar', function () { return 'PATCH'; });
-            $r->delete('foo/bar', function () { return 'DELETE'; });
-            $r->options('foo/bar', function () { return 'OPTIONS'; });
+            $r->get('foo/bar', function () {});
+            $r->head('foo/bar', function () {});
+            $r->post('foo/bar', function () {});
+            $r->put('foo/bar', function () {});
+            $r->patch('foo/bar', function () {});
+            $r->delete('foo/bar', function () {});
+            $r->options('foo/bar', function () {});
 
-            $response = $r->dispatch('foo/bar', 'GET');
-            expect($response)->toBe('GET');
+            $route = $r->route('foo/bar', 'GET');
+            expect($route->method)->toBe('GET');
 
-            $response = $r->dispatch('foo/bar', 'HEAD');
-            expect($response)->toBe('HEAD');
+            $route = $r->route('foo/bar', 'HEAD');
+            expect($route->method)->toBe('HEAD');
 
-            $response = $r->dispatch('foo/bar', 'POST');
-            expect($response)->toBe('POST');
+            $route = $r->route('foo/bar', 'POST');
+            expect($route->method)->toBe('POST');
 
-            $response = $r->dispatch('foo/bar', 'PUT');
-            expect($response)->toBe('PUT');
+            $route = $r->route('foo/bar', 'PUT');
+            expect($route->method)->toBe('PUT');
 
-            $response = $r->dispatch('foo/bar', 'PATCH');
-            expect($response)->toBe('PATCH');
+            $route = $r->route('foo/bar', 'PATCH');
+            expect($route->method)->toBe('PATCH');
 
-            $response = $r->dispatch('foo/bar', 'DELETE');
-            expect($response)->toBe('DELETE');
+            $route = $r->route('foo/bar', 'DELETE');
+            expect($route->method)->toBe('DELETE');
 
-            $response = $r->dispatch('foo/bar', 'OPTIONS');
-            expect($response)->toBe('OPTIONS');
+            $route = $r->route('foo/bar', 'OPTIONS');
+            expect($route->method)->toBe('OPTIONS');
 
         });
 
@@ -326,7 +322,7 @@ describe("Router", function() {
                 $r = $this->router;
                 $r->add('foo/bar', function() {});
                 $r->get('foo/bar', function() {});
-                $r->dispatch('foo/bar');
+                $r->route('foo/bar');
             };
 
             expect($closure)->toThrow(new RouterException("The route `*:*:GET:/foo/bar` conflicts with a previously defined one on `*:*:*:/foo/bar`."));
@@ -339,7 +335,7 @@ describe("Router", function() {
                 $r = $this->router;
                 $r->get('foo/bar', function() {});
                 $r->get('foo/bar', function() {});
-                $r->dispatch('foo/bar');
+                $r->route('foo/bar');
             };
 
             expect($closure)->toThrow(new RouterException("The route `*:*:GET:/foo/bar` conflicts with a previously defined one on `*:*:GET:/foo/bar`."));
@@ -351,8 +347,8 @@ describe("Router", function() {
             $r = $this->router;
             $r->get('foo/bar', function () { return 'GET'; });
 
-            $response = $r->dispatch('foo/bar', 'HEAD');
-            expect($response)->toBe('GET');
+            $route = $r->route('foo/bar', 'HEAD');
+            expect($route->method)->toBe('GET');
 
         });
 
@@ -363,27 +359,18 @@ describe("Router", function() {
             $r->head('foo/bar', function () { return 'HEAD'; });
             $r->get('foo/bar', function () { return 'GET'; });
 
-            $response = $r->dispatch('foo/bar', 'HEAD');
-            expect($response)->toBe('HEAD');
+            $route = $r->route('foo/bar', 'HEAD');
+            expect($route->method)->toBe('HEAD');
 
         });
 
-        it("dispatches a request as an object", function() {
+        it("supports requests as a list of arguments", function() {
 
             $r = $this->router;
-            $r->add('foo/bar', function () { return $this->request; });
-            $request = new Request(['path' =>'foo/bar']);
-            $response = $r->dispatch($request, 'GET');
-            expect($response)->toBe($request);
+            $r->add('foo/bar', function () {});
 
-        });
-
-        it("dispatches a request as an array", function() {
-
-            $r = $this->router;
-            $r->add('foo/bar', function () { return $this->request; });
-            $response = $r->dispatch(['path' =>'foo/bar'], 'GET');
-            expect($response)->toEqual([
+            $route = $r->route('foo/bar', 'GET');
+            expect($route->request)->toEqual([
                 'scheme' => "*",
                 'host'   => "*",
                 'method' => "GET",
@@ -392,12 +379,24 @@ describe("Router", function() {
 
         });
 
-        it("dispatches a request as arguments", function() {
+        it("supports requests as an object", function() {
 
             $r = $this->router;
-            $r->add('foo/bar', function () { return $this->request; });
-            $response = $r->dispatch('foo/bar', 'GET');
-            expect($response)->toEqual([
+            $r->add('foo/bar', function () {});
+            $request = new Request(['path' =>'foo/bar']);
+
+            $route = $r->route($request, 'GET');
+            expect($route->request)->toBe($request);
+
+        });
+
+        it("supports requests as an array", function() {
+
+            $r = $this->router;
+            $r->add('foo/bar', function () {});
+
+            $route = $r->route(['path' =>'foo/bar'], 'GET');
+            expect($route->request)->toEqual([
                 'scheme' => "*",
                 'host'   => "*",
                 'method' => "GET",
@@ -410,7 +409,7 @@ describe("Router", function() {
 
     describe("->group()", function() {
 
-        it("support nested named route", function() {
+        it("supports nested named route", function() {
 
             $r = $this->router;
             $r->group('foz#foo', function($r) use (&$route) {
@@ -430,16 +429,16 @@ describe("Router", function() {
 
                 $r = $this->router;
                 $r->group('foo', function($r) {
-                    $r->add('{var1}', function () { return $this->params; });
+                    $r->add('{var1}', function () {});
                 });
 
             });
 
-            it("dispatches urls matching route's prefix", function() {
+            it("respects url's prefix constraint", function() {
 
                 $r = $this->router;
-                $response = $r->dispatch('foo/bar', 'GET');
-                expect($response)->toBe(['var1'   => 'bar']);
+                $route = $r->route('foo/bar');
+                expect($route->params)->toBe(['var1'   => 'bar']);
 
             });
 
@@ -447,7 +446,7 @@ describe("Router", function() {
 
                 $closure = function() {
                     $r = $this->router;
-                    $r->dispatch('bar/foo', 'GET');
+                    $route = $r->route('bar/foo', 'GET');
                 };
 
                 expect($closure)->toThrow(new RouterException("No route found for `*:*:GET:/bar/foo`.", 404));
@@ -463,17 +462,17 @@ describe("Router", function() {
                 $r = $this->router;
                 $r->group('foo', ['host' => 'foo.{domain}.bar'], function($r) {
                     $r->group('bar', function($r) {
-                        $r->add('{var1}', function () { return $this->params; });
+                        $r->add('{var1}', function () {});
                     });
                 });
 
             });
 
-            it("dispatches urls matching route's host", function() {
+            it("respects url's host constraint", function() {
 
                 $r = $this->router;
-                $response = $r->dispatch('http://foo.hello.bar/foo/bar/baz', 'GET');
-                expect($response)->toBe([
+                $route = $r->route('http://foo.hello.bar/foo/bar/baz', 'GET');
+                expect($route->params)->toBe([
                     'domain' => 'hello',
                     'var1'   => 'baz'
                 ]);
@@ -484,7 +483,7 @@ describe("Router", function() {
 
                 $closure = function() {
                     $r = $this->router;
-                    $r->dispatch('http://bar.hello.foo/foo/bar/baz', 'GET');
+                    $route = $r->route('http://bar.hello.foo/foo/bar/baz', 'GET');
                 };
 
                 expect($closure)->toThrow(new RouterException("No route found for `http:bar.hello.foo:GET:/foo/bar/baz`.", 404));
@@ -500,17 +499,17 @@ describe("Router", function() {
                 $r = $this->router;
                 $r->group('foo', ['scheme' => 'http'], function($r) {
                     $r->group('bar', function($r) {
-                        $r->add('{var1}', function () { return $this->params; });
+                        $r->add('{var1}', function () {});
                     });
                 });
 
             });
 
-            it("dispatches urls matching route's scheme", function() {
+            it("respects url's scheme constraint", function() {
 
                 $r = $this->router;
-                $response = $r->dispatch('http://domain.com/foo/bar/baz', 'GET');
-                expect($response)->toBe([
+                $route = $r->route('http://domain.com/foo/bar/baz', 'GET');
+                expect($route->params)->toBe([
                     'var1'   => 'baz'
                 ]);
 
@@ -520,7 +519,7 @@ describe("Router", function() {
 
                 $closure = function() {
                     $r = $this->router;
-                    $response = $r->dispatch('https://domain.com/foo/bar/baz', 'GET');
+                    $route = $r->route('https://domain.com/foo/bar/baz', 'GET');
                 };
 
                 expect($closure)->toThrow(new RouterException("No route found for `https:domain.com:GET:/foo/bar/baz`.", 404));
@@ -534,12 +533,12 @@ describe("Router", function() {
             $r = $this->router;
             $r->group('foo', ['namespace' => 'My'], function($r) {
                 $r->group('bar', ['namespace' => 'Name'], function($r) {
-                    $r->add('{var1}', ['namespace' => 'Space'], function () { return $this->namespace; });
+                    $r->add('{var1}', ['namespace' => 'Space'], function () {});
                 });
             });
 
-            $response = $r->dispatch('foo/bar/baz', 'GET');
-            expect($response)->toBe('My\Name\Space\\');
+            $route = $r->route('foo/bar/baz', 'GET');
+            expect($route->namespace)->toBe('My\Name\Space\\');
 
         });
 
@@ -558,33 +557,33 @@ describe("Router", function() {
 
     describe("->controller()", function() {
 
-        it("dispatches on controllers", function() {
+        it("builds controller's routes", function() {
 
             $r = $this->router;
             $r->controller('{controller}/{action}[/{args}]', ['namespace' => 'Lead\Router\Spec\Mock']);
 
-            $response = $r->dispatch('test/index');
-            expect($response->params)->toBe([
+            $route = $r->route('test/index');
+            expect($route->params)->toBe([
                 'controller' => 'test',
                 'action'     => 'index'
             ]);
-            expect($response->args)->toBe(['test', 'index']);
+            expect($route->args)->toBe(['test', 'index']);
 
-            $response = $r->dispatch('test/hello/willy');
-            expect($response->params)->toBe([
+            $route = $r->route('test/hello/willy');
+            expect($route->params)->toBe([
                 'controller' => 'test',
                 'action'     => 'hello',
                 'args'       => 'willy'
             ]);
-            expect($response->args)->toBe(['test', 'hello', 'willy']);
+            expect($route->args)->toBe(['test', 'hello', 'willy']);
 
-            $response = $r->dispatch('test/hello/willy/boy');
-            expect($response->params)->toBe([
+            $route = $r->route('test/hello/willy/boy');
+            expect($route->params)->toBe([
                 'controller' => 'test',
                 'action'     => 'hello',
                 'args'       => 'willy/boy'
             ]);
-            expect($response->args)->toBe(['test', 'hello', 'willy', 'boy']);
+            expect($route->args)->toBe(['test', 'hello', 'willy', 'boy']);
 
         });
 
@@ -597,7 +596,7 @@ describe("Router", function() {
             $r = $this->router;
 
             $mystrategy = function() {
-                $this->add('foo/bar', function(){
+                $this->add('foo/bar', function() {
                     return 'Hello World!';
                 });
             };
@@ -606,8 +605,8 @@ describe("Router", function() {
             expect($r->strategy('mystrategy'))->toBe($mystrategy);
 
             $r->mystrategy();
-            $response = $r->dispatch('foo/bar');
-            expect($response)->toBe('Hello World!');
+            $route = $r->route('foo/bar');
+            expect($route->pattern)->toBe('/foo/bar');
 
         });
 

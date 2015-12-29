@@ -133,7 +133,7 @@ class Router extends \Lead\Collection\Collection
 
         if (strpos($pattern, '#')) {
             list($name, $pattern) = explode('#', $pattern, 2);
-            $name = $scope['name'] ?  $scope['name'] . '/' . $name : $name;
+            $name = $options['name'] = $scope['name'] ?  $scope['name'] . '/' . $name : $name;
         }
 
         $options['pattern'] = $scope['pattern'] . (trim($pattern, '/'));
@@ -176,8 +176,6 @@ class Router extends \Lead\Collection\Collection
         }
         $scope = end($this->_scopes);
 
-
-
         if (strpos($pattern, '#')) {
             list($name, $pattern) = explode('#', $pattern, 2);
             $options['name'] = $scope['name'] ?  $scope['name'] . '/' . $name : $name;
@@ -197,12 +195,12 @@ class Router extends \Lead\Collection\Collection
     }
 
     /**
-     * Dispatches a Request.
+     * Routes a Request.
      *
-     * @param  mixed $request The request to route.
-     * @return mixed
+     * @param  mixed  $request The request to route.
+     * @return object          A route matching the request
      */
-    public function dispatch($request, $response = null)
+    public function route($request)
     {
         $defaults = [
             'path'   => '/',
@@ -231,10 +229,11 @@ class Router extends \Lead\Collection\Collection
 
         $rules = $this->_buildRules($r['method'], $r['host'], $r['scheme']);
 
-        if ($route = $this->_dispatch($rules, $r['path'])) {
-            return $route->dispatch(is_object($request) ? $request : $r, $response);
+        if (!$route = $this->_route($rules, $r['path'])) {
+            throw new RouterException("No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:{$r['path']}`.", 404);
         }
-        throw new RouterException("No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:{$r['path']}`.", 404);
+        $route->request = is_object($request) ? $request : $r;
+        return $route;
     }
 
     /**
@@ -314,13 +313,13 @@ class Router extends \Lead\Collection\Collection
     }
 
     /**
-     * Dispatches an url pattern.
+     * Routes an url pattern on a bunch of route rules.
      *
      * @param array  $rules The rules to match on.
      * @param string $path  The URL path to dispatch.
      * @param array         The result array.
      */
-    protected function _dispatch($rules, $path)
+    protected function _route($rules, $path)
     {
         $combinedRules = $this->_combineRules($rules, $this->_chunkSize);
         $matchAnything = $this->_matchAnything;

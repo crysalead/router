@@ -185,13 +185,12 @@ class Route
     /**
      * Dispatches the route.
      *
-     * @param mixed  $request The dispatched request.
+     * @param  mixed $response The outgoing response.
      * @return mixed
      */
-    public function dispatch($request, $response = null)
+    public function dispatch($response = null)
     {
         $handler = $this->handler();
-        $this->request = $request;
         $this->response = $response;
         return call_user_func_array($handler, $this->params);
     }
