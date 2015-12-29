@@ -14,7 +14,11 @@
     },
     "autoload": {
         "psr-4": {
-            "Lead\\Router\\": "src/",
+            "Lead\\Router\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
             "Lead\\Router\\Spec\\": "spec/"
         }
     },
