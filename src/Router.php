@@ -127,8 +127,8 @@ class Router extends \Lead\Collection\Collection
             $handler = $options;
             $options = [];
         }
-        if (!$handler instanceof Closure) {
-            throw new RouterException("The handler needs to be an instance of `Closure`.");
+        if (!$handler instanceof Closure && !method_exists($handler, '__invoke')) {
+            throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
         }
         $scope = end($this->_scopes);
 
@@ -437,8 +437,8 @@ class Router extends \Lead\Collection\Collection
             unset($this->_strategies[$name]);
             return;
         }
-        if (!$handler instanceof Closure) {
-            throw new RouterException("The handler needs to be an instance of `Closure`.");
+        if (!$handler instanceof Closure && !method_exists($handler, '__invoke')) {
+            throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
         }
         $this->_strategies[$name] = $handler;
         return $this;

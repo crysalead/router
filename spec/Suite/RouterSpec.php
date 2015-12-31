@@ -32,7 +32,7 @@ describe("Router", function() {
                 $r->add('foo', 'substr');
             };
 
-            expect($closure)->toThrow(new RouterException("The handler needs to be an instance of `Closure`."));
+            expect($closure)->toThrow(new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method."));
 
         });
 
@@ -702,7 +702,7 @@ describe("Router", function() {
                 $r->strategy('mystrategy', "substr");
             };
 
-            expect($closure)->toThrow(new RouterException("The handler needs to be an instance of `Closure`."));
+            expect($closure)->toThrow(new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method."));
 
         });
 
