@@ -123,7 +123,7 @@ class Router extends \Lead\Collection\Collection
      */
     public function add($pattern, $options, $handler = null)
     {
-        if ($options instanceof Closure) {
+        if (!is_array($options)) {
             $handler = $options;
             $options = [];
         }
@@ -163,7 +163,7 @@ class Router extends \Lead\Collection\Collection
      */
     public function group($pattern, $options, $handler = null)
     {
-        if ($options instanceof Closure) {
+        if (!is_array($options)) {
             $handler = $options;
             if (is_string($pattern)) {
                 $options = [];
@@ -172,8 +172,8 @@ class Router extends \Lead\Collection\Collection
                 $pattern = '';
             }
         }
-        if (!$handler instanceof Closure) {
-            throw new RouterException("The handler needs to be an instance of `Closure`.");
+        if (!$handler instanceof Closure && !method_exists($handler, '__invoke')) {
+            throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
         }
         $scope = end($this->_scopes);
 
@@ -452,20 +452,20 @@ class Router extends \Lead\Collection\Collection
     protected function _strategies()
     {
         return [
-            'controller' => function($path, $options, $controller = null) {
+            'controller' => function($router, $path, $options, $controller = null) {
                 if (!is_array($options)) {
                     $controller = $options;
                     $options = [];
                 }
                 $options += ['suffix' => 'Controller'];
-                $this->add($path, $options, function() use ($controller, $options) {
+                $router->add($path, $options, function($route) use ($controller, $options) {
                     if (!$controller) {
-                        $controller  = str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', strtolower($this->params['controller']))));
+                        $controller  = str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', strtolower($route->params['controller']))));
                         $controller .= $options['suffix'];
                     }
-                    $controller = $this->namespace . $controller;
+                    $controller = $route->namespace . $controller;
                     $instance = new $controller();
-                    return $instance($this->args, $this->params, $this->request, $this->response);
+                    return $instance($route->args, $route->params, $route->request, $route->response);
                 });
             }
         ];
@@ -481,7 +481,7 @@ class Router extends \Lead\Collection\Collection
     {
         $method = strtoupper($name);
         if ($strategy = $this->strategy($name)) {
-            $strategy = $strategy->bindTo($this);
+            array_unshift($params, $this);
             return call_user_func_array($strategy, $params);
         }
         if (is_callable($params[1])) {

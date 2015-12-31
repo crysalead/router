@@ -586,7 +586,7 @@ describe("Router", function() {
                 $r->group('foo', 'substr');
             };
 
-            expect($closure)->toThrow(new RouterException("The handler needs to be an instance of `Closure`."));
+            expect($closure)->toThrow(new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method."));
 
         });
 
@@ -665,8 +665,8 @@ describe("Router", function() {
 
             $r = $this->router;
 
-            $mystrategy = function() {
-                $this->add('foo/bar', function() {
+            $mystrategy = function($router) {
+                $router->add('foo/bar', function() {
                     return 'Hello World!';
                 });
             };

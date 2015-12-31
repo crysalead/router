@@ -175,9 +175,6 @@ class Route
         if (func_num_args() === 0) {
             return $this->_handler;
         }
-        if ($handler instanceof Closure) {
-            $handler = $handler->bindTo($this);
-        }
         $this->_handler = $handler;
         return $this;
     }
@@ -190,9 +187,9 @@ class Route
      */
     public function dispatch($response = null)
     {
-        $handler = $this->handler();
         $this->response = $response;
-        return call_user_func_array($handler, $this->params);
+        $handler = $this->handler();
+        return $handler($this, $response);
     }
 
     /**

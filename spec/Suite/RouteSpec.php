@@ -1,6 +1,7 @@
 <?php
 namespace Lead\Router\Spec\Suite;
 
+use stdClass;
 use Lead\Router\RouterException;
 use Lead\Router\Router;
 use Lead\Net\Http\Cgi\Request;
@@ -15,23 +16,26 @@ describe("Route", function() {
 
     describe("->dispatch()", function() {
 
-        it("passes route variables as arguments of the handler function", function() {
+        it("passes route as argument of the handler function", function() {
 
             $r = $this->router;
             $r->get('foo/{var1}[/{var2}]',
                 ['host' => '{subdomain}.{domain}.bar'],
-                function($subdomain, $domain, $var1, $var2 = 'default') {
-                    return [$subdomain, $domain, $var1, $var2];
+                function($route, $response) {
+                    $params = $route->params;
+                    return array_merge([$response, $params['subdomain'], $params['domain']], $route->args);
                 }
             );
 
+            $response = new stdClass();
+
             $routing = $r->route('foo/25', 'GET', 'foo.biz.bar');
-            $response = $routing->route()->dispatch();
-            expect($response)->toBe(['foo', 'biz', '25', 'default']);
+            $actual = $routing->route()->dispatch($response);
+            expect($actual)->toBe([$response, 'foo', 'biz', '25']);
 
             $routing = $r->route('foo/25/bar', 'GET', 'foo.biz.bar');
-            $response = $routing->route()->dispatch();
-            expect($response)->toBe(['foo', 'biz', '25', 'bar']);
+            $actual = $routing->route()->dispatch($response);
+            expect($actual)->toBe([$response, 'foo', 'biz', '25', 'bar']);
 
         });
 
