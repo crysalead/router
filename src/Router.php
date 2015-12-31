@@ -74,7 +74,7 @@ class Router extends \Lead\Collection\Collection
             'basePath'      => '',
             'scope'         => [],
             'chunkSize'     => 10,
-            'strategies'    => $this->_strategies(),
+            'strategies'    => [],
             'classes'       => [
                 'parser'    => 'Lead\Router\Parser',
                 'route'     => 'Lead\Router\Route',
@@ -442,33 +442,6 @@ class Router extends \Lead\Collection\Collection
         }
         $this->_strategies[$name] = $handler;
         return $this;
-    }
-
-    /**
-     * Examples of routing strategy.
-     *
-     * @return array
-     */
-    protected function _strategies()
-    {
-        return [
-            'controller' => function($router, $path, $options, $controller = null) {
-                if (!is_array($options)) {
-                    $controller = $options;
-                    $options = [];
-                }
-                $options += ['suffix' => 'Controller'];
-                $router->add($path, $options, function($route) use ($controller, $options) {
-                    if (!$controller) {
-                        $controller  = str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', strtolower($route->params['controller']))));
-                        $controller .= $options['suffix'];
-                    }
-                    $controller = $route->namespace . $controller;
-                    $instance = new $controller();
-                    return $instance($route->args, $route->params, $route->request, $route->response);
-                });
-            }
-        ];
     }
 
     /**
