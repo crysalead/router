@@ -52,21 +52,21 @@ The second parameter is an `$options`. Possible values are:
 * `'name'`: the name of the route (optional)
 * `'namespace'`: the namespace to attach to a route (optional)
 
-The last parameter is the `$handler` which contain the dispatching logic. The `$handler` is dynamically binded to the founded route so `$this` will stands for the route instance. The available data in the handler will be the following:
+The last parameter is the `$handler` which contain the dispatching logic. The `$handler` is dynamically binded to the founded route so `$this` will stands for the route instance. The available data in the handler is the following:
 
 ```php
-$router->add('foo/bar', function() {
-    $this->scheme;     // The scheme contraint
-    $this->host;       // The host contraint
-    $this->method;     // The method contraint
-    $this->pattern;    // The pattern contraint
-    $this->args;       // The matched args
-    $this->params;     // The matched params
-    $this->namespace;  // The namespace
-    $this->name;       // The route's name
-    $this->request;    // The routed request
-    $this->resposne;   // The response (can be `null`)
-    $this->handlers(); // The route's handler
+$router->add('foo/bar', function($route, $response) {
+    $route->scheme;     // The scheme contraint
+    $route->host;       // The host contraint
+    $route->method;     // The method contraint
+    $route->pattern;    // The pattern contraint
+    $route->args;       // The matched args
+    $route->params;     // The matched params
+    $route->namespace;  // The namespace
+    $route->name;       // The route's name
+    $route->request;    // The routed request
+    $route->response;   // The response (same as 2nd argument, can be `null`)
+    $route->handlers(); // The route's handler
 });
 ```
 
@@ -93,12 +93,12 @@ It's possible to apply contraints to a bunch of routes all together by grouping 
 
 ```php
 $router->group('admin', ['namespace' => 'App\Admin\Controller'], function($r) {
-    $router->add('{controller}[/{action}]', function () {
-        $controller = $this->namespace . $this->params['controller'];
-        $instance = new $controller($this->args, $this->params, $this->request, $this->response);
-        $action = isset($this->params['action']) ? $this->params['action'] : 'index';
+    $router->add('{controller}[/{action}]', function($route, $response) {
+        $controller = $route->namespace . $route->params['controller'];
+        $instance = new $controller($route->args, $route->params, $route->request, $route->response);
+        $action = isset($route->params['action']) ? $route->params['action'] : 'index';
         $instance->{$action}();
-        return $this->response;
+        return $route->response;
     });
 });
 ```
@@ -108,8 +108,8 @@ $router->group('admin', ['namespace' => 'App\Admin\Controller'], function($r) {
 To supports some sub-domains routing, the easiest way is to group routes related to a specific sub-domain using the `group()` method like in the following:
 
 ```php
-$router->group(['host' => 'foo.{domain}.bar'], function($r) {
-    $router->group('admin', function($r) {
+$router->group(['host' => 'foo.{domain}.bar'], function($router) {
+    $router->group('admin', function($router) {
         $router->add('{controller}[/{action}]', function () {});
     });
 });
@@ -162,7 +162,7 @@ $request = Request::ingoing();
 $response = new Response();
 
 $router = new Router();
-$router->add('foo/bar', function() { $this->response->write("Hello World!"); });
+$router->add('foo/bar', function($route, $response) { $response->body("Hello World!"); });
 
 $routing = $router->route($request);
 
@@ -176,55 +176,15 @@ if (!$routing->error()) {
 
 ### Setting up a custom dispatching strategy.
 
-By default only the controller strategy is available and can by used like the following:
+To use your own strategy you need to create it first using the `strategy()` method.
 
-```php
-$router->controller('{controller}/{action}[/{args}]', ['namespace' => 'App\Controller']);
-
-$routing = $router->route('home/index');
-$routing->route()->dispatch(); // instantiate the `App\Controller\HomeController` class
-```
-
-The controller strategy creates a controller instance from the URL controller parameter then runs the `__invoke()` method with parameters extracted from the route instance (i.e. the URL arguments and named parameters as well as the request and the response).
-
-To define your own strategy you need to create if first using the router `strategy()` method.
-
-Bellow an example of RESTful strategy:
+Bellow an example of a RESTful strategy:
 
 ```php
 use Lead\Router\Router;
+use My\Custom\Namespace\ResourceStrategy;
 
-Router::strategy('resource', function($resource, $options = []) {
-    $dispatch = function($route, $action) use ($resource) {
-        $resource = $route->namespace . $resource . 'Resource';
-        $instance = new $resource();
-        return $instance($route->args, $route->params, $route->request, $route->response);
-    };
-
-    $path = strtolower(strtr(preg_replace('/(?<=\\w)([A-Z])/', '_\\1', $resource), '-', '_'));
-
-    $this->get($path, $options, function() use ($dispatch) {
-        return $dispatch($this, 'index');
-    });
-    $this->get($path . '/{id:[0-9a-f]{24}|[0-9]+}', $options, function() use ($dispatch) {
-        return $dispatch($this, 'show');
-    });
-    $this->get($path . '/add', $options, function() use ($dispatch) {
-        return $dispatch($this, 'add');
-    });
-    $this->post($path, $options, function() use ($dispatch) {
-        return $dispatch($this, 'create');
-    });
-    $this->get($path . '/{id:[0-9a-f]{24}|[0-9]+}' .'/edit', $options, function() use ($dispatch) {
-        return $dispatch($this, 'edit');
-    });
-    $this->patch($path . '/{id:[0-9a-f]{24}|[0-9]+}', $options, function() use ($dispatch) {
-        return $dispatch($this, 'update');
-    });
-    $this->delete($path . '/{id:[0-9a-f]{24}|[0-9]+}', $options, function() use ($dispatch) {
-        return $dispatch($this, 'delete');
-    });
-});
+Router::strategy('resource', new ResourceStrategy());
 
 $router = new Router();
 $router->resource('Home', ['namespace' => 'App\Resource']);
@@ -237,6 +197,48 @@ $router->route('home', 'POST');
 $router->route('home/123/edit');
 $router->route('home/123', 'PATCH');
 $router->route('home/123', 'DELETE');
+```
+
+```php
+namespace use My\Custom\Namespace;
+
+class ResourceStrategy {
+
+    public function __invoke($router, $resource, $options = [])
+    {
+        $path = strtolower(strtr(preg_replace('/(?<=\\w)([A-Z])/', '_\\1', $resource), '-', '_'));
+
+        $router->get($path, $options, function($route) {
+            return $dispatch($route, $resource, 'index');
+        });
+        $router->get($path . '/{id:[0-9a-f]{24}|[0-9]+}', $options, function($route) {
+            return $dispatch($route, $resource, 'show');
+        });
+        $router->get($path . '/add', $options, function($route) {
+            return $dispatch($route, $resource, 'add');
+        });
+        $router->post($path, $options, function($route) {
+            return $dispatch($route, $resource, 'create');
+        });
+        $router->get($path . '/{id:[0-9a-f]{24}|[0-9]+}' .'/edit', $options, function($route) {
+            return $dispatch($route, $resource, 'edit');
+        });
+        $router->patch($path . '/{id:[0-9a-f]{24}|[0-9]+}', $options, function($route) {
+            return $dispatch($route, $resource, 'update');
+        });
+        $router->delete($path . '/{id:[0-9a-f]{24}|[0-9]+}', $options, function($route) {
+            return $dispatch($route, $resource, 'delete');
+        });
+    }
+
+    protected function _dispatch($route, $resource, $action)
+    {
+        $resource = $route->namespace . $resource . 'Resource';
+        $instance = new $resource();
+        return $instance($route->args, $route->params, $route->request, $route->response);
+    }
+
+}
 ```
 
 ### Acknowledgements
