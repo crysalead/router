@@ -57,13 +57,6 @@ class Router extends \Lead\Collection\Collection
     protected $_strategies = [];
 
     /**
-     * Slash insensitive param name.
-     *
-     * @param array
-     */
-    protected $_matchAnything = 'args';
-
-    /**
      * Constructor
      *
      * @param array $config
@@ -79,8 +72,7 @@ class Router extends \Lead\Collection\Collection
                 'parser'    => 'Lead\Router\Parser',
                 'route'     => 'Lead\Router\Route',
                 'routing'   => 'Lead\Router\Routing'
-            ],
-            'matchAnything' => 'args'
+            ]
         ];
         $config += $defaults;
         $this->_classes = $config['classes'];
@@ -95,7 +87,6 @@ class Router extends \Lead\Collection\Collection
         $this->_basePath = $config['basePath'];
         $this->_chunkSize = $config['chunkSize'];
         $this->_strategies = $config['strategies'];
-        $this->_matchAnything = $config['matchAnything'];
     }
 
     /**
@@ -338,7 +329,6 @@ class Router extends \Lead\Collection\Collection
     protected function _route($rules, $path)
     {
         $combinedRules = $this->_combineRules($rules, $this->_chunkSize);
-        $matchAnything = $this->_matchAnything;
 
         foreach ($combinedRules as $combinedRule) {
             if (!preg_match($combinedRule['regex'], $path, $matches)) {
@@ -349,12 +339,6 @@ class Router extends \Lead\Collection\Collection
             $i = 0;
             foreach ($varNames as $varName) {
                 $variables[$varName] = $matches[++$i];
-            }
-            if (isset($variables[$matchAnything])) {
-                $args = explode('/', $variables[$matchAnything]);
-                $route->args = array_merge(array_values(array_slice($variables, 0, -1)), $args);
-            } else {
-                $route->args = array_values($variables);
             }
             $route->params = $hostVariables + $variables;
             return $route;

@@ -147,12 +147,12 @@ class Route
      *
      * @return array A collection of routes splited in segments.
      */
-    public function data($matchAnything = 'args')
+    public function data()
     {
         if ($this->_data === null) {
             $parser = $this->_classes['parser'];
             $this->_rules = null;
-            $this->_data = $parser::parse($this->pattern, '[^/]+', $matchAnything);
+            $this->_data = $parser::parse($this->pattern, '[^/]+');
         }
         return $this->_data;
     }

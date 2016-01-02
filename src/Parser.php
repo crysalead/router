@@ -33,7 +33,7 @@ REGEX;
      * @param string $segmentRegex The regular expression for variable segment.
      * @param array                Returns a collection of route patterns splitted in segments.
      */
-    public static function parse($pattern, $segmentRegex = '[^/]+', $matchAnything = 'args')
+    public static function parse($pattern, $segmentRegex = '[^/]+')
     {
         $patternWithoutClosingOptionals = rtrim($pattern, ']');
         $numOptionals = strlen($pattern) - strlen($patternWithoutClosingOptionals);
@@ -58,7 +58,7 @@ REGEX;
             } else {
                 $currentPattern = $part[0] === '/' ? rtrim($currentPattern, '/') . $part : $currentPattern . $part;
             }
-            $data[] = static::_parse($currentPattern, $segmentRegex, $matchAnything);
+            $data[] = static::_parse($currentPattern, $segmentRegex);
         }
         return $data;
     }
@@ -70,7 +70,7 @@ REGEX;
      * @param string $segmentRegex The regular expression for variable segment.
      * @param array                An array containing a regex pattern and its associated variable names.
      */
-    protected static function _parse($pattern, $segmentRegex, $matchAnything)
+    protected static function _parse($pattern, $segmentRegex)
     {
         if (!preg_match_all('~' . static::VARIABLE_REGEX . '~x', $pattern, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
             return [$pattern];
@@ -83,7 +83,7 @@ REGEX;
             }
             $patternData[] = [
                 $set[1][0],
-                isset($set[2]) ? trim($set[2][0]) : ($set[1][0] === $matchAnything ? '.+' : $segmentRegex)
+                isset($set[2]) ? trim($set[2][0]) : $segmentRegex
             ];
             $offset = $set[0][1] + strlen($set[0][0]);
         }

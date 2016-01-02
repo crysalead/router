@@ -22,8 +22,7 @@ describe("Route", function() {
             $r->get('foo/{var1}[/{var2}]',
                 ['host' => '{subdomain}.{domain}.bar'],
                 function($route, $response) {
-                    $params = $route->params;
-                    return array_merge([$response, $params['subdomain'], $params['domain']], $route->args);
+                    return array_merge([$response], array_values($route->params));
                 }
             );
 

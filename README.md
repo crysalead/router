@@ -26,11 +26,9 @@ use Lead\Router\Router;
 
 $router = new Router();
 
-$router->add($route, $handler);           # route matching any request method
-$router->add($route, $options, $handler); # alternative syntax with some options.
-$router->add($route, [
-    'method' => 'get'
-], $handler);                             # route matching only get requests
+$router->add($route, $handler);                      # route matching any request method
+$router->add($route, $options, $handler);            # alternative syntax with some options.
+$router->add($route, ['method' => 'get'], $handler); # route matching only get requests
 
 // Alternative syntax
 $router->get($route, $handler);    # route matching only get requests
@@ -40,9 +38,9 @@ $router->delete($route, $handler); # route matching only delete requests
 
 In the above example `$router` is a collection of routes. A route is registered using the `add()` method and takes as parametters a route pattern, an optionnal options array and an handler.
 
-A route pattern is a string representing an URL path. Placeholders can be specified using brackets (e.g `{foo}`) and matches the `[^/]+` regexp by defaults. You can however specify a custom pattern using the following syntax `{foo:[0-9]+}`. A particular case is the placeholder `{args}` which match `.*` (i.e anything).
+A route pattern is a string representing an URL path. Placeholders can be specified using brackets (e.g `{foo}`) and matches `[^/]+` by default. You can however specify a custom pattern using the following syntax `{foo:[0-9]+}`.
 
-Furthermore you can use square brackets (i.e `[]`) to make parts of the pattern optional. For example `/foo[/bar]` will match both `/foo` and `/foobar`. Optional parts are only supported in a trailing position (i.e. not allowed in the middle of a route). You can also nest optional parts with the following syntax `/{controller}[/{action}[/{args}]]`.
+Furthermore you can use square brackets (i.e `[]`) to make parts of the pattern optional. For example `/foo[/bar]` will match both `/foo` and `/foobar`. Optional parts are only supported in a trailing position (i.e. not allowed in the middle of a route). You can also nest optional parts with the following syntax `/{controller}[/{action}[/{args:.*}]]`.
 
 The second parameter is an `$options`. Possible values are:
 
@@ -60,7 +58,6 @@ $router->add('foo/bar', function($route, $response) {
     $route->host;       // The host contraint
     $route->method;     // The method contraint
     $route->pattern;    // The pattern contraint
-    $route->args;       // The matched args
     $route->params;     // The matched params
     $route->namespace;  // The namespace
     $route->name;       // The route's name
@@ -95,7 +92,7 @@ It's possible to apply contraints to a bunch of routes all together by grouping 
 $router->group('admin', ['namespace' => 'App\Admin\Controller'], function($r) {
     $router->add('{controller}[/{action}]', function($route, $response) {
         $controller = $route->namespace . $route->params['controller'];
-        $instance = new $controller($route->args, $route->params, $route->request, $route->response);
+        $instance = new $controller($route->params, $route->request, $route->response);
         $action = isset($route->params['action']) ? $route->params['action'] : 'index';
         $instance->{$action}();
         return $route->response;
@@ -235,7 +232,7 @@ class ResourceStrategy {
     {
         $resource = $route->namespace . $resource . 'Resource';
         $instance = new $resource();
-        return $instance($route->args, $route->params, $route->request, $route->response);
+        return $instance($route->params, $route->request, $route->response);
     }
 
 }
