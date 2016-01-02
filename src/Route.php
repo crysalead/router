@@ -83,6 +83,13 @@ class Route
     public $response = null;
 
     /**
+     * Dispatched instance.
+     *
+     * @var object
+     */
+    public $dispatched = null;
+
+    /**
      * Data extracted from route's pattern.
      *
      * @var string
