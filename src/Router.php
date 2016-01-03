@@ -115,7 +115,7 @@ class Router extends \Lead\Collection\Collection
     /**
      * Adds a route.
      *
-     * @param  string        $pattern The route pattern
+     * @param  string|array  $pattern The route's pattern or patterns.
      * @param  Closure|array $options An array of options or the handler callback.
      * @param  Closure|null  $handler The handler callback.
      * @return self
@@ -129,28 +129,14 @@ class Router extends \Lead\Collection\Collection
         if (!$handler instanceof Closure && !method_exists($handler, '__invoke')) {
             throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
         }
-        $scope = end($this->_scopes);
 
-        if (isset($options['name'])) {
-            $options['name'] = $scope['name'] ?  $scope['name'] . '.' . $options['name'] : $options['name'];
-        }
-
-        $options['pattern'] = $scope['pattern'] . (trim($pattern, '/'));
-
-        if (isset($options['namespace'])) {
-            $options['namespace'] = $scope['namespace'] . trim($options['namespace'], '\\') . '\\';
-        }
-
-        if (isset($options['persist'])) {
-            $options['persist'] = ((array) $options['persist']) + $scope['persist'];
-        }
-
-        $options += $scope;
+        $options = $this->_scopify((array) $pattern, $options);
         $options['handler'] = $handler;
         $route = $this->_classes['route'];
 
         $instance = new $route($options);
         $this->_routes[$options['scheme']][$options['host']][$options['method']][] = $instance;
+
         if (isset($options['name'])) {
             $this->_data[$options['name']] = $instance;
         }
@@ -177,13 +163,36 @@ class Router extends \Lead\Collection\Collection
         if (!$handler instanceof Closure && !method_exists($handler, '__invoke')) {
             throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
         }
+
+        $this->_scopes[] = $this->_scopify($pattern, $options);
+
+        $handler($this);
+
+        array_pop($this->_scopes);
+    }
+
+    /**
+     * Scopify some route options.
+     *
+     * @param  string $pattern The pattern to scopify.
+     * @param  array  $options The options to scopify.
+     * @return array           The scopified options.
+     */
+    protected function _scopify($pattern, $options)
+    {
         $scope = end($this->_scopes);
 
         if (isset($options['name'])) {
             $options['name'] = $scope['name'] ?  $scope['name'] . '.' . $options['name'] : $options['name'];
         }
 
-        $options['pattern'] = $scope['pattern'] . trim($pattern, '/') . '/';
+        if (is_array($pattern)) {
+            foreach ($pattern as $value) {
+                $options['patterns'][] = $scope['pattern'] . trim($value, '/');
+            }
+        } else {
+            $options['pattern'] = $scope['pattern'] . trim($pattern, '/') . '/';
+        }
 
         if (isset($options['persist'])) {
             $options['persist'] = ((array) $options['persist']) + $scope['persist'];
@@ -193,11 +202,7 @@ class Router extends \Lead\Collection\Collection
             $options['namespace'] = $scope['namespace'] . trim($options['namespace'], '\\') . '\\';
         }
 
-        $this->_scopes[] = $options + $scope;
-
-        $handler($this);
-
-        array_pop($this->_scopes);
+        return $options + $scope;
     }
 
     /**

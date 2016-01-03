@@ -26,19 +26,19 @@ use Lead\Router\Router;
 
 $router = new Router();
 
-$router->add($route, $handler);                      # route matching any request method
-$router->add($route, $options, $handler);            # alternative syntax with some options.
-$router->add($route, ['method' => 'get'], $handler); # route matching only get requests
+$router->add($pattern, $handler);                      # route matching any request method
+$router->add($pattern, $options, $handler);            # alternative syntax with some options.
+$router->add($pattern, ['method' => 'get'], $handler); # route matching only get requests
 
 // Alternative syntax
-$router->get($route, $handler);    # route matching only get requests
-$router->post($route, $handler);   # route matching only post requests
-$router->delete($route, $handler); # route matching only delete requests
+$router->get($pattern, $handler);    # route matching only get requests
+$router->post($pattern, $handler);   # route matching only post requests
+$router->delete($pattern, $handler); # route matching only delete requests
 ```
 
 In the above example `$router` is a collection of routes. A route is registered using the `add()` method and takes as parametters a route pattern, an optionnal options array and an handler.
 
-A route pattern is a string representing an URL path. Placeholders can be specified using brackets (e.g `{foo}`) and matches `[^/]+` by default. You can however specify a custom pattern using the following syntax `{foo:[0-9]+}`.
+A route pattern is a string representing an URL path. Placeholders can be specified using brackets (e.g `{foo}`) and matches `[^/]+` by default. You can however specify a custom pattern using the following syntax `{foo:[0-9]+}`. You can also add an array of patterns for a sigle route.
 
 Furthermore you can use square brackets (i.e `[]`) to make parts of the pattern optional. For example `/foo[/bar]` will match both `/foo` and `/foobar`. Optional parts are only supported in a trailing position (i.e. not allowed in the middle of a route). You can also nest optional parts with the following syntax `/{controller}[/{action}[/{args:.*}]]`.
 

@@ -41,11 +41,11 @@ class Route
     public $method = '*';
 
     /**
-     * Pattern definition.
+     * Patterns definition.
      *
-     * @var string
+     * @var array
      */
-    public $pattern = '';
+    public $patterns = [];
 
     /**
      * Named parameter.
@@ -90,16 +90,16 @@ class Route
     public $dispatched = null;
 
     /**
-     * Data extracted from route's pattern.
+     * Data extracted from route's patterns.
      *
-     * @var string
+     * @var array
      */
     protected $_data = null;
 
     /**
      * Rules extracted from route's data.
      *
-     * @var string
+     * @var array
      */
     protected $_rules = null;
 
@@ -120,7 +120,7 @@ class Route
             'scheme'    => '*',
             'host'      => '*',
             'method'    => '*',
-            'pattern'   => '',
+            'patterns'  => [],
             'name'      => '',
             'namespace' => '',
             'handler'   => null,
@@ -136,7 +136,7 @@ class Route
         $this->scheme = $config['scheme'];
         $this->host = $config['host'];
         $this->method = $config['method'];
-        $this->pattern = $config['pattern'];
+        $this->patterns = $config['patterns'];
         $this->name = $config['name'];
         $this->namespace = $config['namespace'];
         $this->params = $config['params'];
@@ -153,8 +153,11 @@ class Route
     {
         if ($this->_data === null) {
             $parser = $this->_classes['parser'];
+            $this->_data = [];
             $this->_rules = null;
-            $this->_data = $parser::parse($this->pattern, '[^/]+');
+            foreach ($this->patterns as $pattern) {
+                $this->_data = array_merge($parser::parse($pattern, '[^/]+'), $this->_data);
+            }
         }
         return $this->_data;
     }
@@ -166,7 +169,7 @@ class Route
      */
     public function rules()
     {
-        if ($this->_data === null) {
+        if ($this->_rules === null) {
             $parser = $this->_classes['parser'];
             $this->_rules = $parser::rules($this->data());
         }
@@ -202,7 +205,7 @@ class Route
     }
 
     /**
-     * Returns the route link
+     * Returns the route link.
      *
      * @param  array  $params  The route parameters.
      * @param  array  $options Options for generating the proper prefix. Accepted values are:
@@ -236,7 +239,6 @@ class Route
         foreach ($data as $segments) {
             $link = '';
             $missing = null;
-
             foreach ($segments as $segment) {
                 if (is_string($segment)) {
                     $link .= $segment;
@@ -254,7 +256,8 @@ class Route
         }
 
         if (!empty($missing)) {
-            throw new RouterException("Missing parameters `'{$segment[0]}'` for route: `'{$this->name}#{$this->pattern}'`.");
+            $patterns = join(',', $this->patterns);
+            throw new RouterException("Missing parameters `'{$segment[0]}'` for route: `'{$this->name}#{$patterns}'`.");
         }
         $basePath = trim($options['basePath'], '/');
         if ($options['basePath']) {

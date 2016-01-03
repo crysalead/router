@@ -40,7 +40,7 @@ describe("Router", function() {
 
     describe("->link()", function() {
 
-        it("generates a relative named route link", function() {
+        it("creates relative links", function() {
 
             $r = $this->router;
             $r->add('foo/{bar}', ['name' => 'foo'], function () {});
@@ -50,7 +50,7 @@ describe("Router", function() {
 
         });
 
-        it("generates a relative named route link with missing optionnal parameters", function() {
+        it("supports optionnal parameters", function() {
 
             $r = $this->router;
             $r->add('foo[/{bar}]', ['name' => 'foo'], function () {});
@@ -63,7 +63,7 @@ describe("Router", function() {
 
         });
 
-        it("generates a absolute named route link", function() {
+        it("creates absolute links", function() {
 
             $r = $this->router;
             $r->basePath('app');
@@ -77,7 +77,7 @@ describe("Router", function() {
 
         });
 
-        it("generates a nested named route relative link", function() {
+        it("support nested routes", function() {
 
             $r = $this->router;
             $r->group('foo', ['name' => 'foz'], function($r) {
@@ -132,6 +132,36 @@ describe("Router", function() {
                 'id'         => 5
             ]);
             expect($link)->toBe('/en/post/view/5');
+
+        });
+
+        it("supports route with multiple patterns", function() {
+
+            $r = $this->router;
+
+            $patterns = [
+                '{relation}/{rid:[^/:][^/]*}/post/{id:[^/:][^/]*}[/:{action}]',
+                '{relation}/{rid:[^/:][^/]*}/post[/:{action}]',
+                'post/{id:[^/:][^/]*}[/:{action}]',
+                'post[/:{action}]'
+            ];
+
+            $route = $r->add($patterns, ['name' => 'post'], function () {});
+
+            $link = $r->link('post');
+            expect($link)->toBe('/post');
+
+            $link = $r->link('post', ['action' => 'add']);
+            expect($link)->toBe('/post/:add');
+
+            $link = $r->link('post', ['action' => 'edit', 'id' => 12]);
+            expect($link)->toBe('/post/12/:edit');
+
+            $link = $r->link('post', ['relation' => 'user', 'rid' => 5]);
+            expect($link)->toBe('/user/5/post');
+
+            $link = $r->link('post', ['relation' => 'user', 'rid' => 5, 'action' => 'edit', 'id' => 12]);
+            expect($link)->toBe('/user/5/post/12/:edit');
 
         });
 
@@ -654,7 +684,7 @@ describe("Router", function() {
             $r->mystrategy();
             $routing = $r->route('foo/bar');
             $route = $routing->route();
-            expect($route->pattern)->toBe('/foo/bar');
+            expect($route->patterns)->toBe(['/foo/bar']);
 
         });
 
