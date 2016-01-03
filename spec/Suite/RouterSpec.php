@@ -91,6 +91,50 @@ describe("Router", function() {
 
         });
 
+        it("persists persisted parameters in a dispatching context", function() {
+
+            $r = $this->router;
+            $r->group('{locale:en|fr}', ['persist' => 'locale'], function($r) {
+                $r->add('controller#{controller}/{action}[/{id}]', function () {});
+            });
+
+            $r->route('fr/post/index');
+            $link = $r->link('controller', [
+                'controller' => 'post',
+                'action'     => 'view',
+                'id'         => 5
+            ]);
+            expect($link)->toBe('/fr/post/view/5');
+
+            $r->route('en/post/index');
+            $link = $r->link('controller', [
+                'controller' => 'post',
+                'action'     => 'view',
+                'id'         => 5
+            ]);
+            expect($link)->toBe('/en/post/view/5');
+
+        });
+
+        it("overrides persisted parameters in a dispatching context", function() {
+
+            $r = $this->router;
+            $r->group('{locale:en|fr}', ['persist' => 'locale'], function($r) {
+                $r->add('controller#{controller}/{action}[/{id}]', function () {});
+            });
+
+            $r->route('fr/post/index');
+
+            $link = $r->link('controller', [
+                'locale'     => 'en',
+                'controller' => 'post',
+                'action'     => 'view',
+                'id'         => 5
+            ]);
+            expect($link)->toBe('/en/post/view/5');
+
+        });
+
         it("throws an exception when some required parameters are missing", function() {
 
             $closure = function() {

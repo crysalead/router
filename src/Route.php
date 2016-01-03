@@ -48,18 +48,18 @@ class Route
     public $pattern = '';
 
     /**
-     * Route's arguments.
-     *
-     * @var array
-     */
-    public $args = [];
-
-    /**
      * Named parameter.
      *
      * @var array
      */
     public $params = [];
+
+    /**
+     * List of parameters that should persist during dispatching.
+     *
+     * @var array
+     */
+    public $persist = [];
 
     /**
      * Namespace.
@@ -125,6 +125,7 @@ class Route
             'namespace' => '',
             'handler'   => null,
             'params'    => [],
+            'persist'   => [],
             'classes'   => [
                 'parser' => 'Lead\Router\Parser'
             ]
@@ -139,6 +140,7 @@ class Route
         $this->name = $config['name'];
         $this->namespace = $config['namespace'];
         $this->params = $config['params'];
+        $this->persist = $config['persist'];
         $this->handler($config['handler']);
     }
 
@@ -250,6 +252,7 @@ class Route
                 break;
             }
         }
+
         if (!empty($missing)) {
             throw new RouterException("Missing parameters `'{$segment[0]}'` for route: `'{$this->name}#{$this->pattern}'`.");
         }

@@ -57,6 +57,13 @@ class Router extends \Lead\Collection\Collection
     protected $_strategies = [];
 
     /**
+     * Defaults parameters to use when generating URLs in a dispatching context.
+     *
+     * @var array
+     */
+    protected $_defaults = [];
+
+    /**
      * Constructor
      *
      * @param array $config
@@ -82,7 +89,8 @@ class Router extends \Lead\Collection\Collection
             'host'      => '*',
             'method'    => '*',
             'pattern'   => '/',
-            'namespace' => ''
+            'namespace' => '',
+            'persist'   => []
         ];
         $this->_basePath = $config['basePath'];
         $this->_chunkSize = $config['chunkSize'];
@@ -134,6 +142,10 @@ class Router extends \Lead\Collection\Collection
             $options['namespace'] = $scope['namespace'] . trim($options['namespace'], '\\') . '\\';
         }
 
+        if (isset($options['persist'])) {
+            $options['persist'] = ((array) $options['persist']) + $scope['persist'];
+        }
+
         $options += $scope;
         $options['handler'] = $handler;
         $route = $this->_classes['route'];
@@ -175,6 +187,10 @@ class Router extends \Lead\Collection\Collection
 
         $options['pattern'] = $scope['pattern'] . trim($pattern, '/') . '/';
 
+        if (isset($options['persist'])) {
+            $options['persist'] = ((array) $options['persist']) + $scope['persist'];
+        }
+
         if (isset($options['namespace'])) {
             $options['namespace'] = $scope['namespace'] . trim($options['namespace'], '\\') . '\\';
         }
@@ -200,6 +216,8 @@ class Router extends \Lead\Collection\Collection
             'host'   => '*',
             'scheme' => '*'
         ];
+
+        $this->_defaults = [];
 
         if ($request instanceof RequestInterface) {
             $uri = $request->getUri();
@@ -227,6 +245,11 @@ class Router extends \Lead\Collection\Collection
 
         if ($route = $this->_route($rules, $r['path'])) {
             $route->request = is_object($request) ? $request : $r;
+            foreach ($route->persist as $key) {
+                if (isset($route->params[$key])) {
+                    $this->_defaults[$key] = $route->params[$key];
+                }
+            }
         } else {
             $rules = $this->_buildRules('*', $r['host'], $r['scheme']);
             if ($route = $this->_route($rules, $r['path'])) {
@@ -458,6 +481,8 @@ class Router extends \Lead\Collection\Collection
             'basePath' => $this->basePath()
         ];
         $options += $defaults;
+
+        $params += $this->_defaults;
 
         $route = $this[$name];
         return $route->link($params, $options);
