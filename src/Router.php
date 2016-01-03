@@ -247,7 +247,7 @@ class Router extends \Lead\Collection\Collection
         $message = 'OK';
 
         if ($route = $this->_route($rules, $r['path'])) {
-            $route->request = is_object($request) ? $request : $r;
+            $route->request = is_object($request) ? $request : (object) $r;
             foreach ($route->persist as $key) {
                 if (isset($route->params[$key])) {
                     $this->_defaults[$key] = $route->params[$key];

@@ -188,7 +188,7 @@ describe("Router", function() {
 
             $routing = $r->route('foo/bar', 'GET');
             $route = $routing->route();
-            expect($route->request)->toBe([
+            expect($route->request)->toEqual((object) [
                 'path'   => '/foo/bar',
                 'method' => 'GET',
                 'host'   => '*',
@@ -466,7 +466,7 @@ describe("Router", function() {
 
             $routing = $r->route('foo/bar', 'GET');
             $route = $routing->route();
-            expect($route->request)->toEqual([
+            expect($route->request)->toEqual((object) [
                 'scheme' => "*",
                 'host'   => "*",
                 'method' => "GET",
@@ -494,7 +494,7 @@ describe("Router", function() {
 
             $routing = $r->route(['path' =>'foo/bar'], 'GET');
             $route = $routing->route();
-            expect($route->request)->toEqual([
+            expect($route->request)->toEqual((object) [
                 'scheme' => "*",
                 'host'   => "*",
                 'method' => "GET",
