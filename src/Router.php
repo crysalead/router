@@ -120,7 +120,7 @@ class Router extends \Lead\Collection\Collection
      * @param  Closure|null  $handler The handler callback.
      * @return self
      */
-    public function add($pattern, $options, $handler = null)
+    public function add($pattern, $options = [], $handler = null)
     {
         if (!is_array($options)) {
             $handler = $options;
@@ -131,9 +131,8 @@ class Router extends \Lead\Collection\Collection
         }
         $scope = end($this->_scopes);
 
-        if (strpos($pattern, '#')) {
-            list($name, $pattern) = explode('#', $pattern, 2);
-            $name = $options['name'] = $scope['name'] ?  $scope['name'] . '/' . $name : $name;
+        if (isset($options['name'])) {
+            $options['name'] = $scope['name'] ?  $scope['name'] . '.' . $options['name'] : $options['name'];
         }
 
         $options['pattern'] = $scope['pattern'] . (trim($pattern, '/'));
@@ -152,8 +151,8 @@ class Router extends \Lead\Collection\Collection
 
         $instance = new $route($options);
         $this->_routes[$options['scheme']][$options['host']][$options['method']][] = $instance;
-        if (isset($name)) {
-            $this->_data[$name] = $instance;
+        if (isset($options['name'])) {
+            $this->_data[$options['name']] = $instance;
         }
         return $instance;
     }
@@ -180,9 +179,8 @@ class Router extends \Lead\Collection\Collection
         }
         $scope = end($this->_scopes);
 
-        if (strpos($pattern, '#')) {
-            list($name, $pattern) = explode('#', $pattern, 2);
-            $options['name'] = $scope['name'] ?  $scope['name'] . '/' . $name : $name;
+        if (isset($options['name'])) {
+            $options['name'] = $scope['name'] ?  $scope['name'] . '.' . $options['name'] : $options['name'];
         }
 
         $options['pattern'] = $scope['pattern'] . trim($pattern, '/') . '/';

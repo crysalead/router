@@ -19,7 +19,7 @@ describe("Router", function() {
         it("adds a named route", function() {
 
             $r = $this->router;
-            $route = $r->add('foo#foo/bar', function () { return 'hello'; });
+            $route = $r->add('foo/bar', ['name' => 'foo'], function() { return 'hello'; });
             expect(isset($r['foo']))->toBe(true);
             expect($r['foo'])->toBe($route);
 
@@ -43,7 +43,7 @@ describe("Router", function() {
         it("generates a relative named route link", function() {
 
             $r = $this->router;
-            $r->add('foo#foo/{bar}', function () {});
+            $r->add('foo/{bar}', ['name' => 'foo'], function () {});
 
             $link = $r->link('foo', ['bar' => 'baz']);
             expect($link)->toBe('/foo/baz');
@@ -53,7 +53,7 @@ describe("Router", function() {
         it("generates a relative named route link with missing optionnal parameters", function() {
 
             $r = $this->router;
-            $r->add('foo#foo[/{bar}]', function () {});
+            $r->add('foo[/{bar}]', ['name' => 'foo'], function () {});
 
             $link = $r->link('foo');
             expect($link)->toBe('/foo');
@@ -69,7 +69,7 @@ describe("Router", function() {
             $r->basePath('app');
 
             $r->group(['host' => 'www.example.com'], function($r) {
-                $r->add('foo#foo/{bar}', function () {});
+                $r->add('foo/{bar}', ['name' => 'foo'], function () {});
             });
 
             $link = $r->link('foo', ['bar' => 'baz'], ['absolute' => true]);
@@ -80,13 +80,13 @@ describe("Router", function() {
         it("generates a nested named route relative link", function() {
 
             $r = $this->router;
-            $r->group('foz#foo', function($r) {
-                $r->group('baz#bar', function($r) {
-                    $r->add('quz#{var1}', function () {});
+            $r->group('foo', ['name' => 'foz'], function($r) {
+                $r->group('bar', ['name' => 'baz'], function($r) {
+                    $r->add('{var1}', ['name' => 'quz'], function () {});
                 });
             });
 
-            $link = $r->link('foz/baz/quz', ['var1' => 'hello']);
+            $link = $r->link('foz.baz.quz', ['var1' => 'hello']);
             expect($link)->toBe('/foo/bar/hello');
 
         });
@@ -95,7 +95,7 @@ describe("Router", function() {
 
             $r = $this->router;
             $r->group('{locale:en|fr}', ['persist' => 'locale'], function($r) {
-                $r->add('controller#{controller}/{action}[/{id}]', function () {});
+                $r->add('{controller}/{action}[/{id}]', ['name' => 'controller'], function () {});
             });
 
             $r->route('fr/post/index');
@@ -120,7 +120,7 @@ describe("Router", function() {
 
             $r = $this->router;
             $r->group('{locale:en|fr}', ['persist' => 'locale'], function($r) {
-                $r->add('controller#{controller}/{action}[/{id}]', function () {});
+                $r->add('{controller}/{action}[/{id}]', ['name' => 'controller'], function () {});
             });
 
             $r->route('fr/post/index');
@@ -139,7 +139,7 @@ describe("Router", function() {
 
             $closure = function() {
                 $r = $this->router;
-                $r->add('foo#foo/{bar}', function () {});
+                $r->add('foo/{bar}', ['name' => 'foo'], function () {});
                 $r->link('foo');
             };
 
@@ -175,7 +175,7 @@ describe("Router", function() {
         it("routes on a named route", function() {
 
             $r = $this->router;
-            $r->add('foo#foo/bar', function () {});
+            $r->add('foo/bar', ['name' => 'foo'], function () {});
 
             $routing = $r->route('foo/bar', 'GET');
             $route = $routing->route();
@@ -492,14 +492,14 @@ describe("Router", function() {
         it("supports nested named route", function() {
 
             $r = $this->router;
-            $r->group('foz#foo', function($r) use (&$route) {
-                $r->group('baz#bar', function($r) use (&$route) {
-                    $route = $r->add('quz#{var1}', function () {});
+            $r->group('foo', ['name' => 'foz'], function($r) use (&$route) {
+                $r->group('bar', ['name' => 'baz'], function($r) use (&$route) {
+                    $route = $r->add('{var1}', ['name' => 'quz'], function () {});
                 });
             });
 
-            expect(isset($r['foz/baz/quz']))->toBe(true);
-            expect($r['foz/baz/quz'])->toBe($route);
+            expect(isset($r['foz.baz.quz']))->toBe(true);
+            expect($r['foz.baz.quz'])->toBe($route);
 
         });
 
