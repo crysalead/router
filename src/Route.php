@@ -234,7 +234,7 @@ class Route
 
         $options += $defaults;
 
-        $data = array_reverse($this->data());
+        $data = $this->data();
 
         foreach ($data as $segments) {
             $link = '';

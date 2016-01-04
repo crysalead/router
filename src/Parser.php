@@ -60,7 +60,7 @@ REGEX;
             }
             $data[] = static::_parse($currentPattern, $segmentRegex);
         }
-        return $data;
+        return array_reverse($data);
     }
 
     /**

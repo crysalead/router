@@ -64,8 +64,8 @@ describe("Parser", function() {
 
             $result = Parser::parse('/test[opt]');
             expect($result)->toBe([
-                ['/test'],
-                ['/testopt']
+                ['/testopt'],
+                ['/test']
             ]);
 
         });
@@ -74,8 +74,8 @@ describe("Parser", function() {
 
             $result = Parser::parse('[test]');
             expect($result)->toBe([
-                [''],
-                ['test']
+                ['test'],
+                ['']
             ]);
 
         });
@@ -84,8 +84,8 @@ describe("Parser", function() {
 
             $result = Parser::parse('/test[/{param}]');
             expect($result)->toBe([
-                ['/test'],
-                ['/test/', ['param', '[^/]+']]
+                ['/test/', ['param', '[^/]+']],
+                ['/test']
             ]);
 
         });
@@ -94,8 +94,8 @@ describe("Parser", function() {
 
             $result = Parser::parse('/{param}[opt]');
             expect($result)->toBe([
-                ['/', ['param', '[^/]+']],
-                ['/', ['param', '[^/]+'], 'opt']
+                ['/', ['param', '[^/]+'], 'opt'],
+                ['/', ['param', '[^/]+']]
             ]);
 
         });
@@ -104,9 +104,9 @@ describe("Parser", function() {
 
             $result = Parser::parse('/test[/{name}[/{id:[0-9]+}]]');
             expect($result)->toBe([
-                ['/test'],
+                ['/test/', ['name', '[^/]+'], '/', ['id', '[0-9]+']],
                 ['/test/', ['name', '[^/]+']],
-                ['/test/', ['name', '[^/]+'], '/', ['id', '[0-9]+']]
+                ['/test']
             ]);
 
         });
@@ -174,9 +174,9 @@ describe("Parser", function() {
             $data = Parser::parse('/test[/{name}[/{id:[0-9]+}]]');
             $rules = Parser::rules($data);
             expect($rules)->toBe([
-                ['/test', []],
+                ['/test/([^/]+)/([0-9]+)', ['name' => 'name', 'id' => 'id']],
                 ['/test/([^/]+)', ['name' => 'name']],
-                ['/test/([^/]+)/([0-9]+)', ['name' => 'name', 'id' => 'id']]
+                ['/test', []]
             ]);
 
         });
