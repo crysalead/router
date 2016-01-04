@@ -684,7 +684,7 @@ describe("Router", function() {
             $r->mystrategy();
             $routing = $r->route('foo/bar');
             $route = $routing->route();
-            expect($route->patterns)->toBe(['/foo/bar']);
+            expect($route->patterns())->toBe(['/foo/bar']);
 
         });
 

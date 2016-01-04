@@ -88,7 +88,7 @@ class Router extends \Lead\Collection\Collection
             'scheme'    => '*',
             'host'      => '*',
             'method'    => '*',
-            'pattern'   => '/',
+            'prefix'    => '/',
             'namespace' => '',
             'persist'   => []
         ];
@@ -130,7 +130,8 @@ class Router extends \Lead\Collection\Collection
             throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
         }
 
-        $options = $this->_scopify((array) $pattern, $options);
+        $options = $this->_scopify($options);
+        $options['patterns'] = (array) $pattern;
         $options['handler'] = $handler;
         $route = $this->_classes['route'];
 
@@ -149,22 +150,23 @@ class Router extends \Lead\Collection\Collection
      * @param string|array $scope
      * @param Closure      $callback
      */
-    public function group($pattern, $options, $handler = null)
+    public function group($prefix, $options, $handler = null)
     {
         if (!is_array($options)) {
             $handler = $options;
-            if (is_string($pattern)) {
+            if (is_string($prefix)) {
                 $options = [];
             } else {
-                $options = $pattern;
-                $pattern = '';
+                $options = $prefix;
+                $prefix = '';
             }
         }
         if (!$handler instanceof Closure && !method_exists($handler, '__invoke')) {
             throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
         }
 
-        $this->_scopes[] = $this->_scopify($pattern, $options);
+        $options['prefix'] = $prefix;
+        $this->_scopes[] = $this->_scopify($options);
 
         $handler($this);
 
@@ -178,20 +180,16 @@ class Router extends \Lead\Collection\Collection
      * @param  array  $options The options to scopify.
      * @return array           The scopified options.
      */
-    protected function _scopify($pattern, $options)
+    protected function _scopify($options)
     {
         $scope = end($this->_scopes);
 
-        if (isset($options['name'])) {
-            $options['name'] = $scope['name'] ?  $scope['name'] . '.' . $options['name'] : $options['name'];
+        if (!empty($options['name'])) {
+            $options['name'] = $scope['name'] ? $scope['name'] . '.' . $options['name'] : $options['name'];
         }
 
-        if (is_array($pattern)) {
-            foreach ($pattern as $value) {
-                $options['patterns'][] = $scope['pattern'] . trim($value, '/');
-            }
-        } else {
-            $options['pattern'] = $scope['pattern'] . trim($pattern, '/') . '/';
+        if (!empty($options['prefix'])) {
+            $options['prefix'] = $scope['prefix'] . trim($options['prefix'], '/') . '/';
         }
 
         if (isset($options['persist'])) {

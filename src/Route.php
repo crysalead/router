@@ -41,13 +41,6 @@ class Route
     public $method = '*';
 
     /**
-     * Patterns definition.
-     *
-     * @var array
-     */
-    public $patterns = [];
-
-    /**
      * Named parameter.
      *
      * @var array
@@ -90,6 +83,20 @@ class Route
     public $dispatched = null;
 
     /**
+     * Pattern prefix.
+     *
+     * @var array
+     */
+    protected $_prefix = '';
+
+    /**
+     * Patterns definition.
+     *
+     * @var array
+     */
+    protected $_patterns = [];
+
+    /**
      * Data extracted from route's patterns.
      *
      * @var array
@@ -120,6 +127,7 @@ class Route
             'scheme'    => '*',
             'host'      => '*',
             'method'    => '*',
+            'prefix'    => '',
             'patterns'  => [],
             'name'      => '',
             'namespace' => '',
@@ -133,15 +141,53 @@ class Route
         $config += $defaults;
 
         $this->_classes = $config['classes'];
+        $this->_prefix = trim($config['prefix'], '/');
+        $this->_prefix = $this->_prefix ? '/' . $this->_prefix . '/' : '/';
         $this->scheme = $config['scheme'];
         $this->host = $config['host'];
         $this->method = $config['method'];
-        $this->patterns = $config['patterns'];
         $this->name = $config['name'];
         $this->namespace = $config['namespace'];
         $this->params = $config['params'];
         $this->persist = $config['persist'];
         $this->handler($config['handler']);
+        foreach ((array) $config['patterns'] as $pattern) {
+            $this->append($pattern);
+        }
+    }
+
+    /**
+     * Returns route's patterns.
+     *
+     * @return array The route's patterns.
+     */
+    public function patterns()
+    {
+        return $this->_patterns;
+    }
+
+    /**
+     * Appends a pattern.
+     *
+     * @param string $pattern
+     */
+    public function append($pattern)
+    {
+        $this->_data = null;
+        $this->_rules = null;
+        $this->_patterns[] = $this->_prefix . ltrim($pattern, '/');
+    }
+
+    /**
+     * Prepends a pattern.
+     *
+     * @param string $pattern
+     */
+    public function prepend($pattern)
+    {
+        $this->_data = null;
+        $this->_rules = null;
+        array_unshift($this->_patterns, $this->_prefix . ltrim($pattern, '/'));
     }
 
     /**
@@ -155,8 +201,8 @@ class Route
             $parser = $this->_classes['parser'];
             $this->_data = [];
             $this->_rules = null;
-            foreach ($this->patterns as $pattern) {
-                $this->_data = array_merge($parser::parse($pattern, '[^/]+'), $this->_data);
+            foreach ($this->_patterns as $pattern) {
+                $this->_data = array_merge($this->_data, $parser::parse($pattern, '[^/]+'));
             }
         }
         return $this->_data;
@@ -256,7 +302,7 @@ class Route
         }
 
         if (!empty($missing)) {
-            $patterns = join(',', $this->patterns);
+            $patterns = join(',', $this->_patterns);
             throw new RouterException("Missing parameters `'{$segment[0]}'` for route: `'{$this->name}#{$patterns}'`.");
         }
         $basePath = trim($options['basePath'], '/');
