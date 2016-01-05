@@ -118,23 +118,31 @@ class Route
     protected $_handler = null;
 
     /**
+     * Middlewares.
+     *
+     * @var array
+     */
+    protected $_middleware = [];
+
+    /**
      * Constructs a route
      *
      * @param array $config The config array.
      */
     public function __construct($config = []) {
         $defaults = [
-            'scheme'    => '*',
-            'host'      => '*',
-            'method'    => '*',
-            'prefix'    => '',
-            'patterns'  => [],
-            'name'      => '',
-            'namespace' => '',
-            'handler'   => null,
-            'params'    => [],
-            'persist'   => [],
-            'classes'   => [
+            'scheme'     => '*',
+            'host'       => '*',
+            'method'     => '*',
+            'prefix'     => '',
+            'patterns'   => [],
+            'name'       => '',
+            'namespace'  => '',
+            'handler'    => null,
+            'params'     => [],
+            'persist'    => [],
+            'middleware' => [],
+            'classes'    => [
                 'parser' => 'Lead\Router\Parser'
             ]
         ];
@@ -143,6 +151,7 @@ class Route
         $this->_classes = $config['classes'];
         $this->_prefix = trim($config['prefix'], '/');
         $this->_prefix = $this->_prefix ? '/' . $this->_prefix . '/' : '/';
+        $this->_middleware = (array) $config['middleware'];
         $this->scheme = $config['scheme'];
         $this->host = $config['host'];
         $this->method = $config['method'];
@@ -246,8 +255,44 @@ class Route
     public function dispatch($response = null)
     {
         $this->response = $response;
-        $handler = $this->handler();
-        return $handler($this, $response);
+        $request = $this->request;
+
+        $generator = $this->middleware();
+
+        $next = function() use ($request, $response, $generator, &$next) {
+            $handler = $generator->current();
+            $generator->next();
+            return $handler($request, $response, $next);
+        };
+        return $next();
+    }
+
+    /**
+     * Generators for middlewares.
+     *
+     * @return mixed
+     */
+    public function middleware()
+    {
+        foreach ($this->_middleware as $middleware) {
+            yield $middleware;
+        }
+
+        yield function() {
+            $handler = $this->handler();
+            return $handler($this, $this->response);
+        };
+    }
+
+    /**
+     * Applies a middleware.
+     *
+     * @param object|Closure A middleware instance of closure.
+     */
+    public function apply($middleware)
+    {
+        $this->_middleware[] = $middleware;
+        return $this;
     }
 
     /**

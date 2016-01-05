@@ -84,13 +84,14 @@ class Router extends \Lead\Collection\Collection
         $config += $defaults;
         $this->_classes = $config['classes'];
         $this->_scopes[] = $config['scope'] + [
-            'name'      => '',
-            'scheme'    => '*',
-            'host'      => '*',
-            'method'    => '*',
-            'prefix'    => '/',
-            'namespace' => '',
-            'persist'   => []
+            'name'       => '',
+            'scheme'     => '*',
+            'host'       => '*',
+            'method'     => '*',
+            'prefix'     => '/',
+            'namespace'  => '',
+            'persist'    => [],
+            'middleware' => []
         ];
         $this->_basePath = $config['basePath'];
         $this->_chunkSize = $config['chunkSize'];
@@ -171,6 +172,8 @@ class Router extends \Lead\Collection\Collection
         $handler($this);
 
         array_pop($this->_scopes);
+
+        return $this;
     }
 
     /**
@@ -199,6 +202,8 @@ class Router extends \Lead\Collection\Collection
         if (isset($options['namespace'])) {
             $options['namespace'] = $scope['namespace'] . trim($options['namespace'], '\\') . '\\';
         }
+
+        $options['middleware'] = $scope['middleware'];
 
         return $options + $scope;
     }
@@ -427,6 +432,17 @@ class Router extends \Lead\Collection\Collection
     }
 
     /**
+     * Applies a middleware.
+     *
+     * @param object|Closure A middleware instance of closure.
+     */
+    public function apply($middleware)
+    {
+        $this->_scopes['middleware'][] = $middleware;
+        return $this;
+    }
+
+    /**
      * Gets/sets router methods.
      *
      * @param  string       $name    A router method name
@@ -496,11 +512,14 @@ class Router extends \Lead\Collection\Collection
     {
         $this->_routes = [];
         $this->_scopes = [[
-            'scheme'    => '*',
-            'host'      => '*',
-            'method'    => '*',
-            'pattern'   => '/',
-            'namespace' => ''
+            'name'       => '',
+            'scheme'     => '*',
+            'host'       => '*',
+            'method'     => '*',
+            'prefix'     => '/',
+            'namespace'  => '',
+            'persist'    => [],
+            'middleware' => []
         ]];
     }
 }

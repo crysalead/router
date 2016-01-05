@@ -57,6 +57,46 @@ describe("Route", function() {
 
     });
 
+    describe("->apply()", function() {
+
+        it("applies middlewares from top to bottom", function() {
+
+            $r = $this->router;
+            $route = $r->add('/foo/bar', function($route) {
+                return 'C';
+            })->apply(function($request, $response, $next) {
+                return 'A' . $next();
+            })->apply(function($request, $response, $next) {
+                return 'B' . $next();
+            });
+
+            $routing = $r->route('foo/bar');
+            $actual = $routing->route()->dispatch();
+
+            expect($actual)->toBe('ABC');
+
+        });
+
+        it("applies middlewares from bottom to top", function() {
+
+            $r = $this->router;
+            $route = $r->add('/foo/bar', function($route) {
+                return 'C';
+            })->apply(function($request, $response, $next) {
+                return $next() . 'A';
+            })->apply(function($request, $response, $next) {
+                return $next() . 'B';
+            });
+
+            $routing = $r->route('foo/bar');
+            $actual = $routing->route()->dispatch();
+
+            expect($actual)->toBe('CBA');
+
+        });
+
+    });
+
     describe("->dispatch()", function() {
 
         it("passes route as argument of the handler function", function() {
