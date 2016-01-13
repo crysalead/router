@@ -136,14 +136,9 @@ $router = new Router();
 
 $router->add('foo/bar', function() { return "Hello World!"; });
 
-$routing = $router->route('foo/bar', 'GET', 'www.domain.com', 'https');
+$route = $router->route('foo/bar', 'GET', 'www.domain.com', 'https');
 
-if (!$routing->error()) {
-    $route = $routing->route();
-    echo $route->dispatch();
-} else {
-    throw new Exception($routing->message(), $routing->error());
-}
+echo $route->dispatch(); // Can throw an exception if the route is not valid.
 ```
 
 #### Dispatching A Request Using Some PSR-7 Compatible Request/Response
@@ -161,14 +156,9 @@ $response = new Response();
 $router = new Router();
 $router->add('foo/bar', function($route, $response) { $response->body("Hello World!"); });
 
-$routing = $router->route($request);
+$route = $router->route($request);
 
-if (!$routing->error()) {
-    $route = $routing->route();
-    echo $route->dispatch($response);
-} else {
-    throw new Exception($routing->message(), $routing->error());
-}
+echo $route->dispatch($response); // Can throw an exception if the route is not valid.
 ```
 
 ### Setting up a custom dispatching strategy.
