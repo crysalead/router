@@ -24,13 +24,13 @@ describe("Route", function() {
 
             $response = new stdClass();
 
-            $routing = $r->route('foo/bar/action');
-            $actual = $routing->route()->dispatch($response);
+            $route = $r->route('foo/bar/action');
+            $actual = $route->dispatch($response);
 
             expect($actual)->toBe(['foo' => 'foo', 'bar' => 'bar']);
 
-            $routing = $r->route('foo/bar/baz');
-            $actual = $routing->route()->dispatch($response);
+            $route = $r->route('foo/bar/baz');
+            $actual = $route->dispatch($response);
 
             expect($actual)->toBe(['foz' => 'foo', 'baz' => 'bar', 'quz' => 'baz']);
 
@@ -48,8 +48,8 @@ describe("Route", function() {
 
             $response = new stdClass();
 
-            $routing = $r->route('foo/bar/action');
-            $actual = $routing->route()->dispatch($response);
+            $route = $r->route('foo/bar/action');
+            $actual = $route->dispatch($response);
 
             expect($actual)->toBe(['foz' => 'foo', 'baz' => 'bar', 'quz' => 'action']);
 
@@ -70,8 +70,8 @@ describe("Route", function() {
                 return 'B' . $next();
             });
 
-            $routing = $r->route('foo/bar');
-            $actual = $routing->route()->dispatch();
+            $route = $r->route('foo/bar');
+            $actual = $route->dispatch();
 
             expect($actual)->toBe('ABC');
 
@@ -88,8 +88,8 @@ describe("Route", function() {
                 return $next() . 'B';
             });
 
-            $routing = $r->route('foo/bar');
-            $actual = $routing->route()->dispatch();
+            $route = $r->route('foo/bar');
+            $actual = $route->dispatch();
 
             expect($actual)->toBe('CBA');
 
@@ -111,12 +111,12 @@ describe("Route", function() {
 
             $response = new stdClass();
 
-            $routing = $r->route('foo/25', 'GET', 'foo.biz.bar');
-            $actual = $routing->route()->dispatch($response);
+            $route = $r->route('foo/25', 'GET', 'foo.biz.bar');
+            $actual = $route->dispatch($response);
             expect($actual)->toBe([$response, 'foo', 'biz', '25']);
 
-            $routing = $r->route('foo/25/bar', 'GET', 'foo.biz.bar');
-            $actual = $routing->route()->dispatch($response);
+            $route = $r->route('foo/25/bar', 'GET', 'foo.biz.bar');
+            $actual = $route->dispatch($response);
             expect($actual)->toBe([$response, 'foo', 'biz', '25', 'bar']);
 
         });

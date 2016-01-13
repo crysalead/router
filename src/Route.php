@@ -5,6 +5,26 @@ use Closure;
 
 class Route
 {
+    const FOUND = 0;
+
+    const NOT_FOUND = 404;
+
+    const METHOD_NOT_ALLOWED = 405;
+
+    /**
+     * The route's error number.
+     *
+     * @var integer
+     */
+    protected $_error = 0;
+
+    /**
+     * The route's message.
+     *
+     * @var string
+     */
+    protected $_message = 'OK';
+
     /**
      * Class dependencies.
      *
@@ -131,6 +151,8 @@ class Route
      */
     public function __construct($config = []) {
         $defaults = [
+            'error'    => static::FOUND,
+            'message'  => 'OK',
             'scheme'     => '*',
             'host'       => '*',
             'method'     => '*',
@@ -148,10 +170,6 @@ class Route
         ];
         $config += $defaults;
 
-        $this->_classes = $config['classes'];
-        $this->_prefix = trim($config['prefix'], '/');
-        $this->_prefix = $this->_prefix ? '/' . $this->_prefix . '/' : '/';
-        $this->_middleware = (array) $config['middleware'];
         $this->scheme = $config['scheme'];
         $this->host = $config['host'];
         $this->method = $config['method'];
@@ -160,9 +178,37 @@ class Route
         $this->params = $config['params'];
         $this->persist = $config['persist'];
         $this->handler($config['handler']);
+
+        $this->_classes = $config['classes'];
+        $this->_prefix = trim($config['prefix'], '/');
+        $this->_prefix = $this->_prefix ? '/' . $this->_prefix . '/' : '/';
+        $this->_middleware = (array) $config['middleware'];
+        $this->_error = $config['error'];
+        $this->_message = $config['message'];
+
         foreach ((array) $config['patterns'] as $pattern) {
             $this->append($pattern);
         }
+    }
+
+    /**
+     * Gets the routing error number.
+     *
+     * @return integer The routing error.
+     */
+    public function error()
+    {
+        return $this->_error;
+    }
+
+    /**
+     * Gets the routing message.
+     *
+     * @return string The routing message.
+     */
+    public function message()
+    {
+        return $this->_message;
     }
 
     /**
@@ -254,6 +300,9 @@ class Route
      */
     public function dispatch($response = null)
     {
+        if ($error = $this->error()) {
+            throw new RouterException($this->message(), $error);
+        }
         $this->response = $response;
         $request = $this->request;
 

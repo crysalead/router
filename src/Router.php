@@ -77,8 +77,7 @@ class Router extends \Lead\Collection\Collection
             'strategies'    => [],
             'classes'       => [
                 'parser'    => 'Lead\Router\Parser',
-                'route'     => 'Lead\Router\Route',
-                'routing'   => 'Lead\Router\Routing'
+                'route'     => 'Lead\Router\Route'
             ]
         ];
         $config += $defaults;
@@ -244,10 +243,6 @@ class Router extends \Lead\Collection\Collection
         $r = $this->_normalizeRequest($r);
 
         $rules = $this->_buildRules($r['method'], $r['host'], $r['scheme']);
-        $routing = $this->_classes['routing'];
-
-        $error = $routing::FOUND;
-        $message = 'OK';
 
         if ($route = $this->_route($rules, $r['path'])) {
             $route->request = is_object($request) ? $request : (object) $r;
@@ -257,18 +252,21 @@ class Router extends \Lead\Collection\Collection
                 }
             }
         } else {
+            $route = $this->_classes['route'];
+
             $rules = $this->_buildRules('*', $r['host'], $r['scheme']);
-            if ($route = $this->_route($rules, $r['path'])) {
-                $error = $routing::METHOD_NOT_ALLOWED;
+            if ($this->_route($rules, $r['path'])) {
+                $error = $route::METHOD_NOT_ALLOWED;
                 $message = "Method `{$r['method']}` Not Allowed for `{$r['scheme']}:{$r['host']}:{$r['path']}`.";
-                $route = null;
             } else {
-                $error = $routing::NOT_FOUND;
+                $error = $route::NOT_FOUND;
                 $message = "No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:{$r['path']}`.";
             }
+
+            $route = new $route(compact('error', 'message'));
         }
 
-        return new $routing(compact('error', 'message', 'route'));
+        return $route;
     }
 
     /**
