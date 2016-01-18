@@ -63,6 +63,19 @@ describe("Router", function() {
 
         });
 
+        it("merges default params", function() {
+
+            $r = $this->router;
+            $r->add('foo/{bar}', [
+                'name'   => 'foo',
+                'params' => ['bar' => 'baz']
+            ], function () {});
+
+            $link = $r->link('foo');
+            expect($link)->toBe('/foo/baz');
+
+        });
+
         it("creates absolute links", function() {
 
             $r = $this->router;

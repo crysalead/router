@@ -371,8 +371,9 @@ class Route
         ];
 
         $options = array_filter($options, function($value) { return $value !== '*'; });
-
         $options += $defaults;
+
+        $params = $params + $this->params;
 
         $data = $this->data();
 
