@@ -77,7 +77,8 @@ class Router extends \Lead\Collection\Collection
             'strategies'    => [],
             'classes'       => [
                 'parser'    => 'Lead\Router\Parser',
-                'route'     => 'Lead\Router\Route'
+                'route'     => 'Lead\Router\Route',
+                'request'   => 'Lead\Net\Http\Cgi\Request'
             ]
         ];
         $config += $defaults;
@@ -245,7 +246,7 @@ class Router extends \Lead\Collection\Collection
         $rules = $this->_buildRules($r['method'], $r['host'], $r['scheme']);
 
         if ($route = $this->_route($rules, $r['path'])) {
-            $route->request = is_object($request) ? $request : (object) $r;
+            $route->request = is_object($request) ? $request : $this->_request($r);
             foreach ($route->persist as $key) {
                 if (isset($route->params[$key])) {
                     $this->_defaults[$key] = $route->params[$key];
@@ -267,6 +268,24 @@ class Router extends \Lead\Collection\Collection
         }
 
         return $route;
+    }
+
+    /**
+     * Creates an instance from a request array.
+     *
+     * @param  mixed  $r A request.
+     * @return object    A request instance.
+     */
+    protected function _request($r)
+    {
+        $request = $this->_classes['request'];
+        if ($r['scheme'] === '*') {
+            unset($r['scheme']);
+        }
+        if ($r['host'] === '*') {
+            unset($r['host']);
+        }
+        return new $request($r);
     }
 
     /**

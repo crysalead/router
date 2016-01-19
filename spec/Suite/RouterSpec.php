@@ -11,6 +11,9 @@ describe("Router", function() {
     beforeEach(function() {
 
         $this->router = new Router();
+        $this->export = function($request) {
+            return array_intersect_key($request->export(), array_fill_keys(['path', 'method', 'host', 'scheme'], true));
+        };
 
     });
 
@@ -200,11 +203,11 @@ describe("Router", function() {
             $r->add('foo/bar', function () {});
 
             $route = $r->route('foo/bar', 'GET');
-            expect($route->request)->toEqual((object) [
+            expect($this->export($route->request))->toEqual([
                 'path'   => '/foo/bar',
                 'method' => 'GET',
-                'host'   => '*',
-                'scheme' => '*'
+                'host'   => 'localhost',
+                'scheme' => 'http'
             ]);
 
             $route = $r->route('foo/baz', 'GET');
@@ -447,9 +450,9 @@ describe("Router", function() {
             $r->add('foo/bar', function () {});
 
             $route = $r->route('foo/bar', 'GET');
-            expect($route->request)->toEqual((object) [
-                'scheme' => "*",
-                'host'   => "*",
+            expect($this->export($route->request))->toEqual([
+                'scheme' => "http",
+                'host'   => "localhost",
                 'method' => "GET",
                 'path'   => "/foo/bar"
             ]);
@@ -473,9 +476,9 @@ describe("Router", function() {
             $r->add('foo/bar', function () {});
 
             $route = $r->route(['path' =>'foo/bar'], 'GET');
-            expect($route->request)->toEqual((object) [
-                'scheme' => "*",
-                'host'   => "*",
+            expect($this->export($route->request))->toEqual([
+                'scheme' => "http",
+                'host'   => "localhost",
                 'method' => "GET",
                 'path'   => "/foo/bar"
             ]);
