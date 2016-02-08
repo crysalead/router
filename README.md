@@ -26,9 +26,9 @@ use Lead\Router\Router;
 
 $router = new Router();
 
-$router->add($pattern, $handler);                      # route matching any request method
-$router->add($pattern, $options, $handler);            # alternative syntax with some options.
-$router->add($pattern, ['method' => 'get'], $handler); # route matching only get requests
+$router->bind($pattern, $handler);                      # route matching any request method
+$router->bind($pattern, $options, $handler);            # alternative syntax with some options.
+$router->bind($pattern, ['method' => 'get'], $handler); # route matching only get requests
 
 // Alternative syntax
 $router->get($pattern, $handler);    # route matching only get requests

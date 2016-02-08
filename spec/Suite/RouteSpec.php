@@ -62,7 +62,7 @@ describe("Route", function() {
         it("applies middlewares from top to bottom", function() {
 
             $r = $this->router;
-            $route = $r->add('/foo/bar', function($route) {
+            $route = $r->bind('/foo/bar', function($route) {
                 return 'C';
             })->apply(function($request, $response, $next) {
                 return 'A' . $next();
@@ -80,7 +80,7 @@ describe("Route", function() {
         it("applies middlewares from bottom to top", function() {
 
             $r = $this->router;
-            $route = $r->add('/foo/bar', function($route) {
+            $route = $r->bind('/foo/bar', function($route) {
                 return 'C';
             })->apply(function($request, $response, $next) {
                 return $next() . 'A';

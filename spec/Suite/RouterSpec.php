@@ -17,12 +17,12 @@ describe("Router", function() {
 
     });
 
-    describe("->add()", function() {
+    describe("->bind()", function() {
 
-        it("adds a named route", function() {
+        it("binds a named route", function() {
 
             $r = $this->router;
-            $route = $r->add('foo/bar', ['name' => 'foo'], function() { return 'hello'; });
+            $route = $r->bind('foo/bar', ['name' => 'foo'], function() { return 'hello'; });
             expect(isset($r['foo']))->toBe(true);
             expect($r['foo'])->toBe($route);
 
@@ -32,7 +32,7 @@ describe("Router", function() {
 
             $closure = function() {
                 $r = $this->router;
-                $r->add('foo', 'substr');
+                $r->bind('foo', 'substr');
             };
 
             expect($closure)->toThrow(new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method."));
@@ -46,7 +46,7 @@ describe("Router", function() {
         it("creates relative links", function() {
 
             $r = $this->router;
-            $r->add('foo/{bar}', ['name' => 'foo'], function () {});
+            $r->bind('foo/{bar}', ['name' => 'foo'], function () {});
 
             $link = $r->link('foo', ['bar' => 'baz']);
             expect($link)->toBe('/foo/baz');
@@ -56,7 +56,7 @@ describe("Router", function() {
         it("supports optionnal parameters", function() {
 
             $r = $this->router;
-            $r->add('foo[/{bar}]', ['name' => 'foo'], function () {});
+            $r->bind('foo[/{bar}]', ['name' => 'foo'], function () {});
 
             $link = $r->link('foo');
             expect($link)->toBe('/foo');
@@ -69,7 +69,7 @@ describe("Router", function() {
         it("merges default params", function() {
 
             $r = $this->router;
-            $r->add('foo/{bar}', [
+            $r->bind('foo/{bar}', [
                 'name'   => 'foo',
                 'params' => ['bar' => 'baz']
             ], function () {});
@@ -85,7 +85,7 @@ describe("Router", function() {
             $r->basePath('app');
 
             $r->group(['host' => 'www.example.com'], function($r) {
-                $r->add('foo/{bar}', ['name' => 'foo'], function () {});
+                $r->bind('foo/{bar}', ['name' => 'foo'], function () {});
             });
 
             $link = $r->link('foo', ['bar' => 'baz'], ['absolute' => true]);
@@ -98,7 +98,7 @@ describe("Router", function() {
             $r = $this->router;
             $r->group('foo', ['name' => 'foz'], function($r) {
                 $r->group('bar', ['name' => 'baz'], function($r) {
-                    $r->add('{var1}', ['name' => 'quz'], function () {});
+                    $r->bind('{var1}', ['name' => 'quz'], function () {});
                 });
             });
 
@@ -111,7 +111,7 @@ describe("Router", function() {
 
             $r = $this->router;
             $r->group('{locale:en|fr}', ['persist' => 'locale'], function($r) {
-                $r->add('{controller}/{action}[/{id}]', ['name' => 'controller'], function () {});
+                $r->bind('{controller}/{action}[/{id}]', ['name' => 'controller'], function () {});
             });
 
             $r->route('fr/post/index');
@@ -136,7 +136,7 @@ describe("Router", function() {
 
             $r = $this->router;
             $r->group('{locale:en|fr}', ['persist' => 'locale'], function($r) {
-                $r->add('{controller}/{action}[/{id}]', ['name' => 'controller'], function () {});
+                $r->bind('{controller}/{action}[/{id}]', ['name' => 'controller'], function () {});
             });
 
             $r->route('fr/post/index');
@@ -162,7 +162,7 @@ describe("Router", function() {
                 'post[/:{action}]'
             ];
 
-            $route = $r->add($patterns, ['name' => 'post'], function () {});
+            $route = $r->bind($patterns, ['name' => 'post'], function () {});
 
             $link = $r->link('post');
             expect($link)->toBe('/post');
@@ -185,7 +185,7 @@ describe("Router", function() {
 
             $closure = function() {
                 $r = $this->router;
-                $r->add('foo/{bar}', ['name' => 'foo'], function () {});
+                $r->bind('foo/{bar}', ['name' => 'foo'], function () {});
                 $r->link('foo');
             };
 
@@ -200,7 +200,7 @@ describe("Router", function() {
         it("routes on a simple route", function() {
 
             $r = $this->router;
-            $r->add('foo/bar', function () {});
+            $r->bind('foo/bar', function () {});
 
             $route = $r->route('foo/bar', 'GET');
             expect($this->export($route->request))->toEqual([
@@ -219,7 +219,7 @@ describe("Router", function() {
         it("routes on a named route", function() {
 
             $r = $this->router;
-            $r->add('foo/bar', ['name' => 'foo'], function () {});
+            $r->bind('foo/bar', ['name' => 'foo'], function () {});
 
             $route = $r->route('foo/bar', 'GET');
             expect($route->name)->toBe('foo');
@@ -400,7 +400,7 @@ describe("Router", function() {
 
             $closure = function() {
                 $r = $this->router;
-                $r->add('foo/bar', function() {});
+                $r->bind('foo/bar', function() {});
                 $r->get('foo/bar', function() {});
                 $r->route('foo/bar');
             };
@@ -447,7 +447,7 @@ describe("Router", function() {
         it("supports requests as a list of arguments", function() {
 
             $r = $this->router;
-            $r->add('foo/bar', function () {});
+            $r->bind('foo/bar', function () {});
 
             $route = $r->route('foo/bar', 'GET');
             expect($this->export($route->request))->toEqual([
@@ -462,7 +462,7 @@ describe("Router", function() {
         it("supports requests as an object", function() {
 
             $r = $this->router;
-            $r->add('foo/bar', function () {});
+            $r->bind('foo/bar', function () {});
             $request = new Request(['path' =>'foo/bar']);
 
             $route = $r->route($request, 'GET');
@@ -473,7 +473,7 @@ describe("Router", function() {
         it("supports requests as an array", function() {
 
             $r = $this->router;
-            $r->add('foo/bar', function () {});
+            $r->bind('foo/bar', function () {});
 
             $route = $r->route(['path' =>'foo/bar'], 'GET');
             expect($this->export($route->request))->toEqual([
@@ -505,7 +505,7 @@ describe("Router", function() {
             $r = $this->router;
             $r->group('foo', ['name' => 'foz'], function($r) use (&$route) {
                 $r->group('bar', ['name' => 'baz'], function($r) use (&$route) {
-                    $route = $r->add('{var1}', ['name' => 'quz'], function () {});
+                    $route = $r->bind('{var1}', ['name' => 'quz'], function () {});
                 });
             });
 
@@ -520,7 +520,7 @@ describe("Router", function() {
 
                 $r = $this->router;
                 $r->group('foo', function($r) {
-                    $r->add('{var1}', function () {});
+                    $r->bind('{var1}', function () {});
                 });
 
             });
@@ -551,7 +551,7 @@ describe("Router", function() {
                 $r = $this->router;
                 $r->group('foo', ['host' => 'foo.{domain}.bar'], function($r) {
                     $r->group('bar', function($r) {
-                        $r->add('{var1}', function () {});
+                        $r->bind('{var1}', function () {});
                     });
                 });
 
@@ -586,7 +586,7 @@ describe("Router", function() {
                 $r = $this->router;
                 $r->group('foo', ['scheme' => 'http'], function($r) {
                     $r->group('bar', function($r) {
-                        $r->add('{var1}', function () {});
+                        $r->bind('{var1}', function () {});
                     });
                 });
 
@@ -618,7 +618,7 @@ describe("Router", function() {
             $r = $this->router;
             $r->group('foo', ['namespace' => 'My'], function($r) {
                 $r->group('bar', ['namespace' => 'Name'], function($r) {
-                    $r->add('{var1}', ['namespace' => 'Space'], function () {});
+                    $r->bind('{var1}', ['namespace' => 'Space'], function () {});
                 });
             });
 
@@ -647,7 +647,7 @@ describe("Router", function() {
             $r = $this->router;
 
             $mystrategy = function($router) {
-                $router->add('foo/bar', function() {
+                $router->bind('foo/bar', function() {
                     return 'Hello World!';
                 });
             };

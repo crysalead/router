@@ -121,7 +121,7 @@ class Router extends \Lead\Collection\Collection
      * @param  Closure|null  $handler The handler callback.
      * @return self
      */
-    public function add($pattern, $options = [], $handler = null)
+    public function bind($pattern, $options = [], $handler = null)
     {
         if (!is_array($options)) {
             $handler = $options;
@@ -503,7 +503,7 @@ class Router extends \Lead\Collection\Collection
             $params[1] = [];
         }
         $params[1]['method'] = $method;
-        return call_user_func_array([$this, 'add'], $params);
+        return call_user_func_array([$this, 'bind'], $params);
     }
 
     /**
