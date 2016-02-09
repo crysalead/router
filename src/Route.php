@@ -401,7 +401,7 @@ class Route
             throw new RouterException("Missing parameters `'{$segment[0]}'` for route: `'{$this->name}#{$patterns}'`.");
         }
         $basePath = trim($options['basePath'], '/');
-        if ($options['basePath']) {
+        if ($basePath) {
             $basePath = '/' . $basePath;
         }
         $link = isset($link) ? ltrim($link, '/') : '';
