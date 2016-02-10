@@ -36,7 +36,7 @@ $router->post($pattern, $handler);   # route matching only post requests
 $router->delete($pattern, $handler); # route matching only delete requests
 ```
 
-In the above example `$router` is a collection of routes. A route is registered using the `add()` method and takes as parametters a route pattern, an optionnal options array and an handler.
+In the above example `$router` is a collection of routes. A route is registered using the `bind()` method and takes as parametters a route pattern, an optionnal options array and an handler.
 
 A route pattern is a string representing an URL path. Placeholders can be specified using brackets (e.g `{foo}`) and matches `[^/]+` by default. You can however specify a custom pattern using the following syntax `{foo:[0-9]+}`. You can also add an array of patterns for a sigle route.
 
@@ -53,16 +53,16 @@ The second parameter is an `$options`. Possible values are:
 The last parameter is the `$handler` which contain the dispatching logic. The `$handler` is dynamically binded to the founded route so `$this` will stands for the route instance. The available data in the handler is the following:
 
 ```php
-$router->add('foo/bar', function($route, $response) {
+$router->bind('foo/bar', function($route, $response) {
     $route->scheme;     // The scheme contraint
     $route->host;       // The host contraint
     $route->method;     // The method contraint
-    $route->pattern;    // The pattern contraint
     $route->params;     // The matched params
     $route->namespace;  // The namespace
     $route->name;       // The route's name
     $route->request;    // The routed request
     $route->response;   // The response (same as 2nd argument, can be `null`)
+    $route->patterns(); // The patterns contraint
     $route->handlers(); // The route's handler
 });
 ```
@@ -72,7 +72,7 @@ $router->add('foo/bar', function($route, $response) {
 To be able to do some reverse routing, you must name your route first using the following syntax:
 
 ```php
-$route = $router->add('foo#foo/{bar}', function () { return 'hello'; });
+$route = $router->bind('foo#foo/{bar}', function () { return 'hello'; });
 
 $router['foo'] === $route; // true
 ```
@@ -90,7 +90,7 @@ It's possible to apply contraints to a bunch of routes all together by grouping 
 
 ```php
 $router->group('admin', ['namespace' => 'App\Admin\Controller'], function($r) {
-    $router->add('{controller}[/{action}]', function($route, $response) {
+    $router->bind('{controller}[/{action}]', function($route, $response) {
         $controller = $route->namespace . $route->params['controller'];
         $instance = new $controller($route->params, $route->request, $route->response);
         $action = isset($route->params['action']) ? $route->params['action'] : 'index';
@@ -107,7 +107,7 @@ To supports some sub-domains routing, the easiest way is to group routes related
 ```php
 $router->group(['host' => 'foo.{domain}.bar'], function($router) {
     $router->group('admin', function($router) {
-        $router->add('{controller}[/{action}]', function () {});
+        $router->bind('{controller}[/{action}]', function () {});
     });
 });
 ```
@@ -134,7 +134,7 @@ use Lead\Router\Router;
 
 $router = new Router();
 
-$router->add('foo/bar', function() { return "Hello World!"; });
+$router->bind('foo/bar', function() { return "Hello World!"; });
 
 $route = $router->route('foo/bar', 'GET', 'www.domain.com', 'https');
 
@@ -154,7 +154,7 @@ $request = Request::ingoing();
 $response = new Response();
 
 $router = new Router();
-$router->add('foo/bar', function($route, $response) { $response->body("Hello World!"); });
+$router->bind('foo/bar', function($route, $response) { $response->body("Hello World!"); });
 
 $route = $router->route($request);
 
@@ -196,25 +196,25 @@ class ResourceStrategy {
         $path = strtolower(strtr(preg_replace('/(?<=\\w)([A-Z])/', '_\\1', $resource), '-', '_'));
 
         $router->get($path, $options, function($route) {
-            return $dispatch($route, $resource, 'index');
+            return $this->_dispatch($route, $resource, 'index');
         });
         $router->get($path . '/{id:[0-9a-f]{24}|[0-9]+}', $options, function($route) {
-            return $dispatch($route, $resource, 'show');
+            return $this->_dispatch($route, $resource, 'show');
         });
         $router->get($path . '/add', $options, function($route) {
-            return $dispatch($route, $resource, 'add');
+            return $this->_dispatch($route, $resource, 'add');
         });
         $router->post($path, $options, function($route) {
-            return $dispatch($route, $resource, 'create');
+            return $this->_dispatch($route, $resource, 'create');
         });
         $router->get($path . '/{id:[0-9a-f]{24}|[0-9]+}' .'/edit', $options, function($route) {
-            return $dispatch($route, $resource, 'edit');
+            return $this->_dispatch($route, $resource, 'edit');
         });
         $router->patch($path . '/{id:[0-9a-f]{24}|[0-9]+}', $options, function($route) {
-            return $dispatch($route, $resource, 'update');
+            return $this->_dispatch($route, $resource, 'update');
         });
         $router->delete($path . '/{id:[0-9a-f]{24}|[0-9]+}', $options, function($route) {
-            return $dispatch($route, $resource, 'delete');
+            return $this->_dispatch($route, $resource, 'delete');
         });
     }
 
