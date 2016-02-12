@@ -1,134 +1,280 @@
 <?php
 namespace Lead\Router;
 
-use Lead\Router\RouterException;
-
 /**
- * Parses routes of the following form:
+ * Parses route pattern.
  *
- * "/user/{name}[/{id:[0-9]+}]"
+ * The parser can produce a tokens structure from route pattern using `Parser::tokenize()`.
+ * A tokens structure root node is of the following form:
+ *
+ * ```php
+ * $token = Parser::tokenize('/test/{param}');
+ * ```
+ *
+ * The returned `$token` looks like the following:
+ * ```
+ * [
+ *     'optional' => false,
+ *     'greedy'   => '',
+ *     'repeat'   => false,
+ *     'pattern'  => '/test/{param}',
+ *     'tokens'   => [
+ *         '/test/',
+ *         [
+ *             'name'      => 'param',
+ *             'pattern'   => '[^/]+'
+ *         ]
+ *     ]
+ * ]
+ * ```
+ *
+ * Then tokens structures can be compiled to get the regex representation with associated variable.
+ *
+ * ```php
+ * $rule = Parser::compile($token);
+ * ```
+ *
+ * `$rule` looks like the following:
+ *
+ * ```
+ * [
+ *     '/test/([^/]+)',
+ *     ['param' => false]
+ * ]
+ * ```
  */
 class Parser {
 
     /**
      * Variable capturing block regex.
      */
-    const VARIABLE_REGEX = <<<'REGEX'
+    const PLACEHOLDER_REGEX = <<<EOD
 \{
-    \s* ([a-zA-Z][a-zA-Z0-9_]*) \s*
+    (
+        [a-zA-Z][a-zA-Z0-9_]*
+    )
     (?:
-        : \s* ([^{}]*(?:\{(.*?)\}[^{}]*)*)
+        :(
+            [^{}]*
+            (?:
+                \{(?-1)\}[^{}]*
+            )*
+        )
     )?
 \}
-REGEX;
+EOD;
 
     /**
-     * Parses a route pattern of the following form:
+     * Tokenizes a route pattern. Optional segments are identified by square brackets.
      *
-     * "/user/{name}[/{id:[0-9]+}]"
-     *
-     * Optional segments are identified by square brackets.
-     *
-     * @param string $pattern      A route pattern
-     * @param string $segmentRegex The regular expression for variable segment.
-     * @param array                Returns a collection of route patterns splitted in segments.
+     * @param string $pattern   A route pattern
+     * @param string $delimiter The path delimiter.
+     * @param array             The tokens structure root node.
      */
-    public static function parse($pattern, $segmentRegex = '[^/]+')
+    public static function tokenize($pattern, $delimiter = '/')
     {
-        $patternWithoutClosingOptionals = rtrim($pattern, ']');
-        $numOptionals = strlen($pattern) - strlen($patternWithoutClosingOptionals);
-
-        $parts = preg_split('~' . static::VARIABLE_REGEX . '(*SKIP)(*F) | \[~x', $patternWithoutClosingOptionals);
-
-        if ($numOptionals !== count($parts) - 1) {
-            if (preg_match('~' . static::VARIABLE_REGEX . '(*SKIP)(*F) | \]~x', $patternWithoutClosingOptionals)) {
-                throw new RouterException("Optional segments can only occur at the end of a route.");
-            }
-            throw new RouterException("Number of opening '[' and closing ']' does not match.");
+        // Checks if the pattern has some optional segments.
+        if (preg_match('~^(?:[^\[\]{}]*(?:' . static::PLACEHOLDER_REGEX . ')?)*\[~x', $pattern, $matches)) {
+            $tokens = static::_tokenizePattern($pattern, $delimiter);
+        } else {
+            $tokens = static::_tokenizeSegment($pattern, $delimiter);
         }
-
-        $data = [];
-        $currentPattern = '';
-
-        foreach ($parts as $n => $part) {
-            if (!$part) {
-                if ($n !== 0) {
-                    throw new RouterException("Empty optional part.");
-                }
-            } else {
-                $currentPattern = $part[0] === '/' ? rtrim($currentPattern, '/') . $part : $currentPattern . $part;
-            }
-            $data[] = static::_parse($currentPattern, $segmentRegex);
-        }
-        return array_reverse($data);
+        return [
+            'optional' => false,
+            'greedy'   => '',
+            'repeat'   => false,
+            'pattern'  => $pattern,
+            'tokens'   => $tokens
+        ];
     }
 
     /**
-     * Parses a route pattern that does not contain optional segments.
+     * Tokenizes patterns.
      *
-     * @param string $pattern      A route pattern
-     * @param string $segmentRegex The regular expression for variable segment.
-     * @param array                An array containing a regex pattern and its associated variable names.
+     * @param string $pattern   A route pattern
+     * @param string $delimiter The path delimiter.
+     * @param array             An array of tokens structure.
      */
-    protected static function _parse($pattern, $segmentRegex)
+    protected static function _tokenizePattern($pattern, $delimiter)
     {
-        if (!preg_match_all('~' . static::VARIABLE_REGEX . '~x', $pattern, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
-            return [$pattern];
-        }
-        $offset = 0;
-        $patternData = [];
-        foreach ($matches as $set) {
-            if ($set[0][1] > $offset) {
-                $patternData[] = substr($pattern, $offset, $set[0][1] - $offset);
-            }
-            $patternData[] = [
-                $set[1][0],
-                isset($set[2]) ? trim($set[2][0]) : $segmentRegex
-            ];
-            $offset = $set[0][1] + strlen($set[0][0]);
-        }
-        if ($offset != strlen($pattern)) {
-            $patternData[] = substr($pattern, $offset);
-        }
-        return $patternData;
-    }
+        $tokens = [];
+        $index = 0;
+        $path = '';
+        $parts = static::split($pattern);
 
-    /**
-     * Returns a collection of route patterns and their associated variable names.
-     *
-     * @param  array $data Some route parsed data.
-     * @return array       A collection of route patterns and their associated variable names.
-     */
-    public static function rules($data)
-    {
-        $rules = [];
-        foreach ($data as $segments) {
-            $rules[] = static::rule($segments);
-        }
-        return $rules;
-    }
-
-    /**
-     * Build a regex pattern from a route rule.
-     *
-     * @param  array $rule A collection of route segment.
-     * @return array       An array containing a regex pattern and its associated variable names.
-     */
-    public static function rule($segments)
-    {
-        $regex = '';
-        $variables = [];
-        foreach ($segments as $segment) {
-            if (is_string($segment)) {
-                $regex .= preg_quote($segment, '~');
+        foreach ($parts as $part) {
+            if (is_string($part)) {
+                $tokens = array_merge($tokens, static::_tokenizeSegment($part, $delimiter));
                 continue;
             }
-            list($varName, $regexPart) = $segment;
-            if (isset($variables[$varName])) {
-                throw new RouterException("Cannot use the same placeholder `{$varName}` twice.");
+
+            $greedy = $part[1];
+            $repeat = $greedy === '+' || $greedy === '*';
+            $optional = $greedy === '?' || $greedy === '*';
+
+            $tokens[] = [
+                'optional' => $optional,
+                'greedy'   => $greedy ?: '?',
+                'repeat'   => $repeat,
+                'pattern'  => $part[0],
+                'tokens'   => static::_tokenizePattern($part[0], $delimiter)
+            ];
+
+        }
+        return $tokens;
+    }
+
+    /**
+     * Tokenizes segments which are patterns with optional segments filtered out.
+     * Only classic placeholder are supported.
+     *
+     * @param string $pattern   A route pattern with no optional segments.
+     * @param string $delimiter The path delimiter.
+     * @param array             An array of tokens structure.
+     */
+    protected static function _tokenizeSegment($pattern, $delimiter)
+    {
+        $tokens = [];
+        $index = 0;
+        $path = '';
+
+        if (preg_match_all('~' . static::PLACEHOLDER_REGEX . '()~x', $pattern, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $offset = $match[0][1];
+
+                $path .= substr($pattern, $index, $offset - $index);
+                $index = $offset + strlen($match[0][0]);
+
+                if ($path) {
+                    $tokens[] = $path;
+                    $path = '';
+                }
+
+                $name = $match[1][0];
+                $capture = $match[2][0] ?: '[^' . $delimiter . ']+';
+
+                $tokens[] = [
+                    'name'      => $name,
+                    'pattern'   => $capture
+                ];
             }
-            $variables[$varName] = $varName;
-            $regex .= '(' . $regexPart . ')';
+        }
+
+        if ($index < strlen($pattern)) {
+            $path .= substr($pattern, $index);
+            if ($path) {
+                $tokens[] = $path;
+            }
+        }
+        return $tokens;
+    }
+
+    /**
+     * Splits a pattern in segments and patterns.
+     * segments will be represented by string value and patterns by an array containing
+     * the string pattern as first value and the greedy value as second value.
+     *
+     * example:
+     * `/user[/{id}]*` will gives `['/user', ['id', '*']]`
+     *
+     * Unfortunately recursive regex matcher can't help here so this function is required.
+     *
+     * @param string $pattern A route pattern.
+     * @param array           The splitted pattern.
+     */
+    public static function split($pattern)
+    {
+        $segments = [];
+        $len = strlen($pattern);
+        $buffer = '';
+        $opened = 0;
+        for ($i = 0; $i < $len; $i++) {
+            if ($pattern[$i] === '{') {
+                do {
+                    $buffer .= $pattern[$i++];
+                    if ($pattern[$i] === '}') {
+                        $buffer .= $pattern[$i];
+                        break;
+                    }
+                } while ($i < $len);
+            } elseif ($pattern[$i] === '[') {
+                $opened++;
+                if ($opened === 1) {
+                    $segments[] = $buffer;
+                    $buffer = '';
+                } else {
+                    $buffer .= $pattern[$i];
+                }
+            } elseif ($pattern[$i] === ']') {
+                $opened--;
+                if ($opened === 0) {
+                    $greedy = '?';
+                    if ($i < $len -1) {
+                        if ($pattern[$i + 1] === '*' || $pattern[$i + 1] === '?') {
+                            $greedy = $pattern[$i + 1];
+                            $i++;
+                        }
+                    }
+                    $segments[] = [$buffer, $greedy];
+                    $buffer = '';
+                } else {
+                    $buffer .= $pattern[$i];
+                }
+            } else {
+                $buffer .= $pattern[$i];
+            }
+        }
+        if ($buffer) {
+            $segments[] = $buffer;
+        }
+        if ($opened) {
+            throw ParserException::squareBracketMismatch();
+        }
+        return $segments;
+    }
+
+    /**
+     * Builds a regex from a tokens structure array.
+     *
+     * @param  array $token A tokens structure root node.
+     * @return array        An array containing the regex pattern and its associated variable names.
+     */
+    public static function compile($token)
+    {
+        $variables = [];
+        $regex = '';
+        foreach ($token['tokens'] as $child) {
+            if (is_string($child)) {
+                $regex .= preg_quote($child, '~');
+            } elseif (isset($child['tokens'])) {
+                $rule = static::compile($child);
+                if ($child['repeat']) {
+                    if (count($rule[1]) > 1) {
+                        throw ParserException::placeholderExceeded();
+                    }
+                    $regex .= '((?:' . $rule[0] . ')' . $child['greedy'] . ')';
+                } elseif ($child['optional']) {
+                    $regex .= '(?:' . $rule[0] . ')?';
+                }
+                foreach ($rule[1] as $name => $pattern) {
+                    if (isset($variables[$name])) {
+                        throw ParserException::duplicatePlaceholder($name);
+                    }
+                    $variables[$name] = $pattern;
+                }
+            } else {
+                $name = $child['name'];
+                if (isset($variables[$name])) {
+                    throw ParserException::duplicatePlaceholder($name);
+                }
+                if ($token['repeat']) {
+                    $variables[$name] = $token['pattern'];
+                    $regex .= $child['pattern'];
+                } else {
+                    $variables[$name] = false;
+                    $regex .= '(' . $child['pattern'] . ')';
+                }
+            }
         }
         return [$regex, $variables];
     }

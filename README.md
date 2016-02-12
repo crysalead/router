@@ -5,9 +5,13 @@
 
 This library extends the [FastRoute](https://github.com/nikic/FastRoute) implementation with some additional features:
 
- * Supports named routes and reverse routing
- * Supports sub-domain and/or prefix routing
- * Allows to set a custom dispatching strategy
+ * Compatible with PSR-7
+ * Named routes
+ * Reverses routing
+ * Sub-domain
+ * Nested routes
+ * Custom dispatching strategy
+ * Advanced route pattern syntax
 
 ## Installation
 
@@ -17,7 +21,64 @@ composer require crysalead/router
 
 ## API
 
-### Defining routes
+### Route patterns
+
+Route pattern are path string with curly brace placeholders. Possible placeholder format are:
+
+* `'{name}'`       - placeholder
+* `'{name:regex}'` - placeholder with regex definition.
+* `'[{name}]'`     - optionnal placeholder
+* `'[{name}]+'`    - recurring placeholder
+* `'[{name}]*'`    - optionnal recurring placeholder
+
+Variable placeholders may contain only word characters (latin letters, digits, and underscore) and must be unique within the pattern. For placeholders without an explicit regex, a variable placeholder matches any number of characters other than '/' (i.e `[^/]+`).
+
+You can use square brackets (i.e `[]`) to make parts of the pattern optional. For example `/foo[bar]` will match both `/foo` and `/foobar`. Optional parts can be nested and repeatable using the `[]*` or `[]+` syntax. Example: `/{controller}[/{action}[/{args}]*]`.
+
+Examples:
+- `'/foo/'`            - Matches only if the path is exactly '/foo/'. There is no special treatment for trailing slashes, and patterns have to match the entire path, not just a prefix.
+- `'/user/{id}'`       - Matches '/user/bob' or '/user/1234!!!' or even '/user/bob/details' but not '/user/' or '/user'.
+- `'/user/{id:[^/]+}'` - Same as the previous example.
+- `'/user[/{id}]'`     - Same as the previous example, but also match '/user'.
+- `'/user[/[{id}]]'`   - Same as the previous example, but also match '/user/'.
+- `'/user[/{id}]*'`    - Match '/user' as well as 'user/12/34/56'.
+- `'/user/{id:[0-9a-fA-F]{1,8}}'` - Only matches if the id parameter consists of 1 to 8 hex digits.
+- `'/files/{path:.*}'`            - Matches any URL starting with '/files/' and captures the rest of the path into the parameter 'path'.
+
+Note: the difference between `/{controller}[/{action}[/{args}]*]` and `/{controller}[/{action}[/{args:.*}]]` for example is `args` will be an array on arguments using `[/{args}]*` and a "slashed" string off all arguments using `[/{args:.*}]`.
+
+### The Router
+
+The `Router` manages object creation, dependencies, and wiring. All you need is to instantiate it first.
+
+```php
+use Lead\Router\Router;
+
+$router = new Router();
+```
+
+Optionally, if your project lives in a sub-folder of your web root you'll need to set a base path using `basePath()` .
+
+```php
+$router->basePath('/my/sub/dir');
+```
+
+Note: If you are using the [crysalead/net](https://github.com/crysalead/net) library you can pass `Request::ingoing()->basePath();` directly so you won't need to set it manually.
+
+#### The Router Public Methods
+
+```php
+$router->basePath();   // Gets/sets the router base path
+$router->group();      // To create some scoped routes
+$router->bind();       // To create a route
+$router->route();      // To route a request
+$router->link();       // To generate a route's link
+$router->apply();      // To add a global middleware
+$router->middleware(); // The router's middleware generator
+$router->strategy();   // Gets/sets a routing strategy
+```
+
+### Route definition
 
 Example of routes definition:
 
@@ -26,23 +87,19 @@ use Lead\Router\Router;
 
 $router = new Router();
 
-$router->bind($pattern, $handler);                      # route matching any request method
-$router->bind($pattern, $options, $handler);            # alternative syntax with some options.
-$router->bind($pattern, ['method' => 'get'], $handler); # route matching only get requests
+$router->bind($pattern, $handler);                      // route matching any request method
+$router->bind($pattern, $options, $handler);            // alternative syntax with some options.
+$router->bind($pattern, ['method' => 'get'], $handler); // route matching only get requests
 
 // Alternative syntax
-$router->get($pattern, $handler);    # route matching only get requests
-$router->post($pattern, $handler);   # route matching only post requests
-$router->delete($pattern, $handler); # route matching only delete requests
+$router->get($pattern, $handler);    // route matching only get requests
+$router->post($pattern, $handler);   // route matching only post requests
+$router->delete($pattern, $handler); // route matching only delete requests
 ```
 
-In the above example `$router` is a collection of routes. A route is registered using the `bind()` method and takes as parametters a route pattern, an optionnal options array and an handler.
+In the above example a route is registered using the `->bind()` method and takes as parametters a route pattern, an optionnal options array and the callback handler.
 
-A route pattern is a string representing an URL path. Placeholders can be specified using brackets (e.g `{foo}`) and matches `[^/]+` by default. You can however specify a custom pattern using the following syntax `{foo:[0-9]+}`. You can also add an array of patterns for a sigle route.
-
-Furthermore you can use square brackets (i.e `[]`) to make parts of the pattern optional. For example `/foo[/bar]` will match both `/foo` and `/foobar`. Optional parts are only supported in a trailing position (i.e. not allowed in the middle of a route). You can also nest optional parts with the following syntax `/{controller}[/{action}[/{args:.*}]]`.
-
-The second parameter is an `$options`. Possible values are:
+The second parameter is an `$options` array where possible values are:
 
 * `'scheme'`: the scheme constraint (default: `'*'`)
 * `'host'`: the host constraint (default: `'*'`)
@@ -50,46 +107,73 @@ The second parameter is an `$options`. Possible values are:
 * `'name'`: the name of the route (optional)
 * `'namespace'`: the namespace to attach to a route (optional)
 
-The last parameter is the `$handler` which contain the dispatching logic. The `$handler` is dynamically binded to the founded route so `$this` will stands for the route instance. The available data in the handler is the following:
+The last parameter is the callback handler which contain the dispatching logic to execute when a route matches the request. The callback handler is the called with the matched route as first parameter and the response object as second parameter:
 
 ```php
 $router->bind('foo/bar', function($route, $response) {
-    $route->scheme;     // The scheme contraint
-    $route->host;       // The host contraint
-    $route->method;     // The method contraint
-    $route->params;     // The matched params
-    $route->namespace;  // The namespace
-    $route->name;       // The route's name
-    $route->request;    // The routed request
-    $route->response;   // The response (same as 2nd argument, can be `null`)
-    $route->patterns(); // The patterns contraint
-    $route->handlers(); // The route's handler
 });
+```
+
+#### The Route Public Attributes
+
+```php
+$route->scheme;       // The scheme contraint
+$route->host;         // The host contraint
+$route->method;       // The method contraint
+$route->params;       // The matched params
+$route->persist;      // The persisted params
+$route->namespace;    // The namespace
+$route->name;         // The route's name
+$route->request;      // The routed request
+$route->response;     // The response (same as 2nd argument, can be `null`)
+$route->dispatched;   // To store the dispated instance if applicable.
+```
+
+#### The Route Mublic Methods
+
+```php
+$route->append();     // To append a new pattern to this route
+$route->prepend();    // To prepend a new pattern to this route
+$route->patterns();   // The patterns
+$route->tokens();     // The collection of route's tokens structure
+$route->rules();      // The collection of route's rules
+$route->scope();      // The route's scope
+$route->error();      // The route's error number
+$route->message();    // The route's error message
+$route->link();       // The route's link
+$route->apply();      // To add a new middleware
+$route->middleware(); // The route's middleware generator
+$route->handlers();   // The route's handler
+$route->dispatch();   // To dispatch the route (i.e execute the route's handler)
 ```
 
 ### Named Routes And Reverse Routing
 
-To be able to do some reverse routing, you must name your route first using the following syntax:
+To be able to do some reverse routing, route must be named using the following syntax first:
 
 ```php
-$route = $router->bind('foo#foo/{bar}', function () { return 'hello'; });
-
-$router['foo'] === $route; // true
+$route = $router->bind('foo/{bar}', ['name' => 'foo'], function() { return 'hello'; });
 ```
 
-Then the reverse routing is done through the `link()` method:
+Named routes can be retrieved using the array syntax on the router instance:
+```php
+$router['foo']; // Returns the `'foo'` route.
+```
+
+Once named, the reverse routing can be done using the `->link()` method:
 
 ```php
-$link = $router->link('foo', ['bar' => 'baz']);
-echo $link; // /foo/baz
+echo $router->link('foo', ['bar' => 'baz']); // /foo/baz
 ```
+
+The `->link()` method takes as first parameter the name of a route and as second parameter the route's arguments.
 
 ### Grouping Routes
 
-It's possible to apply contraints to a bunch of routes all together by grouping them into a dedicated of decicated scope using the router `->group()` method.
+It's possible to apply a scope to a set of routes all together by grouping them into a dedicated group using the `->group()` method.
 
 ```php
-$router->group('admin', ['namespace' => 'App\Admin\Controller'], function($r) {
+$router->group('admin', ['namespace' => 'App\Admin\Controller'], function($router) {
     $router->bind('{controller}[/{action}]', function($route, $response) {
         $controller = $route->namespace . $route->params['controller'];
         $instance = new $controller($route->params, $route->request, $route->response);
@@ -100,16 +184,67 @@ $router->group('admin', ['namespace' => 'App\Admin\Controller'], function($r) {
 });
 ```
 
+The above example will be able to route `/admin/user/edit` on `App\Admin\Controller\User::edit()`.
+
 ### Sub-Domain And/Or Prefix Routing
 
-To supports some sub-domains routing, the easiest way is to group routes related to a specific sub-domain using the `group()` method like in the following:
+To supports some sub-domains routing, the easiest way is to group routes using the `->group()` method and setting up the host constraint like so:
 
 ```php
 $router->group(['host' => 'foo.{domain}.bar'], function($router) {
     $router->group('admin', function($router) {
-        $router->bind('{controller}[/{action}]', function () {});
+        $router->bind('{controller}[/{action}]', function() {});
     });
 });
+```
+
+The above example will be able to route `http://foo.hello.bar/admin/user/edit` for example.
+
+### Middleware
+
+Middleware functions are functions that have access to the request object, the response object, and the next middleware function in the application’s request-response cycle. Middleware functions provide the same level of control as aspects in [AOP](https://en.wikipedia.org/wiki/Aspect-oriented_programming). It allows to:
+
+* Execute any code.
+* Make changes to the request and the response objects.
+* End the request-response cycle.
+* Call the next middleware function in the stack.
+
+And it's also possible to apply middleware functions globally on a single route or on a group of them. Adding a middleware to a Route is done using the `->apply()` method:
+
+```php
+$mw = function ($request, $response, $next) {
+    return 'BEFORE' . $next($request, $response) . 'AFTER';
+};
+
+
+$router->get('foo', function($route) {
+    return '-FOO-';
+})
+
+echo $router->route('foo')->dispatch($response); //BEFORE-FOO-AFTER
+```
+
+You can also attach middlewares on groups.
+
+```php
+$mw1 = function ($request, $response, $next) {
+    return '1' . $next($request, $response) . '1';
+};
+$mw2 = function ($request, $response, $next) {
+    return '2' . $next($request, $response) . '2';
+};
+$mw3 = function ($request, $response, $next) {
+    return '3' . $next($request, $response) . '3';
+};
+$router->apply($mw1); // Global
+
+$router->group('foo', function($router) {
+    $router->get('bar', function($route) {
+        return '-BAR-';
+    })->apply($mw3);  // Local
+})->apply($mw2);      // Group
+
+echo $router->route('foo/bar')->dispatch($response); //321-BAR-123
 ```
 
 ### Dispatching
@@ -120,21 +255,23 @@ This step has the responsibility to loads and instantiates the correct controlle
 
 #### Dispatching A Request
 
-The URL dispatching is done in two steps. First the `route()` method is called on the router instance to find a route matching the URL. The route accepts as arguments:
+The URL dispatching is done in two steps. First the `->route()` method is called on the router instance to find a route matching the URL. The route accepts as arguments:
 
 * An instance of `Psr\Http\Message\RequestInterface`
 * An url or path string
 * An array containing at least a path entry
 * A list of parameters with the following order: path, method, host and scheme
 
-Then if the `route()` method returns a matching route, the `dispatch()` method is called on it to execute the dispatching logic contained in the route handler.
+The `->route()` method returns a route (or a "not found" route), then the `->dispatch()` method will execute the dispatching logic contained in the route handler (or throwing an exception for non valid routes).
 
 ```php
 use Lead\Router\Router;
 
 $router = new Router();
 
-$router->bind('foo/bar', function() { return "Hello World!"; });
+$router->bind('foo/bar', function() {
+    return "Hello World!";
+});
 
 $route = $router->route('foo/bar', 'GET', 'www.domain.com', 'https');
 
@@ -154,16 +291,44 @@ $request = Request::ingoing();
 $response = new Response();
 
 $router = new Router();
-$router->bind('foo/bar', function($route, $response) { $response->body("Hello World!"); });
+$router->bind('foo/bar', function($route, $response) {
+    $response->body("Hello World!");
+});
 
 $route = $router->route($request);
 
 echo $route->dispatch($response); // Can throw an exception if the route is not valid.
 ```
 
+#### Handling dispatching failures
+
+```php
+use Lead\Router\RouterException;
+use Lead\Router\Router;
+use Lead\Net\Http\Cgi\Request;
+use Lead\Net\Http\Response;
+
+$request = Request::ingoing();
+$response = new Response();
+
+$router = new Router();
+$router->bind('foo/bar', function($route, $response) {
+    $response->body("Hello World!");
+});
+
+$route = $router->route($request);
+
+try {
+    echo $route->dispatch($response);
+} catch (RouterException $e) {
+    http_response_code($e->getCode());
+    // Or you can use Whoops or whatever to render something
+}
+```
+
 ### Setting up a custom dispatching strategy.
 
-To use your own strategy you need to create it first using the `strategy()` method.
+To use your own strategy you need to create it using the `->strategy()` method.
 
 Bellow an example of a RESTful strategy:
 
@@ -185,6 +350,8 @@ $router->route('home/123/edit');
 $router->route('home/123', 'PATCH');
 $router->route('home/123', 'DELETE');
 ```
+
+The strategy:
 
 ```php
 namespace use My\Custom\Namespace;
