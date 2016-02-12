@@ -3,8 +3,12 @@ namespace Lead\Router;
 
 use Closure;
 use Psr\Http\Message\RequestInterface;
+use Lead\Router\ParseException;
 use Lead\Router\RouterException;
 
+/**
+ * The Router class.
+ */
 class Router extends \Lead\Collection\Collection
 {
     /**
@@ -22,22 +26,16 @@ class Router extends \Lead\Collection\Collection
     protected $_routes = [];
 
     /**
-     * Named routes.
-     *
-     * @var array
-     */
-    protected $_data = [];
-
-    /**
-     * Scopes definition.
+     * Scopes stack.
      *
      * @var array
      */
     protected $_scopes = [];
 
     /**
-     * Chunk size.
+     * Chunk size. (optimization parameter)
      *
+     * @see http://nikic.github.io/2014/02/18/Fast-request-routing-using-regular-expressions.html
      * @param integer
      */
     protected $_chunkSize = null;
@@ -78,24 +76,49 @@ class Router extends \Lead\Collection\Collection
             'classes'       => [
                 'parser'    => 'Lead\Router\Parser',
                 'route'     => 'Lead\Router\Route',
-                'request'   => 'Lead\Net\Http\Cgi\Request'
+                'scope'     => 'Lead\Router\Scope'
             ]
         ];
         $config += $defaults;
         $this->_classes = $config['classes'];
-        $this->_scopes[] = $config['scope'] + [
-            'name'       => '',
-            'scheme'     => '*',
-            'host'       => '*',
-            'method'     => '*',
-            'prefix'     => '/',
-            'namespace'  => '',
-            'persist'    => [],
-            'middleware' => []
-        ];
         $this->_basePath = $config['basePath'];
         $this->_chunkSize = $config['chunkSize'];
         $this->_strategies = $config['strategies'];
+
+        $scope = $this->_classes['scope'];
+        $this->_scopes[] = new $scope(['router' => $this]);
+    }
+
+    /**
+     * Returns the current router scope.
+     *
+     * @return object The current scope instance.
+     */
+    public function scope()
+    {
+        return end($this->_scopes);
+    }
+
+    /**
+     * Pushes a new router scope context.
+     *
+     * @param  object $scope A scope instance.
+     * @return self
+     */
+    public function pushScope($scope)
+    {
+        $this->_scopes[] = $scope;
+        return $this;
+    }
+
+    /**
+     * Pops the current router scope context.
+     *
+     * @return object The poped scope instance.
+     */
+    public function popScope()
+    {
+        return array_pop($this->_scopes);
     }
 
     /**
@@ -117,8 +140,8 @@ class Router extends \Lead\Collection\Collection
      * Adds a route.
      *
      * @param  string|array  $pattern The route's pattern or patterns.
-     * @param  Closure|array $options An array of options or the handler callback.
-     * @param  Closure|null  $handler The handler callback.
+     * @param  Closure|array $options An array of options or the callback handler.
+     * @param  Closure|null  $handler The callback handler.
      * @return self
      */
     public function bind($pattern, $options = [], $handler = null)
@@ -131,9 +154,11 @@ class Router extends \Lead\Collection\Collection
             throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
         }
 
-        $options = $this->_scopify($options);
+        $scope = end($this->_scopes);
+        $options = $scope->scopify($options);
         $options['patterns'] = (array) $pattern;
         $options['handler'] = $handler;
+        $options['scope'] = $scope;
         $route = $this->_classes['route'];
 
         $instance = new $route($options);
@@ -146,10 +171,12 @@ class Router extends \Lead\Collection\Collection
     }
 
     /**
-     * Groups some routes inside a scope
+     * Groups some routes inside a new scope.
      *
-     * @param string|array $scope
-     * @param Closure      $callback
+     * @param  string|array  $prefix  The group's prefix pattern or the options array.
+     * @param  Closure|array $options An array of options or the callback handler.
+     * @param  Closure|null  $handler The callback handler.
+     * @return object                 The newly created scope instance.
      */
     public function group($prefix, $options, $handler = null)
     {
@@ -166,53 +193,22 @@ class Router extends \Lead\Collection\Collection
             throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
         }
 
-        $options['prefix'] = $prefix;
-        $this->_scopes[] = $this->_scopify($options);
+        $options['prefix'] = isset($options['prefix']) ? $options['prefix'] : $prefix;
+
+        $scope = $this->scope();
+
+        $this->pushScope($scope->seed($options));
 
         $handler($this);
 
-        array_pop($this->_scopes);
-
-        return $this;
-    }
-
-    /**
-     * Scopify some route options.
-     *
-     * @param  string $pattern The pattern to scopify.
-     * @param  array  $options The options to scopify.
-     * @return array           The scopified options.
-     */
-    protected function _scopify($options)
-    {
-        $scope = end($this->_scopes);
-
-        if (!empty($options['name'])) {
-            $options['name'] = $scope['name'] ? $scope['name'] . '.' . $options['name'] : $options['name'];
-        }
-
-        if (!empty($options['prefix'])) {
-            $options['prefix'] = $scope['prefix'] . trim($options['prefix'], '/') . '/';
-        }
-
-        if (isset($options['persist'])) {
-            $options['persist'] = ((array) $options['persist']) + $scope['persist'];
-        }
-
-        if (isset($options['namespace'])) {
-            $options['namespace'] = $scope['namespace'] . trim($options['namespace'], '\\') . '\\';
-        }
-
-        $options['middleware'] = $scope['middleware'];
-
-        return $options + $scope;
+        return $this->popScope();
     }
 
     /**
      * Routes a Request.
      *
      * @param  mixed  $request The request to route.
-     * @return object          A route matching the request
+     * @return object          A route matching the request or a "route not found" route.
      */
     public function route($request)
     {
@@ -246,7 +242,7 @@ class Router extends \Lead\Collection\Collection
         $rules = $this->_buildRules($r['method'], $r['host'], $r['scheme']);
 
         if ($route = $this->_route($rules, $r['path'])) {
-            $route->request = is_object($request) ? $request : $this->_request($r);
+            $route->request = is_object($request) ? $request : $r;
             foreach ($route->persist as $key) {
                 if (isset($route->params[$key])) {
                     $this->_defaults[$key] = $route->params[$key];
@@ -271,25 +267,7 @@ class Router extends \Lead\Collection\Collection
     }
 
     /**
-     * Creates an instance from a request array.
-     *
-     * @param  mixed  $r A request.
-     * @return object    A request instance.
-     */
-    protected function _request($r)
-    {
-        $request = $this->_classes['request'];
-        if ($r['scheme'] === '*') {
-            unset($r['scheme']);
-        }
-        if ($r['host'] === '*') {
-            unset($r['host']);
-        }
-        return new $request($r);
-    }
-
-    /**
-     * Normalize the request
+     * Normalizes a request.
      *
      * @param  array $request The request to normalize.
      * @return array          The normalized request.
@@ -305,12 +283,12 @@ class Router extends \Lead\Collection\Collection
     }
 
     /**
-     * Builds all route rules available for a request.
+     * Returns all potentially matchable route rules.
      *
      * @param  string $httpMethod The HTTP method constraint.
      * @param  string $host       The host constraint.
      * @param  string $scheme     The scheme constraint.
-     * @return array              The available rules.
+     * @return array              The potentially matchable route rules.
      */
     protected function _buildRules($httpMethod, $host = '*', $scheme = '*')
     {
@@ -324,6 +302,8 @@ class Router extends \Lead\Collection\Collection
             $rulesMap['HEAD'] = [];
         }
 
+        // Only routes which match the schema, host and HTTP method are compiled.
+        // This explain this code nesting.
         foreach ($this->_routes as $scheme => $hostBasedRoutes) {
             if (!isset($allowedSchemes[$scheme])) {
                 continue;
@@ -375,30 +355,27 @@ class Router extends \Lead\Collection\Collection
     protected function _route($rules, $path)
     {
         $combinedRules = $this->_combineRules($rules, $this->_chunkSize);
-
         foreach ($combinedRules as $combinedRule) {
             if (!preg_match($combinedRule['regex'], $path, $matches)) {
                 continue;
             }
             list($route, $varNames, $hostVariables) = $combinedRule['map'][count($matches)];
-            $variables = [];
-            $i = 0;
-            foreach ($varNames as $varName) {
-                $variables[$varName] = $matches[++$i];
-            }
+
+            $variables = $this->_buildVariables($varNames, $matches);
             $route->params = $hostVariables + $variables;
             return $route;
         }
     }
 
     /**
-     * Combines a bunch of rules together.
+     * Combines rules' regexs together by chunks.
      * This is an optimization to avoid matching the regular expressions one by one.
      *
      * @see http://nikic.github.io/2014/02/18/Fast-request-routing-using-regular-expressions.html
      *
-     * @param  array $rules
-     * @return array        A bunch of combined rules
+     * @param  array $rules     The rules to combine.
+     * @param  array $chunkSize The chunk size.
+     * @return array            A collection of regex chunk.
      */
     protected function _combineRules($rules, $chunkSize)
     {
@@ -411,7 +388,7 @@ class Router extends \Lead\Collection\Collection
             $numGroups = 0;
             foreach ($chunk as $regex => $rule) {
                 $numVariables = count($rule[1]);
-                $numGroups = max($numGroups, $numVariables);
+                $numGroups = max($numGroups, $numVariables) + 1;
                 $regexes[] = $regex . str_repeat('()', $numGroups - $numVariables);
                 $ruleMap[++$numGroups] = $rule;
             }
@@ -419,6 +396,55 @@ class Router extends \Lead\Collection\Collection
             $combinedRules[] = ['regex' => $regex, 'map' => $ruleMap];
         }
         return $combinedRules;
+    }
+
+    /**
+     * Combines route's variables names with the regex matched route's values.
+     *
+     * @param  array $varNames The variable names array with their corresponding pattern segment when applicable.
+     * @param  array $values   The matched values.
+     * @return array           The route's variables.
+     */
+    protected function _buildVariables($varNames, $values)
+    {
+        $variables = [];
+        $parser = $this->_classes['parser'];
+
+        $values = $this->_cleanMatches($values);
+
+        foreach ($values as $value) {
+            list($name, $pattern) = each($varNames);
+            if (!$pattern) {
+                $variables[$name] = $value;
+            } else {
+                $parsed = $parser::tokenize($pattern, '/');
+                $rule = $parser::compile($parsed);
+                if (preg_match_all('~' . $rule[0] . '~', $value, $parts)) {
+                    $variables[$name] = $parts[1];
+                }
+            }
+        }
+        return $variables;
+    }
+
+    /**
+     * Filters out all empty values of not found groups.
+     *
+     * @param  array $matches Some regex matched values.
+     * @return array          The real matched values.
+     */
+    protected function _cleanMatches($matches)
+    {
+        $result = [];
+        $len = count($matches);
+        while ($len > 1 && !$matches[$len - 1]) {
+            $len--;
+        }
+        for ($i = 1; $i < $len; $i++)
+        {
+            $result[] = $matches[$i];
+        }
+        return $result;
     }
 
     /**
@@ -430,41 +456,53 @@ class Router extends \Lead\Collection\Collection
      */
     protected function _matchDomain($host, $pattern, &$variables)
     {
-        if ($pattern === '*') {
-            $rules = [['.*', []]];
-        } else {
-            $parser = $this->_classes['parser'];
-            $rules = $parser::rules($parser::parse($pattern, '[^.]+'));
+        if ($host === '*' || $pattern === '*') {
+            return true;
         }
-        foreach ($rules as $rule) {
-            if (preg_match('~^(?|' . $rule[0] . ')$~', $host, $matches)) {
-                $i = 0;
-                foreach ($rule[1] as $name) {
-                    $variables[$name] = $matches[++$i];
-                }
-                return true;
+        $parser = $this->_classes['parser'];
+        $token = $parser::tokenize($pattern, '.');
+        $rule = $parser::compile($token);
+        if (preg_match('~^' . $rule[0] . '$~', $host, $matches)) {
+            $i = 0;
+            foreach ($rule[1] as $name => $pattern) {
+                $variables[$name] = $matches[++$i];
             }
+            return true;
         }
         return false;
     }
 
     /**
-     * Applies a middleware.
+     * Middleware generator.
      *
-     * @param object|Closure A middleware instance of closure.
+     * @return callable
+     */
+    public function middleware()
+    {
+        foreach ($this->_scopes[0]->middleware() as $middleware) {
+            yield $middleware;
+        }
+    }
+
+    /**
+     * Adds a middleware to the list of middleware.
+     *
+     * @param object|Closure A callable middleware.
      */
     public function apply($middleware)
     {
-        $this->_scopes['middleware'][] = $middleware;
+        foreach (func_get_args() as $mw) {
+            $this->_scopes[0]->apply($mw);
+        }
         return $this;
     }
 
     /**
-     * Gets/sets router methods.
+     * Gets/sets router's strategies.
      *
-     * @param  string       $name    A router method name
-     * @param  Closure|null $handler The method handler or `null` to get the setted one.
-     * @return mixed                 A method handler, `null` if not found or self on set.
+     * @param  string $name    A routing strategy name.
+     * @param  mixed  $handler The strategy handler or none to get the setted one.
+     * @return mixed           The strategy handler (or `null` if not found) on get or `$this` on set.
      */
     public function strategy($name, $handler = null)
     {
@@ -486,7 +524,7 @@ class Router extends \Lead\Collection\Collection
     }
 
     /**
-     * Adds custom route.
+     * Adds a route based on a custom HTTP verb.
      *
      * @param  string $name   The HTTP verb to define a route on.
      * @param  array  $params The route's parameters.
@@ -507,7 +545,18 @@ class Router extends \Lead\Collection\Collection
     }
 
     /**
-     * Generates an URL to a named route.
+     * Returns a route's link.
+     *
+     * @param  string $name    A route name.
+     * @param  array  $params  The route parameters.
+     * @param  array  $options Options for generating the proper prefix. Accepted values are:
+     *                         - `'absolute'` _boolean_: `true` or `false`.
+     *                         - `'scheme'`   _string_ : The scheme.
+     *                         - `'host'`     _string_ : The host name.
+     *                         - `'basePath'` _string_ : The base path.
+     *                         - `'query'`    _string_ : The query string.
+     *                         - `'fragment'` _string_ : The fragment string.
+     * @return string          The link.
      */
     public function link($name, $params = [], $options = [])
     {
@@ -523,20 +572,15 @@ class Router extends \Lead\Collection\Collection
     }
 
     /**
-     * Clears routes.
+     * Clears the router.
      */
     public function clear()
     {
+        $this->_basePath = '';
+        $this->_strategies = [];
+        $this->_defaults = [];
         $this->_routes = [];
-        $this->_scopes = [[
-            'name'       => '',
-            'scheme'     => '*',
-            'host'       => '*',
-            'method'     => '*',
-            'prefix'     => '/',
-            'namespace'  => '',
-            'persist'    => [],
-            'middleware' => []
-        ]];
+        $scope = $this->_classes['scope'];
+        $this->_scopes = [new $scope(['router' => $this])];
     }
 }

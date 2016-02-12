@@ -3,6 +3,9 @@ namespace Lead\Router;
 
 use Closure;
 
+/**
+ * The Route class.
+ */
 class Route
 {
     const FOUND = 0;
@@ -12,7 +15,7 @@ class Route
     const METHOD_NOT_ALLOWED = 405;
 
     /**
-     * The route's error number.
+     * The route's error.
      *
      * @var integer
      */
@@ -40,21 +43,21 @@ class Route
     public $name = '';
 
     /**
-     * Maching scheme.
+     * The matching scheme.
      *
      * @var string
      */
     public $scheme = '*';
 
     /**
-     * Matching host.
+     * The matching host.
      *
      * @var string
      */
     public $host = '*';
 
     /**
-     * Matching HTTP method.
+     * The matching HTTP method.
      *
      * @var string
      */
@@ -75,70 +78,79 @@ class Route
     public $persist = [];
 
     /**
-     * Namespace.
+     * The attached namespace.
      *
      * @var string
      */
     public $namespace = '';
 
     /**
-     * Request.
+     * The attached request.
      *
      * @var mixed
      */
     public $request = null;
 
     /**
-     * Response.
+     * The attached response.
      *
      * @var mixed
      */
     public $response = null;
 
     /**
-     * Dispatched instance.
+     * The dispatched instance (custom).
      *
      * @var object
      */
     public $dispatched = null;
 
     /**
-     * Pattern prefix.
+     * The route scope.
+     *
+     * @var array
+     */
+    protected $_scope = null;
+
+    /**
+     * Route's prefix.
      *
      * @var array
      */
     protected $_prefix = '';
 
     /**
-     * Patterns definition.
+     * Route's patterns.
      *
      * @var array
      */
     protected $_patterns = [];
 
     /**
-     * Data extracted from route's patterns.
+     * Collection of tokens structures extracted from route's patterns.
      *
+     * @see Parser::tokenize()
      * @var array
      */
-    protected $_data = null;
+    protected $_tokens = null;
 
     /**
-     * Rules extracted from route's data.
+     * Rules extracted from route's tokens structures.
      *
+     * @see Parser::compile()
      * @var array
      */
     protected $_rules = null;
 
     /**
-     * Handler.
+     * The route's handler to execute when a request match.
      *
      * @var Closure
      */
     protected $_handler = null;
 
     /**
-     * Middlewares.
+     * The middlewares.
      *
      * @var array
      */
@@ -163,6 +175,7 @@ class Route
             'handler'    => null,
             'params'     => [],
             'persist'    => [],
+            'scope'      => null,
             'middleware' => [],
             'classes'    => [
                 'parser' => 'Lead\Router\Parser'
@@ -173,6 +186,7 @@ class Route
         $this->scheme = $config['scheme'];
         $this->host = $config['host'];
         $this->method = $config['method'];
+        $this->method = $config['method'];
         $this->name = $config['name'];
         $this->namespace = $config['namespace'];
         $this->params = $config['params'];
@@ -180,8 +194,13 @@ class Route
         $this->handler($config['handler']);
 
         $this->_classes = $config['classes'];
-        $this->_prefix = trim($config['prefix'], '/');
-        $this->_prefix = $this->_prefix ? '/' . $this->_prefix . '/' : '/';
+
+        if ($config['prefix'] && $config['prefix'][0] !== '[') {
+            $this->_prefix = trim($config['prefix'], '/');
+            $this->_prefix = $this->_prefix ? '/' . $this->_prefix : '';
+        }
+
+        $this->_scope = $config['scope'];
         $this->_middleware = (array) $config['middleware'];
         $this->_error = $config['error'];
         $this->_message = $config['message'];
@@ -192,9 +211,24 @@ class Route
     }
 
     /**
+     * Gets/sets the route scope.
+     *
+     * @param  object      $scope The scope instance to set or none to get the setted one.
+     * @return object|self        The current scope on get or `$this` on set.
+     */
+    public function scope($scope = null)
+    {
+        if (!func_num_args()) {
+            return $this->_scope;
+        }
+        $this->_scope = $scope;
+        return $this;
+    }
+
+    /**
      * Gets the routing error number.
      *
-     * @return integer The routing error.
+     * @return integer The routing error number.
      */
     public function error()
     {
@@ -202,9 +236,9 @@ class Route
     }
 
     /**
-     * Gets the routing message.
+     * Gets the routing error message.
      *
-     * @return string The routing message.
+     * @return string The routing error message.
      */
     public function message()
     {
@@ -222,57 +256,70 @@ class Route
     }
 
     /**
-     * Appends a pattern.
+     * Appends a pattern to the route.
      *
-     * @param string $pattern
+     * @param  string $pattern The pattern to append.
+     * @return self
      */
     public function append($pattern)
     {
-        $this->_data = null;
+        $this->_tokens = null;
         $this->_rules = null;
-        $this->_patterns[] = $this->_prefix . ltrim($pattern, '/');
+        if ($pattern && $pattern[0] !== '[') {
+            $pattern = '/' . ltrim($pattern, '/');
+        }
+        $this->_patterns[] = $this->_prefix . $pattern;
+        return $this;
     }
 
     /**
-     * Prepends a pattern.
+     * Prepends a pattern to the route.
      *
-     * @param string $pattern
+     * @param  string $pattern The pattern to prepend.
+     * @return self
      */
     public function prepend($pattern)
     {
-        $this->_data = null;
+        $this->_tokens = null;
         $this->_rules = null;
-        array_unshift($this->_patterns, $this->_prefix . ltrim($pattern, '/'));
+        if ($pattern && $pattern[0] !== '[') {
+            $pattern = '/' . ltrim($pattern, '/');
+        }
+        array_unshift($this->_patterns, $this->_prefix . $pattern);
+        return $this;
     }
 
     /**
-     * Returns the route's data.
+     * Returns the route's tokens structures.
      *
-     * @return array A collection of routes splited in segments.
+     * @return array A collection route's tokens structure.
      */
-    public function data()
+    public function tokens()
     {
-        if ($this->_data === null) {
+        if ($this->_tokens === null) {
             $parser = $this->_classes['parser'];
-            $this->_data = [];
+            $this->_tokens = [];
             $this->_rules = null;
             foreach ($this->_patterns as $pattern) {
-                $this->_data = array_merge($this->_data, $parser::parse($pattern, '[^/]+'));
+                $this->_tokens[] = $parser::tokenize($pattern, '/');
             }
         }
-        return $this->_data;
+        return $this->_tokens;
     }
 
     /**
      * Returns the route's rules.
      *
-     * @return array A collection of route patterns and their associated variable names.
+     * @return array A collection of route regex and their associated variable names.
      */
     public function rules()
     {
         if ($this->_rules === null) {
             $parser = $this->_classes['parser'];
-            $this->_rules = $parser::rules($this->data());
+            $this->_rules = [];
+            foreach ($this->tokens() as $token) {
+                $this->_rules[] = $parser::compile($token);
+            }
         }
         return $this->_rules;
     }
@@ -296,7 +343,7 @@ class Route
      * Dispatches the route.
      *
      * @param  mixed $response The outgoing response.
-     * @return mixed
+     * @return mixed           The handler return value.
      */
     public function dispatch($response = null)
     {
@@ -317,14 +364,20 @@ class Route
     }
 
     /**
-     * Generators for middlewares.
+     * Middleware generator.
      *
-     * @return mixed
+     * @return callable
      */
     public function middleware()
     {
         foreach ($this->_middleware as $middleware) {
             yield $middleware;
+        }
+
+        if ($scope = $this->scope()) {
+            foreach ($scope->middleware() as $middleware) {
+                yield $middleware;
+            }
         }
 
         yield function() {
@@ -334,26 +387,30 @@ class Route
     }
 
     /**
-     * Applies a middleware.
+     * Adds a middleware to the list of middleware.
      *
-     * @param object|Closure A middleware instance of closure.
+     * @param object|Closure A callable middleware.
      */
     public function apply($middleware)
     {
-        $this->_middleware[] = $middleware;
+        foreach (func_get_args() as $mw) {
+            array_unshift($this->_middleware, $mw);
+        }
         return $this;
     }
 
     /**
-     * Returns the route link.
+     * Returns the route's link.
      *
      * @param  array  $params  The route parameters.
      * @param  array  $options Options for generating the proper prefix. Accepted values are:
-     *                         - `'absolute'` _boolean_: `true` or `false`
-     *                         - `'scheme'`   _string_ : The scheme
-     *                         - `'host'`     _string_ : The host name
-     *                         - `'basePath'` _string_ : The base path
-     * @return string          The prefixed path, depending on the passed options.
+     *                         - `'absolute'` _boolean_: `true` or `false`.
+     *                         - `'scheme'`   _string_ : The scheme.
+     *                         - `'host'`     _string_ : The host name.
+     *                         - `'basePath'` _string_ : The base path.
+     *                         - `'query'`    _string_ : The query string.
+     *                         - `'fragment'` _string_ : The fragment string.
+     * @return string          The link.
      */
     public function link($params = [], $options = [])
     {
@@ -375,22 +432,13 @@ class Route
 
         $params = $params + $this->params;
 
-        $data = $this->data();
+        $tokens = $this->tokens();
 
-        foreach ($data as $segments) {
-            $link = '';
+        $link = '';
+
+        foreach ($tokens as $token) {
             $missing = null;
-            foreach ($segments as $segment) {
-                if (is_string($segment)) {
-                    $link .= $segment;
-                    continue;
-                }
-                if (!array_key_exists($segment[0], $params)) {
-                    $missing = $segment[0];
-                    break;
-                }
-                $link .= $params[$segment[0]];
-            }
+            $link = $this->_link($token, $params, false, $missing);
             if (!$missing) {
                 break;
             }
@@ -398,7 +446,7 @@ class Route
 
         if (!empty($missing)) {
             $patterns = join(',', $this->_patterns);
-            throw new RouterException("Missing parameters `'{$segment[0]}'` for route: `'{$this->name}#{$patterns}'`.");
+            throw new RouterException("Missing parameters `'{$missing}'` for route: `'{$this->name}#{$patterns}'`.");
         }
         $basePath = trim($options['basePath'], '/');
         if ($basePath) {
@@ -417,4 +465,35 @@ class Route
         return $link . $query . $fragment;
     }
 
+    /**
+     * Helper for `Route::link()`.
+     *
+     * @param  array  $token    The token structure array.
+     * @param  array  $params   The route parameters.
+     * @param  array  $optional Indicates if the parameters are optionnal or not.
+     * @param  array  $missing  Will be populated with the missing parameter name when applicable.
+     * @return string           The URL path representation of the token structure array.
+     */
+    public function _link($token, $params, $optional = false, &$missing)
+    {
+        $link = '';
+        foreach ($token['tokens'] as $child) {
+            if (is_string($child)) {
+                $link .= $child;
+                continue;
+            }
+            if (isset($child['tokens'])) {
+                $link .= $this->_link($child, $params, $child['optional'], $missing);
+                continue;
+            }
+            if (!array_key_exists($child['name'], $params)) {
+                if (!$optional) {
+                    $missing = $child['name'];
+                }
+                return '';
+            }
+            $link .= $params[$child['name']];
+        }
+        return $link;
+    }
 }

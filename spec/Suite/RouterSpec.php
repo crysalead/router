@@ -12,7 +12,7 @@ describe("Router", function() {
 
         $this->router = new Router();
         $this->export = function($request) {
-            return array_intersect_key($request->export(), array_fill_keys(['path', 'method', 'host', 'scheme'], true));
+            return array_intersect_key($request, array_fill_keys(['path', 'method', 'host', 'scheme'], true));
         };
 
     });
@@ -204,10 +204,10 @@ describe("Router", function() {
 
             $route = $r->route('foo/bar', 'GET');
             expect($this->export($route->request))->toEqual([
-                'path'   => '/foo/bar',
+                'host'   => '*',
+                'scheme' => '*',
                 'method' => 'GET',
-                'host'   => 'localhost',
-                'scheme' => 'http'
+                'path'   => '/foo/bar'
             ]);
 
             $route = $r->route('foo/baz', 'GET');
@@ -258,7 +258,7 @@ describe("Router", function() {
 
         });
 
-        it("supports optional route variables", function() {
+        it("supports optional segments with variables", function() {
 
             $r = $this->router;
             $r->get('foo[/{var1}]', function() {});
@@ -271,7 +271,28 @@ describe("Router", function() {
 
         });
 
-        it("supports optional constrained route variables", function() {
+        it("supports repeatable segments", function() {
+
+            $r = $this->router;
+            $r->get('foo[/:{var1}]*[/bar[/:{var2}]*]', function() {});
+
+            $route = $r->route('foo', 'GET');
+            expect($route->params)->toBe([]);
+
+            $route = $r->route('foo/:bar', 'GET');
+            expect($route->params)->toBe([
+                'var1' => ['bar']
+            ]);
+
+            $route = $r->route('foo/:bar/:baz/bar/:fuz', 'GET');
+            expect($route->params)->toBe([
+                'var1' => ['bar', 'baz'],
+                'var2' => ['fuz']
+            ]);
+
+        });
+
+        it("supports optional segments with custom variable regex", function() {
 
             $r = $this->router;
             $r->get('foo[/{var1:\d+}]', function() {});
@@ -288,10 +309,9 @@ describe("Router", function() {
 
         });
 
-        it("supports routes with optional variables with multiple segments", function() {
+        it("supports multiple optional segments", function() {
 
             $patterns = [
-                '[{var1}[/{var2}]]',
                 '/[{var1}[/{var2}]]',
                 '[/{var1}[/{var2}]]'
             ];
@@ -300,9 +320,6 @@ describe("Router", function() {
 
             foreach ($patterns as $pattern) {
                 $r->get($pattern, function() {});
-
-                $route = $r->route('', 'GET');
-                expect($route->params)->toBe([]);
 
                 $route = $r->route('foo', 'GET');
                 expect($route->params)->toBe(['var1' => 'foo']);
@@ -451,10 +468,10 @@ describe("Router", function() {
 
             $route = $r->route('foo/bar', 'GET');
             expect($this->export($route->request))->toEqual([
-                'scheme' => "http",
-                'host'   => "localhost",
-                'method' => "GET",
-                'path'   => "/foo/bar"
+                'scheme' => '*',
+                'host'   => '*',
+                'method' => 'GET',
+                'path'   => '/foo/bar'
             ]);
 
         });
@@ -477,10 +494,10 @@ describe("Router", function() {
 
             $route = $r->route(['path' =>'foo/bar'], 'GET');
             expect($this->export($route->request))->toEqual([
-                'scheme' => "http",
-                'host'   => "localhost",
-                'method' => "GET",
-                'path'   => "/foo/bar"
+                'scheme' => '*',
+                'host'   => '*',
+                'method' => 'GET',
+                'path'   => '/foo/bar'
             ]);
 
         });
@@ -505,9 +522,21 @@ describe("Router", function() {
             $r = $this->router;
             $r->group('foo', ['name' => 'foz'], function($r) use (&$route) {
                 $r->group('bar', ['name' => 'baz'], function($r) use (&$route) {
-                    $route = $r->bind('{var1}', ['name' => 'quz'], function () {});
+                    $route = $r->bind('{var1}', ['name' => 'quz'], function() {});
                 });
             });
+
+            expect(isset($r['foz.baz.quz']))->toBe(true);
+            expect($r['foz.baz.quz'])->toBe($route);
+
+        });
+
+        it("returns a working scope", function() {
+
+            $r = $this->router;
+            $route = $r->group('foo', ['name' => 'foz'], function() {
+            })->group('bar', ['name' => 'baz'], function() {
+            })->bind('{var1}', ['name' => 'quz'], function() {});
 
             expect(isset($r['foz.baz.quz']))->toBe(true);
             expect($r['foz.baz.quz'])->toBe($route);
@@ -635,6 +664,93 @@ describe("Router", function() {
             };
 
             expect($closure)->toThrow(new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method."));
+
+        });
+
+    });
+
+    describe("->middleware()", function() {
+
+        it("returns global middleware", function() {
+
+            $r = $this->router;
+
+            $mw1 = function($request, $response, $next) {
+                return '1' . $next() . '1';
+            };
+            $mw2 = function($request, $response, $next) {
+                return '2' . $next() . '2';
+            };
+
+            $r->apply($mw1, $mw2);
+
+            $next = function() { return ''; };
+
+            $generator = $r->middleware();
+
+            $actual2 = $generator->current();
+            $generator->next();
+            $actual1 = $generator->current();
+
+            expect($actual2(null, null, $next))->toBe('22');
+            expect($actual1(null, null, $next))->toBe('11');
+
+        });
+
+    });
+
+    describe("->apply()", function() {
+
+        it("applies middlewares globally", function() {
+
+            $r = $this->router;
+
+            $r->apply(function($request, $response, $next) {
+                return '1' . $next() . '1';
+            })->apply(function($request, $response, $next) {
+                return '2' . $next() . '2';
+            });
+
+            $route = $r->bind('/foo/bar', function($route) {
+                return 'A';
+            });
+
+            $route = $r->route('foo/bar');
+            $actual = $route->dispatch();
+
+            expect($actual)->toBe('21A12');
+
+        });
+
+        it("applies middlewares globally and per groups", function() {
+
+            $r = $this->router;
+
+            $r->apply(function($request, $response, $next) {
+                return '1' . $next() . '1';
+            });
+
+            $r->bind('foo/{foo}', ['name' => 'foo'], function () {
+                return 'A';
+            });
+
+            $r->group('bar', function($r) {
+                $r->bind('{bar}', ['name' => 'bar'], function () {
+                    return 'A';
+                });
+            })->apply(function($request, $response, $next) {
+                return '2' . $next() . '2';
+            });
+
+            $route = $r->route('foo/foo');
+            $actual = $route->dispatch();
+
+            expect($actual)->toBe('1A1');
+
+            $route = $r->route('bar/bar');
+            $actual = $route->dispatch();
+
+            expect($actual)->toBe('21A12');
 
         });
 
