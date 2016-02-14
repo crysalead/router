@@ -33,14 +33,6 @@ class Router extends \Lead\Collection\Collection
     protected $_scopes = [];
 
     /**
-     * Chunk size. (optimization parameter)
-     *
-     * @see http://nikic.github.io/2014/02/18/Fast-request-routing-using-regular-expressions.html
-     * @param integer
-     */
-    protected $_chunkSize = null;
-
-    /**
      * Base path.
      *
      * @param string
@@ -162,6 +154,9 @@ class Router extends \Lead\Collection\Collection
         $route = $this->_classes['route'];
 
         $instance = new $route($options);
+        if (!isset($this->_routes[$options['scheme']][$options['host']]['HEAD'])) {
+            $this->_routes[$options['scheme']][$options['host']]['HEAD'] = [];
+        }
         $this->_routes[$options['scheme']][$options['host']][$options['method']][] = $instance;
 
         if (isset($options['name'])) {
@@ -239,9 +234,7 @@ class Router extends \Lead\Collection\Collection
         }
         $r = $this->_normalizeRequest($r);
 
-        $rules = $this->_buildRules($r['method'], $r['host'], $r['scheme']);
-
-        if ($route = $this->_route($rules, $r['path'])) {
+        if ($route = $this->_route($r['path'], $r['method'], $r['host'], $r['scheme'])) {
             $route->request = is_object($request) ? $request : $r;
             foreach ($route->persist as $key) {
                 if (isset($route->params[$key])) {
@@ -250,16 +243,8 @@ class Router extends \Lead\Collection\Collection
             }
         } else {
             $route = $this->_classes['route'];
-
-            $rules = $this->_buildRules('*', $r['host'], $r['scheme']);
-            if ($this->_route($rules, $r['path'])) {
-                $error = $route::METHOD_NOT_ALLOWED;
-                $message = "Method `{$r['method']}` Not Allowed for `{$r['scheme']}:{$r['host']}:{$r['path']}`.";
-            } else {
-                $error = $route::NOT_FOUND;
-                $message = "No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:{$r['path']}`.";
-            }
-
+            $error = $route::NOT_FOUND;
+            $message = "No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:{$r['path']}`.";
             $route = new $route(compact('error', 'message'));
         }
 
@@ -283,34 +268,29 @@ class Router extends \Lead\Collection\Collection
     }
 
     /**
-     * Returns all potentially matchable route rules.
+     * Routes an url pattern on a bunch of route rules.
      *
-     * @param  string $httpMethod The HTTP method constraint.
-     * @param  string $host       The host constraint.
-     * @param  string $scheme     The scheme constraint.
-     * @return array              The potentially matchable route rules.
+     * @param array  $rules The rules to match on.
+     * @param string $path  The URL path to dispatch.
+     * @param array         The result array.
      */
-    protected function _buildRules($httpMethod, $host = '*', $scheme = '*')
+    protected function _route($path, $httpMethod, $host, $scheme)
     {
+        $hostVariables = [];
+
         $allowedSchemes = array_unique([$scheme => $scheme, '*' => '*']);
         $allowedMethods = array_unique([$httpMethod => $httpMethod, '*' => '*']);
 
-        $rulesMap = [];
-
         if ($httpMethod === 'HEAD') {
             $allowedMethods += ['GET' => 'GET'];
-            $rulesMap['HEAD'] = [];
         }
 
-        // Only routes which match the schema, host and HTTP method are compiled.
-        // This explain this code nesting.
         foreach ($this->_routes as $scheme => $hostBasedRoutes) {
             if (!isset($allowedSchemes[$scheme])) {
                 continue;
             }
-            foreach ($hostBasedRoutes as $routeDomain => $methodBasedRoutes) {
-                $hostVariables = [];
-                if (!$this->_matchDomain($host, $routeDomain, $hostVariables)) {
+            foreach ($hostBasedRoutes as $routeHost => $methodBasedRoutes) {
+                if (!$this->_matchDomain($host, $routeHost, $hostVariables)) {
                     continue;
                 }
                 foreach ($methodBasedRoutes as $method => $routes) {
@@ -318,133 +298,15 @@ class Router extends \Lead\Collection\Collection
                         continue;
                     }
                     foreach ($routes as $route) {
-                        $rules = $route->rules();
-                        foreach ($rules as $rule) {
-                            list($pattern, $varNames) = $rule;
-                            if (isset($rulesMap['*'][$pattern])) {
-                                $old = $rulesMap['*'][$pattern][0];
-                            } elseif (isset($rulesMap[$method][$pattern])) {
-                                $old = $rulesMap[$method][$pattern][0];
-                            } else {
-                                $rulesMap[$method][$pattern] = [$route, $varNames, $hostVariables];
-                                continue;
-                            }
-                            $error  = "The route `{$scheme}:{$routeDomain}:{$method}:{$pattern}` conflicts with a previously ";
-                            $error .= "defined one on `{$old->scheme}:{$old->host}:{$old->method}:{$pattern}`.";
-                            throw new RouterException($error);
+                        if (!$route->match($path)) {
+                            continue;
                         }
+                        $route->params = $hostVariables + $route->params;
+                        return $route;
                     }
                 }
             }
         }
-        $rules = [];
-
-        foreach ($rulesMap as $method => $value) {
-            $rules += $value;
-        }
-        return $rules;
-    }
-
-    /**
-     * Routes an url pattern on a bunch of route rules.
-     *
-     * @param array  $rules The rules to match on.
-     * @param string $path  The URL path to dispatch.
-     * @param array         The result array.
-     */
-    protected function _route($rules, $path)
-    {
-        $combinedRules = $this->_combineRules($rules, $this->_chunkSize);
-        foreach ($combinedRules as $combinedRule) {
-            if (!preg_match($combinedRule['regex'], $path, $matches)) {
-                continue;
-            }
-            list($route, $varNames, $hostVariables) = $combinedRule['map'][count($matches)];
-
-            $variables = $this->_buildVariables($varNames, $matches);
-            $route->params = $hostVariables + $variables;
-            return $route;
-        }
-    }
-
-    /**
-     * Combines rules' regexs together by chunks.
-     * This is an optimization to avoid matching the regular expressions one by one.
-     *
-     * @see http://nikic.github.io/2014/02/18/Fast-request-routing-using-regular-expressions.html
-     *
-     * @param  array $rules     The rules to combine.
-     * @param  array $chunkSize The chunk size.
-     * @return array            A collection of regex chunk.
-     */
-    protected function _combineRules($rules, $chunkSize)
-    {
-        $combinedRules = [];
-        $count = count($rules);
-        $chunks = array_chunk($rules, $chunkSize, true);
-        foreach ($chunks as $chunk) {
-            $ruleMap = [];
-            $regexes = [];
-            $numGroups = 0;
-            foreach ($chunk as $regex => $rule) {
-                $numVariables = count($rule[1]);
-                $numGroups = max($numGroups, $numVariables) + 1;
-                $regexes[] = $regex . str_repeat('()', $numGroups - $numVariables);
-                $ruleMap[++$numGroups] = $rule;
-            }
-            $regex = '~^(?|' . implode('|', $regexes) . ')$~';
-            $combinedRules[] = ['regex' => $regex, 'map' => $ruleMap];
-        }
-        return $combinedRules;
-    }
-
-    /**
-     * Combines route's variables names with the regex matched route's values.
-     *
-     * @param  array $varNames The variable names array with their corresponding pattern segment when applicable.
-     * @param  array $values   The matched values.
-     * @return array           The route's variables.
-     */
-    protected function _buildVariables($varNames, $values)
-    {
-        $variables = [];
-        $parser = $this->_classes['parser'];
-
-        $values = $this->_cleanMatches($values);
-
-        foreach ($values as $value) {
-            list($name, $pattern) = each($varNames);
-            if (!$pattern) {
-                $variables[$name] = $value;
-            } else {
-                $parsed = $parser::tokenize($pattern, '/');
-                $rule = $parser::compile($parsed);
-                if (preg_match_all('~' . $rule[0] . '~', $value, $parts)) {
-                    $variables[$name] = $parts[1];
-                }
-            }
-        }
-        return $variables;
-    }
-
-    /**
-     * Filters out all empty values of not found groups.
-     *
-     * @param  array $matches Some regex matched values.
-     * @return array          The real matched values.
-     */
-    protected function _cleanMatches($matches)
-    {
-        $result = [];
-        $len = count($matches);
-        while ($len > 1 && !$matches[$len - 1]) {
-            $len--;
-        }
-        for ($i = 1; $i < $len; $i++)
-        {
-            $result[] = $matches[$i];
-        }
-        return $result;
     }
 
     /**
