@@ -413,32 +413,6 @@ describe("Router", function() {
 
         });
 
-        it("throws an exception when two routes conflicts together", function() {
-
-            $closure = function() {
-                $r = $this->router;
-                $r->bind('foo/bar', function() {});
-                $r->get('foo/bar', function() {});
-                $r->route('foo/bar');
-            };
-
-            expect($closure)->toThrow(new RouterException("The route `*:*:GET:/foo/bar` conflicts with a previously defined one on `*:*:*:/foo/bar`."));
-
-        });
-
-        it("throws an exception when two routes conflicts together", function() {
-
-            $closure = function() {
-                $r = $this->router;
-                $r->get('foo/bar', function() {});
-                $r->get('foo/bar', function() {});
-                $r->route('foo/bar');
-            };
-
-            expect($closure)->toThrow(new RouterException("The route `*:*:GET:/foo/bar` conflicts with a previously defined one on `*:*:GET:/foo/bar`."));
-
-        });
-
         it("dispatches HEAD requests on matching GET routes if the HEAD routes are missing", function() {
 
             $r = $this->router;
@@ -499,17 +473,6 @@ describe("Router", function() {
                 'method' => 'GET',
                 'path'   => '/foo/bar'
             ]);
-
-        });
-
-        it("routes on a named route", function() {
-
-            $r = $this->router;
-            $r->post('foo/bar', function () {});
-
-            $route = $r->route('foo/bar', 'GET');
-            expect($route->error())->toBe(Route::METHOD_NOT_ALLOWED);
-            expect($route->message())->toBe("Method `GET` Not Allowed for `*:*:/foo/bar`.");
 
         });
 

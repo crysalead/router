@@ -339,6 +339,69 @@ class Route
         return $this;
     }
 
+    public function match($path)
+    {
+        $rules = $this->rules();
+        foreach ($rules as $rule) {
+            if (!preg_match('~^' . $rule[0] . '$~', $path, $matches)) {
+                continue;
+            }
+            $variables = $this->_buildVariables($rule[1], $matches);
+            $this->params = $variables;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Combines route's variables names with the regex matched route's values.
+     *
+     * @param  array $varNames The variable names array with their corresponding pattern segment when applicable.
+     * @param  array $values   The matched values.
+     * @return array           The route's variables.
+     */
+    protected function _buildVariables($varNames, $values)
+    {
+        $variables = [];
+        $parser = $this->_classes['parser'];
+
+        $values = $this->_cleanMatches($values);
+
+        foreach ($values as $value) {
+            list($name, $pattern) = each($varNames);
+            if (!$pattern) {
+                $variables[$name] = $value;
+            } else {
+                $parsed = $parser::tokenize($pattern, '/');
+                $rule = $parser::compile($parsed);
+                if (preg_match_all('~' . $rule[0] . '~', $value, $parts)) {
+                    $variables[$name] = $parts[1];
+                }
+            }
+        }
+        return $variables;
+    }
+
+    /**
+     * Filters out all empty values of not found groups.
+     *
+     * @param  array $matches Some regex matched values.
+     * @return array          The real matched values.
+     */
+    protected function _cleanMatches($matches)
+    {
+        $result = [];
+        $len = count($matches);
+        while ($len > 1 && !$matches[$len - 1]) {
+            $len--;
+        }
+        for ($i = 1; $i < $len; $i++)
+        {
+            $result[] = $matches[$i];
+        }
+        return $result;
+    }
+
     /**
      * Dispatches the route.
      *
