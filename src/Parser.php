@@ -74,7 +74,7 @@ EOD;
     public static function tokenize($pattern, $delimiter = '/')
     {
         // Checks if the pattern has some optional segments.
-        if (preg_match('~^[^\[\]{}]*(?:' . static::PLACEHOLDER_REGEX . ')?\[~x', $pattern, $matches)) {
+        if (count(preg_split('~' . static::PLACEHOLDER_REGEX . '(*SKIP)(*F)|\[~x', $pattern)) > 1) {
             $tokens = static::_tokenizePattern($pattern, $delimiter);
         } else {
             $tokens = static::_tokenizeSegment($pattern, $delimiter);

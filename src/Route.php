@@ -15,6 +15,13 @@ class Route
     const METHOD_NOT_ALLOWED = 405;
 
     /**
+     * Class dependencies.
+     *
+     * @var array
+     */
+    protected $_classes = [];
+
+    /**
      * The route's error.
      *
      * @var integer
@@ -29,32 +36,11 @@ class Route
     protected $_message = 'OK';
 
     /**
-     * Class dependencies.
-     *
-     * @var array
-     */
-    protected $_classes = [];
-
-    /**
      * Route's name.
      *
      * @var string
      */
     public $name = '';
-
-    /**
-     * The matching scheme.
-     *
-     * @var string
-     */
-    public $scheme = '*';
-
-    /**
-     * The matching host.
-     *
-     * @var string
-     */
-    public $host = '*';
 
     /**
      * The matching HTTP method.
@@ -113,6 +99,13 @@ class Route
     protected $_scope = null;
 
     /**
+     * The route's host.
+     *
+     * @var object
+     */
+    protected $_host = null;
+
+    /**
      * Route's prefix.
      *
      * @var array
@@ -161,12 +154,13 @@ class Route
      *
      * @param array $config The config array.
      */
-    public function __construct($config = []) {
+    public function __construct($config = [])
+    {
         $defaults = [
             'error'    => static::FOUND,
             'message'  => 'OK',
             'scheme'     => '*',
-            'host'       => '*',
+            'host'       => null,
             'method'     => '*',
             'prefix'     => '',
             'patterns'   => [],
@@ -178,14 +172,12 @@ class Route
             'scope'      => null,
             'middleware' => [],
             'classes'    => [
-                'parser' => 'Lead\Router\Parser'
+                'parser' => 'Lead\Router\Parser',
+                'host'   => 'Lead\Router\Host'
             ]
         ];
         $config += $defaults;
 
-        $this->scheme = $config['scheme'];
-        $this->host = $config['host'];
-        $this->method = $config['method'];
         $this->method = $config['method'];
         $this->name = $config['name'];
         $this->namespace = $config['namespace'];
@@ -200,6 +192,12 @@ class Route
             $this->_prefix = $this->_prefix ? '/' . $this->_prefix : '';
         }
 
+        if (is_string($config['host']) && $config['host'] !== '*') {
+            $host = $this->_classes['host'];
+            $this->_host = new $host(['scheme' => $config['scheme'], 'host' => $config['host']]);
+        } else {
+            $this->_host = $config['host'];
+        }
         $this->_scope = $config['scope'];
         $this->_middleware = (array) $config['middleware'];
         $this->_error = $config['error'];
@@ -208,6 +206,21 @@ class Route
         foreach ((array) $config['patterns'] as $pattern) {
             $this->append($pattern);
         }
+    }
+
+    /**
+     * Gets/sets the route host.
+     *
+     * @param  object      $host The host instance to set or none to get the setted one.
+     * @return object|self       The current host on get or `$this` on set.
+     */
+    public function host($host = null)
+    {
+        if (!func_num_args()) {
+            return $this->_host;
+        }
+        $this->_host = $host;
+        return $this;
     }
 
     /**
@@ -308,19 +321,22 @@ class Route
     }
 
     /**
-     * Returns the route's rules.
+     * Returns the compiled route.
      *
      * @return array A collection of route regex and their associated variable names.
      */
     public function rules()
     {
-        if ($this->_rules === null) {
-            $parser = $this->_classes['parser'];
-            $this->_rules = [];
-            foreach ($this->tokens() as $token) {
-                $this->_rules[] = $parser::compile($token);
-            }
+        if ($this->_rules !== null) {
+            return $this->_rules;
         }
+
+        $parser = $this->_classes['parser'];
+
+        foreach ($this->tokens() as $token) {
+            $this->_rules[] = $parser::compile($token);
+        }
+
         return $this->_rules;
     }
 
@@ -339,15 +355,37 @@ class Route
         return $this;
     }
 
-    public function match($path)
+    /**
+     * Checks if the route instance matches a request.
+     *
+     * @param  array   $request a request.
+     * @return boolean
+     */
+    public function match($request, &$variables = null, &$hostVariables = null)
     {
+        $hostVariables = [];
+
+        if (($host = $this->host()) && !$host->match($request, $hostVariables)) {
+            return false;
+        }
+
+        $path = isset($request['path']) ? $request['path'] : '/';
+        $method = isset($request['method']) ? $request['method'] : '*';
+
+        if ($this->method !== '*' && $method !== '*' && $method !== $this->method) {
+            if ($method !== 'HEAD' && $this->method !== 'GET') {
+                return false;
+            }
+        }
+
         $rules = $this->rules();
+
         foreach ($rules as $rule) {
             if (!preg_match('~^' . $rule[0] . '$~', $path, $matches)) {
                 continue;
             }
             $variables = $this->_buildVariables($rule[1], $matches);
-            $this->params = $variables;
+            $this->params = $hostVariables + $variables;
             return true;
         }
         return false;
@@ -485,10 +523,12 @@ class Route
             'query'    => '',
             'fragment' => ''
         ];
-        $options += [
-            'scheme' => $this->scheme,
-            'host'   => $this->host
-        ];
+        if ($host = $this->host()) {
+            $options += [
+                'scheme' => $host->scheme,
+                'host'   => $host->host
+            ];
+        }
 
         $options = array_filter($options, function($value) { return $value !== '*'; });
         $options += $defaults;

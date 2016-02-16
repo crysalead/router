@@ -117,8 +117,6 @@ $router->bind('foo/bar', function($route, $response) {
 #### The Route Public Attributes
 
 ```php
-$route->scheme;       // The scheme contraint
-$route->host;         // The host contraint
 $route->method;       // The method contraint
 $route->params;       // The matched params
 $route->persist;      // The persisted params
@@ -132,6 +130,7 @@ $route->dispatched;   // To store the dispated instance if applicable.
 #### The Route Mublic Methods
 
 ```php
+$route->host();       // The route's host instance
 $route->append();     // To append a new pattern to this route
 $route->prepend();    // To prepend a new pattern to this route
 $route->patterns();   // The patterns

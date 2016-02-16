@@ -340,11 +340,11 @@ describe("Router", function() {
             $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function() {});
 
             $route = $r->route('foo/25', 'GET', 'foo.biz.bar');
-            expect($route->host)->toBe('foo.{domain}.bar');
+            expect($route->host()->host)->toBe('foo.{domain}.bar');
             expect($route->params)->toBe(['domain' => 'biz', 'var1' => '25']);
 
             $route = $r->route('foo/50', 'GET', 'foo.buz.baz');
-            expect($route->host)->toBe('foo.{domain}.baz');
+            expect($route->host()->host)->toBe('foo.{domain}.baz');
             expect($route->params)->toBe(['domain' => 'buz', 'var1' => '50']);
 
         });
@@ -370,11 +370,11 @@ describe("Router", function() {
             $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function() {});
 
             $route = $r->route('http://foo.biz.bar/foo/25', 'GET');
-            expect($route->host)->toBe('foo.{domain}.bar');
+            expect($route->host()->host)->toBe('foo.{domain}.bar');
             expect($route->params)->toBe(['domain' => 'biz', 'var1' => '25']);
 
             $route = $r->route('http://foo.buz.baz/foo/50', 'GET');
-            expect($route->host)->toBe('foo.{domain}.baz');
+            expect($route->host()->host)->toBe('foo.{domain}.baz');
             expect($route->params)->toBe(['domain' => 'buz', 'var1' => '50']);
 
         });

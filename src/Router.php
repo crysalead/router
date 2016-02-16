@@ -19,6 +19,13 @@ class Router extends \Lead\Collection\Collection
     protected $_classes = [];
 
     /**
+     * Hosts.
+     *
+     * @var array
+     */
+    protected $_hosts = [];
+
+    /**
      * Routes.
      *
      * @var array
@@ -66,6 +73,7 @@ class Router extends \Lead\Collection\Collection
             'strategies'    => [],
             'classes'       => [
                 'parser'    => 'Lead\Router\Parser',
+                'host'      => 'Lead\Router\Host',
                 'route'     => 'Lead\Router\Route',
                 'scope'     => 'Lead\Router\Scope'
             ]
@@ -165,10 +173,11 @@ class Router extends \Lead\Collection\Collection
         }
 
         $instance = new $route($options);
-        if (!isset($this->_routes[$options['scheme']][$options['host']]['HEAD'])) {
-            $this->_routes[$options['scheme']][$options['host']]['HEAD'] = [];
+
+        if (!isset($this->_routes[$scheme][$host]['HEAD'])) {
+            $this->_routes[$scheme][$host]['HEAD'] = [];
         }
-        $this->_routes[$options['scheme']][$options['host']][$options['method']][] = $instance;
+        $this->_routes[$scheme][$host][$options['method']][] = $instance;
 
         if (isset($options['name'])) {
             $this->_data[$options['name']] = $instance;
@@ -245,7 +254,7 @@ class Router extends \Lead\Collection\Collection
         }
         $r = $this->_normalizeRequest($r);
 
-        if ($route = $this->_route($r['path'], $r['method'], $r['host'], $r['scheme'])) {
+        if ($route = $this->_route($r)) {
             $route->request = is_object($request) ? $request : $r;
             foreach ($route->persist as $key) {
                 if (isset($route->params[$key])) {
@@ -285,9 +294,12 @@ class Router extends \Lead\Collection\Collection
      * @param string $path  The URL path to dispatch.
      * @param array         The result array.
      */
-    protected function _route($path, $httpMethod, $host, $scheme)
+    protected function _route($request)
     {
-        $hostVariables = [];
+        $path = $request['path'];
+        $httpMethod = $request['method'];
+        $host = $request['host'];
+        $scheme = $request['scheme'];
 
         $allowedSchemes = array_unique([$scheme => $scheme, '*' => '*']);
         $allowedMethods = array_unique([$httpMethod => $httpMethod, '*' => '*']);
@@ -301,48 +313,22 @@ class Router extends \Lead\Collection\Collection
                 continue;
             }
             foreach ($hostBasedRoutes as $routeHost => $methodBasedRoutes) {
-                if (!$this->_matchDomain($host, $routeHost, $hostVariables)) {
-                    continue;
-                }
                 foreach ($methodBasedRoutes as $method => $routes) {
                     if (!isset($allowedMethods[$method]) && $httpMethod !== '*') {
                         continue;
                     }
                     foreach ($routes as $route) {
-                        if (!$route->match($path)) {
+                        if (!$route->match($request, $variables, $hostVariables)) {
+                            if ($hostVariables === null) {
+                                continue 3;
+                            }
                             continue;
                         }
-                        $route->params = $hostVariables + $route->params;
                         return $route;
                     }
                 }
             }
         }
-    }
-
-    /**
-     * Checks if a host matches a host pattern.
-     *
-     * @param  string  $host    The host to check.
-     * @param  string  $pattern The pattern to use for checking.
-     * @return boolean          Returns `true` on success, false otherwise.
-     */
-    protected function _matchDomain($host, $pattern, &$variables)
-    {
-        if ($host === '*' || $pattern === '*') {
-            return true;
-        }
-        $parser = $this->_classes['parser'];
-        $token = $parser::tokenize($pattern, '.');
-        $rule = $parser::compile($token);
-        if (preg_match('~^' . $rule[0] . '$~', $host, $matches)) {
-            $i = 0;
-            foreach ($rule[1] as $name => $pattern) {
-                $variables[$name] = $matches[++$i];
-            }
-            return true;
-        }
-        return false;
     }
 
     /**
