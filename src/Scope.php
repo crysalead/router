@@ -50,13 +50,13 @@ class Scope
         $this->_parent = $config['parent'];
         $this->_middleware = $config['middleware'];
         $this->_scope = $config['scope'] + [
-            'name'       => '',
-            'scheme'     => '*',
-            'host'       => '*',
-            'method'     => '*',
-            'prefix'     => '/',
-            'namespace'  => '',
-            'persist'    => []
+            'name'           => '',
+            'scheme'         => '*',
+            'host'           => '*',
+            'allowedMethods' => '*',
+            'prefix'         => '/',
+            'namespace'      => '',
+            'persist'        => []
         ];
     }
 

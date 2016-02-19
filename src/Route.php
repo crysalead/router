@@ -43,13 +43,6 @@ class Route
     public $name = '';
 
     /**
-     * The matching HTTP method.
-     *
-     * @var string
-     */
-    public $method = '*';
-
-    /**
      * Named parameter.
      *
      * @var array
@@ -106,6 +99,13 @@ class Route
     protected $_host = null;
 
     /**
+     * Route's allowed methods.
+     *
+     * @var array
+     */
+    protected $_allowedMethods = [];
+
+    /**
      * Route's prefix.
      *
      * @var array
@@ -157,28 +157,27 @@ class Route
     public function __construct($config = [])
     {
         $defaults = [
-            'error'    => static::FOUND,
-            'message'  => 'OK',
-            'scheme'     => '*',
-            'host'       => null,
-            'method'     => '*',
-            'prefix'     => '',
-            'patterns'   => [],
-            'name'       => '',
-            'namespace'  => '',
-            'handler'    => null,
-            'params'     => [],
-            'persist'    => [],
-            'scope'      => null,
-            'middleware' => [],
-            'classes'    => [
+            'error'          => static::FOUND,
+            'message'        => 'OK',
+            'scheme'         => '*',
+            'host'           => null,
+            'allowedMethods' => '*',
+            'prefix'         => '',
+            'patterns'       => [],
+            'name'           => '',
+            'namespace'      => '',
+            'handler'        => null,
+            'params'         => [],
+            'persist'        => [],
+            'scope'          => null,
+            'middleware'     => [],
+            'classes'        => [
                 'parser' => 'Lead\Router\Parser',
                 'host'   => 'Lead\Router\Host'
             ]
         ];
         $config += $defaults;
 
-        $this->method = $config['method'];
         $this->name = $config['name'];
         $this->namespace = $config['namespace'];
         $this->params = $config['params'];
@@ -192,12 +191,9 @@ class Route
             $this->_prefix = $this->_prefix ? '/' . $this->_prefix : '';
         }
 
-        if (is_string($config['host']) && $config['host'] !== '*') {
-            $host = $this->_classes['host'];
-            $this->_host = new $host(['scheme' => $config['scheme'], 'host' => $config['host']]);
-        } else {
-            $this->_host = $config['host'];
-        }
+        $this->host($config['host']);
+        $this->allowedMethods($config['allowedMethods']);
+
         $this->_scope = $config['scope'];
         $this->_middleware = (array) $config['middleware'];
         $this->_error = $config['error'];
@@ -214,13 +210,51 @@ class Route
      * @param  object      $host The host instance to set or none to get the setted one.
      * @return object|self       The current host on get or `$this` on set.
      */
-    public function host($host = null)
+    public function host($host = null, $scheme = '*')
     {
         if (!func_num_args()) {
             return $this->_host;
         }
-        $this->_host = $host;
+        if (!is_string($host)) {
+            $this->_host = $host;
+            return $this;
+        }
+        if ($host !== '*') {
+            $class = $this->_classes['host'];
+            $this->_host = new $class(['scheme' => $scheme, 'host' => $host]);
+        } else {
+            $this->_host = null;
+        }
         return $this;
+    }
+
+    /**
+     * Gets/sets the allowed methods.
+     *
+     * @param  string|array $allowedMethods The allowed methods set or none to get the setted one.
+     * @return array|self                   The allowed methods on get or `$this` on set.
+     */
+    public function allowedMethods($allowedMethods = null)
+    {
+        if (!func_num_args()) {
+            return array_keys($this->_allowedMethods);
+        }
+        $allowedMethods = $allowedMethods ? (array) $allowedMethods : [];
+        $this->_allowedMethods = array_fill_keys($allowedMethods, true);
+        return $this;
+    }
+
+    /**
+     * Allows additionnal methods.
+     *
+     * @param  string|array $methods The methods to allow.
+     * @return self
+     */
+    public function allowMethods($methods = [])
+    {
+        $methods = $methods ? (array) $methods : [];
+        $this->_allowedMethods = array_fill_keys($methods, true) + $this->_allowedMethods;
+         return $this;
     }
 
     /**
@@ -372,8 +406,8 @@ class Route
         $path = isset($request['path']) ? $request['path'] : '/';
         $method = isset($request['method']) ? $request['method'] : '*';
 
-        if ($this->method !== '*' && $method !== '*' && $method !== $this->method) {
-            if ($method !== 'HEAD' && $this->method !== 'GET') {
+        if (!isset($this->_allowedMethods['*']) && $method !== '*' && !isset($this->_allowedMethods[$method])) {
+            if ($method !== 'HEAD' && !isset($this->_allowedMethods['GET'])) {
                 return false;
             }
         }

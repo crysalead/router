@@ -157,27 +157,41 @@ class Router extends \Lead\Collection\Collection
         $options['patterns'] = (array) $pattern;
         $options['handler'] = $handler;
         $options['scope'] = $scope;
-        $route = $this->_classes['route'];
 
         $scheme = $options['scheme'];
         $host = $options['host'];
 
-        if ($host !== '*') {
-            if (!isset($this->_hosts[$scheme][$host])) {
-                $class = $this->_classes['host'];
-                $this->_hosts[$scheme][$host] = new $class($options);
-            }
+        if (isset($this->_hosts[$scheme][$host])) {
             $options['host'] = $this->_hosts[$scheme][$host];
-        } else {
-            $options['host'] = null;
         }
 
-        $instance = new $route($options);
+        $patterns = (array) $pattern;
+
+        if (isset($this->_patterns[$scheme][$host][$patterns[0]])) {
+            $instance = $this->_patterns[$scheme][$host][$pattern];
+        } else {
+            $route = $this->_classes['route'];
+            $instance = new $route($options);
+            $this->_hosts[$scheme][$host] = $instance->host();
+        }
+
+        foreach ($patterns as $pattern) {
+            if (!isset($this->_patterns[$scheme][$host][$pattern])) {
+                $this->_patterns[$scheme][$host][$pattern] = $instance;
+            }
+        }
+
+        $allowedMethods = $options['allowedMethods'] ? (array) $options['allowedMethods'] : [];
+
+        $instance->allowMethods($allowedMethods);
 
         if (!isset($this->_routes[$scheme][$host]['HEAD'])) {
             $this->_routes[$scheme][$host]['HEAD'] = [];
         }
-        $this->_routes[$scheme][$host][$options['method']][] = $instance;
+
+        foreach ($allowedMethods as $method) {
+            $this->_routes[$scheme][$host][$method][] = $instance;
+        }
 
         if (isset($options['name'])) {
             $this->_data[$options['name']] = $instance;
@@ -399,7 +413,7 @@ class Router extends \Lead\Collection\Collection
             $params[2] = $params[1];
             $params[1] = [];
         }
-        $params[1]['method'] = $method;
+        $params[1]['allowedMethods'] = [$method];
         return call_user_func_array([$this, 'bind'], $params);
     }
 

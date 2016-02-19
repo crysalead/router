@@ -390,26 +390,28 @@ describe("Router", function() {
             $r->delete('foo/bar', function () {});
             $r->options('foo/bar', function () {});
 
+            $methods = ['OPTIONS', 'DELETE', 'PATCH', 'PUT', 'POST', 'HEAD', 'GET'];
+
             $route = $r->route('foo/bar', 'GET');
-            expect($route->method)->toBe('GET');
+            expect($route->allowedMethods())->toBe($methods);
 
             $route = $r->route('foo/bar', 'HEAD');
-            expect($route->method)->toBe('HEAD');
+            expect($route->allowedMethods())->toBe($methods);
 
             $route = $r->route('foo/bar', 'POST');
-            expect($route->method)->toBe('POST');
+            expect($route->allowedMethods())->toBe($methods);
 
             $route = $r->route('foo/bar', 'PUT');
-            expect($route->method)->toBe('PUT');
+            expect($route->allowedMethods())->toBe($methods);
 
             $route = $r->route('foo/bar', 'PATCH');
-            expect($route->method)->toBe('PATCH');
+            expect($route->allowedMethods())->toBe($methods);
 
             $route = $r->route('foo/bar', 'DELETE');
-            expect($route->method)->toBe('DELETE');
+            expect($route->allowedMethods())->toBe($methods);
 
             $route = $r->route('foo/bar', 'OPTIONS');
-            expect($route->method)->toBe('OPTIONS');
+            expect($route->allowedMethods())->toBe($methods);
 
         });
 
@@ -419,7 +421,7 @@ describe("Router", function() {
             $r->get('foo/bar', function () { return 'GET'; });
 
             $route = $r->route('foo/bar', 'HEAD');
-            expect($route->method)->toBe('GET');
+            expect($route->allowedMethods())->toBe(['GET']);
 
         });
 
@@ -431,7 +433,7 @@ describe("Router", function() {
             $r->get('foo/bar', function () { return 'GET'; });
 
             $route = $r->route('foo/bar', 'HEAD');
-            expect($route->method)->toBe('HEAD');
+            expect($route->allowedMethods())->toBe(['GET', 'HEAD']);
 
         });
 
