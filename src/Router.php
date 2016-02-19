@@ -185,10 +185,6 @@ class Router extends \Lead\Collection\Collection
 
         $instance->allowMethods($allowedMethods);
 
-        if (!isset($this->_routes[$scheme][$host]['HEAD'])) {
-            $this->_routes[$scheme][$host]['HEAD'] = [];
-        }
-
         foreach ($allowedMethods as $method) {
             $this->_routes[$scheme][$host][$method][] = $instance;
         }
