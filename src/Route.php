@@ -103,7 +103,7 @@ class Route
      *
      * @var array
      */
-    protected $_allowedMethods = [];
+    protected $_methods = [];
 
     /**
      * Route's prefix.
@@ -161,7 +161,7 @@ class Route
             'message'        => 'OK',
             'scheme'         => '*',
             'host'           => null,
-            'allowedMethods' => '*',
+            'methods'        => '*',
             'prefix'         => '',
             'patterns'       => [],
             'name'           => '',
@@ -192,7 +192,7 @@ class Route
         }
 
         $this->host($config['host']);
-        $this->allowedMethods($config['allowedMethods']);
+        $this->methods($config['methods']);
 
         $this->_scope = $config['scope'];
         $this->_middleware = (array) $config['middleware'];
@@ -234,13 +234,13 @@ class Route
      * @param  string|array $allowedMethods The allowed methods set or none to get the setted one.
      * @return array|self                   The allowed methods on get or `$this` on set.
      */
-    public function allowedMethods($allowedMethods = null)
+    public function methods($methods = null)
     {
         if (!func_num_args()) {
-            return array_keys($this->_allowedMethods);
+            return array_keys($this->_methods);
         }
-        $allowedMethods = $allowedMethods ? (array) $allowedMethods : [];
-        $this->_allowedMethods = array_fill_keys($allowedMethods, true);
+        $methods = $methods ? (array) $methods : [];
+        $this->_methods = array_fill_keys($methods, true);
         return $this;
     }
 
@@ -250,10 +250,10 @@ class Route
      * @param  string|array $methods The methods to allow.
      * @return self
      */
-    public function allowMethods($methods = [])
+    public function allow($methods = [])
     {
         $methods = $methods ? (array) $methods : [];
-        $this->_allowedMethods = array_fill_keys($methods, true) + $this->_allowedMethods;
+        $this->_methods = array_fill_keys($methods, true) + $this->_methods;
          return $this;
     }
 
@@ -406,8 +406,8 @@ class Route
         $path = isset($request['path']) ? $request['path'] : '/';
         $method = isset($request['method']) ? $request['method'] : '*';
 
-        if (!isset($this->_allowedMethods['*']) && $method !== '*' && !isset($this->_allowedMethods[$method])) {
-            if ($method !== 'HEAD' && !isset($this->_allowedMethods['GET'])) {
+        if (!isset($this->_methods['*']) && $method !== '*' && !isset($this->_methods[$method])) {
+            if ($method !== 'HEAD' && !isset($this->_methods['GET'])) {
                 return false;
             }
         }

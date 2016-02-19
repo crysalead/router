@@ -181,11 +181,11 @@ class Router extends \Lead\Collection\Collection
             }
         }
 
-        $allowedMethods = $options['allowedMethods'] ? (array) $options['allowedMethods'] : [];
+        $methods = $options['methods'] ? (array) $options['methods'] : [];
 
-        $instance->allowMethods($allowedMethods);
+        $instance->allow($methods);
 
-        foreach ($allowedMethods as $method) {
+        foreach ($methods as $method) {
             $this->_routes[$scheme][$host][$method][] = $instance;
         }
 
@@ -409,7 +409,7 @@ class Router extends \Lead\Collection\Collection
             $params[2] = $params[1];
             $params[1] = [];
         }
-        $params[1]['allowedMethods'] = [$method];
+        $params[1]['methods'] = [$method];
         return call_user_func_array([$this, 'bind'], $params);
     }
 

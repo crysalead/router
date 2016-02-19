@@ -53,7 +53,7 @@ class Scope
             'name'           => '',
             'scheme'         => '*',
             'host'           => '*',
-            'allowedMethods' => '*',
+            'methods'        => '*',
             'prefix'         => '/',
             'namespace'      => '',
             'persist'        => []
