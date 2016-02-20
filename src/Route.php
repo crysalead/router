@@ -12,8 +12,6 @@ class Route
 
     const NOT_FOUND = 404;
 
-    const METHOD_NOT_ALLOWED = 405;
-
     /**
      * Class dependencies.
      *
@@ -186,10 +184,7 @@ class Route
 
         $this->_classes = $config['classes'];
 
-        if ($config['prefix'] && $config['prefix'][0] !== '[') {
-            $this->_prefix = trim($config['prefix'], '/');
-            $this->_prefix = $this->_prefix ? '/' . $this->_prefix : '';
-        }
+        $this->_prefix = $config['prefix'];
 
         $this->host($config['host']);
         $this->methods($config['methods']);
@@ -312,10 +307,7 @@ class Route
     {
         $this->_tokens = null;
         $this->_rules = null;
-        if ($pattern && $pattern[0] !== '[') {
-            $pattern = '/' . ltrim($pattern, '/');
-        }
-        $this->_patterns[] = $this->_prefix . $pattern;
+        $this->_patterns[] = $this->_prefix . ltrim($pattern, '/');
         return $this;
     }
 
@@ -329,10 +321,7 @@ class Route
     {
         $this->_tokens = null;
         $this->_rules = null;
-        if ($pattern && $pattern[0] !== '[') {
-            $pattern = '/' . ltrim($pattern, '/');
-        }
-        array_unshift($this->_patterns, $this->_prefix . $pattern);
+        array_unshift($this->_patterns, $this->_prefix . ltrim($pattern, '/'));
         return $this;
     }
 
@@ -403,7 +392,7 @@ class Route
             return false;
         }
 
-        $path = isset($request['path']) ? $request['path'] : '/';
+        $path = isset($request['path']) ? $request['path'] : '';
         $method = isset($request['method']) ? $request['method'] : '*';
 
         if (!isset($this->_methods['*']) && $method !== '*' && !isset($this->_methods[$method])) {
@@ -583,7 +572,7 @@ class Route
 
         if (!empty($missing)) {
             $patterns = join(',', $this->_patterns);
-            throw new RouterException("Missing parameters `'{$missing}'` for route: `'{$this->name}#{$patterns}'`.");
+            throw new RouterException("Missing parameters `'{$missing}'` for route: `'{$this->name}#/{$patterns}'`.");
         }
         $basePath = trim($options['basePath'], '/');
         if ($basePath) {

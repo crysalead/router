@@ -207,7 +207,7 @@ describe("Router", function() {
                 'host'   => '*',
                 'scheme' => '*',
                 'method' => 'GET',
-                'path'   => '/foo/bar'
+                'path'   => 'foo/bar'
             ]);
 
             $route = $r->route('foo/baz', 'GET');
@@ -313,7 +313,7 @@ describe("Router", function() {
 
             $patterns = [
                 '/[{var1}[/{var2}]]',
-                '[/{var1}[/{var2}]]'
+                '[{var1}[/{var2}]]'
             ];
 
             $r = $this->router;
@@ -447,7 +447,7 @@ describe("Router", function() {
                 'scheme' => '*',
                 'host'   => '*',
                 'method' => 'GET',
-                'path'   => '/foo/bar'
+                'path'   => 'foo/bar'
             ]);
 
         });
@@ -473,7 +473,7 @@ describe("Router", function() {
                 'scheme' => '*',
                 'host'   => '*',
                 'method' => 'GET',
-                'path'   => '/foo/bar'
+                'path'   => 'foo/bar'
             ]);
 
         });
@@ -738,7 +738,7 @@ describe("Router", function() {
 
             $r->mystrategy();
             $route = $r->route('foo/bar');
-            expect($route->patterns())->toBe(['/foo/bar']);
+            expect($route->patterns())->toBe(['foo/bar']);
 
         });
 

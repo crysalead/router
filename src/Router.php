@@ -238,7 +238,7 @@ class Router extends \Lead\Collection\Collection
     public function route($request)
     {
         $defaults = [
-            'path'   => '/',
+            'path'   => '',
             'method' => 'GET',
             'host'   => '*',
             'scheme' => '*'
@@ -274,7 +274,7 @@ class Router extends \Lead\Collection\Collection
         } else {
             $route = $this->_classes['route'];
             $error = $route::NOT_FOUND;
-            $message = "No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:{$r['path']}`.";
+            $message = "No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:/{$r['path']}`.";
             $route = new $route(compact('error', 'message'));
         }
 
@@ -293,7 +293,7 @@ class Router extends \Lead\Collection\Collection
             $parsed = array_intersect_key(parse_url($request['path']), $request);
             $request = $parsed + $request;
         }
-        $request['path'] = '/' . (ltrim(strtok($request['path'], '?'), '/'));
+        $request['path'] = (ltrim(strtok($request['path'], '?'), '/'));
         return $request;
     }
 

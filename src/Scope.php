@@ -54,7 +54,7 @@ class Scope
             'scheme'         => '*',
             'host'           => '*',
             'methods'        => '*',
-            'prefix'         => '/',
+            'prefix'         => '',
             'namespace'      => '',
             'persist'        => []
         ];
@@ -90,7 +90,8 @@ class Scope
         }
 
         if (!empty($options['prefix'])) {
-            $options['prefix'] = $scope['prefix'] . trim($options['prefix'], '/') . '/';
+            $options['prefix'] = $scope['prefix'] . trim($options['prefix'], '/');
+            $options['prefix'] = $options['prefix'] ? $options['prefix'] . '/' : '';
         }
 
         if (isset($options['persist'])) {
