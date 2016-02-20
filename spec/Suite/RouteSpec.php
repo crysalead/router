@@ -109,7 +109,7 @@ describe("Route", function() {
 
             $route = $r->route('foo/25', 'GET', 'foo.biz.bar');
             $actual = $route->dispatch($response);
-            expect($actual)->toBe([$response, 'foo', 'biz', '25']);
+            expect($actual)->toBe([$response, 'foo', 'biz', '25', null]);
 
             $route = $r->route('foo/25/bar', 'GET', 'foo.biz.bar');
             $actual = $route->dispatch($response);

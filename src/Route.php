@@ -426,41 +426,26 @@ class Route
         $variables = [];
         $parser = $this->_classes['parser'];
 
-        $values = $this->_cleanMatches($values);
-
-        foreach ($values as $value) {
-            list($name, $pattern) = each($varNames);
+        $i = 1;
+        foreach ($varNames as $name => $pattern) {
+            if (!isset($values[$i])) {
+                $variables[$name] = !$pattern ? null : [];
+                continue;
+            }
             if (!$pattern) {
-                $variables[$name] = $value;
+                $variables[$name] = $values[$i] ?: null;
             } else {
-                $parsed = $parser::tokenize($pattern, '/');
-                $rule = $parser::compile($parsed);
-                if (preg_match_all('~' . $rule[0] . '~', $value, $parts)) {
+                $token = $parser::tokenize($pattern, '/');
+                $rule = $parser::compile($token);
+                if (preg_match_all('~' . $rule[0] . '~', $values[$i], $parts)) {
                     $variables[$name] = $parts[1];
+                } else {
+                    $variables[$name] = [];
                 }
             }
+            $i++;
         }
         return $variables;
-    }
-
-    /**
-     * Filters out all empty values of not found groups.
-     *
-     * @param  array $matches Some regex matched values.
-     * @return array          The real matched values.
-     */
-    protected function _cleanMatches($matches)
-    {
-        $result = [];
-        $len = count($matches);
-        while ($len > 1 && !$matches[$len - 1]) {
-            $len--;
-        }
-        for ($i = 1; $i < $len; $i++)
-        {
-            $result[] = $matches[$i];
-        }
-        return $result;
     }
 
     /**

@@ -264,7 +264,7 @@ describe("Router", function() {
             $r->get('foo[/{var1}]', function() {});
 
             $route = $r->route('foo', 'GET');
-            expect($route->params)->toBe([]);
+            expect($route->params)->toBe(['var1' => null]);
 
             $route = $r->route('foo/bar', 'GET');
             expect($route->params)->toBe(['var1' => 'bar']);
@@ -277,11 +277,15 @@ describe("Router", function() {
             $r->get('foo[/:{var1}]*[/bar[/:{var2}]*]', function() {});
 
             $route = $r->route('foo', 'GET');
-            expect($route->params)->toBe([]);
+            expect($route->params)->toBe([
+                'var1' => [],
+                'var2' => []
+            ]);
 
             $route = $r->route('foo/:bar', 'GET');
             expect($route->params)->toBe([
-                'var1' => ['bar']
+                'var1' => ['bar'],
+                'var2' => []
             ]);
 
             $route = $r->route('foo/:bar/:baz/bar/:fuz', 'GET');
@@ -298,7 +302,7 @@ describe("Router", function() {
             $r->get('foo[/{var1:\d+}]', function() {});
 
             $route = $r->route('foo', 'GET');
-            expect($route->params)->toBe([]);
+            expect($route->params)->toBe(['var1' => null]);
 
             $route = $r->route('foo/25', 'GET');
             expect($route->params)->toBe(['var1' => '25']);
@@ -322,7 +326,7 @@ describe("Router", function() {
                 $r->get($pattern, function() {});
 
                 $route = $r->route('foo', 'GET');
-                expect($route->params)->toBe(['var1' => 'foo']);
+                expect($route->params)->toBe(['var1' => 'foo', 'var2' => null]);
 
                 $route = $r->route('foo/bar', 'GET');
                 expect($route->params)->toBe(['var1' => 'foo', 'var2' => 'bar']);
