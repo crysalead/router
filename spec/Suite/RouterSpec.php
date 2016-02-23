@@ -151,18 +151,13 @@ describe("Router", function() {
 
         });
 
-        it("supports route with multiple patterns", function() {
+        it("supports route with multiple optional segments", function() {
 
             $r = $this->router;
 
-            $patterns = [
-                '{relation}/{rid:[^/:][^/]*}/post/{id:[^/:][^/]*}[/:{action}]',
-                '{relation}/{rid:[^/:][^/]*}/post[/:{action}]',
-                'post/{id:[^/:][^/]*}[/:{action}]',
-                'post[/:{action}]'
-            ];
+            $pattern = '[{relation}/{rid:[^/:][^/]*}/]post[/{id:[^/:][^/]*}][/:{action}]';
 
-            $route = $r->bind($patterns, ['name' => 'post'], function () {});
+            $route = $r->bind($pattern, ['name' => 'post'], function () {});
 
             $link = $r->link('post');
             expect($link)->toBe('/post');
@@ -742,7 +737,7 @@ describe("Router", function() {
 
             $r->mystrategy();
             $route = $r->route('foo/bar');
-            expect($route->patterns())->toBe(['foo/bar']);
+            expect($route->pattern())->toBe('foo/bar');
 
         });
 

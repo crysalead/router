@@ -137,7 +137,7 @@ class Router extends \Lead\Collection\Collection
     /**
      * Adds a route.
      *
-     * @param  string|array  $pattern The route's pattern or patterns.
+     * @param  string|array  $pattern The route's pattern.
      * @param  Closure|array $options An array of options or the callback handler.
      * @param  Closure|null  $handler The callback handler.
      * @return self
@@ -154,7 +154,7 @@ class Router extends \Lead\Collection\Collection
 
         $scope = end($this->_scopes);
         $options = $scope->scopify($options);
-        $options['patterns'] = (array) $pattern;
+        $options['pattern'] = $pattern;
         $options['handler'] = $handler;
         $options['scope'] = $scope;
 
@@ -165,20 +165,16 @@ class Router extends \Lead\Collection\Collection
             $options['host'] = $this->_hosts[$scheme][$host];
         }
 
-        $patterns = (array) $pattern;
-
-        if (isset($this->_patterns[$scheme][$host][$patterns[0]])) {
-            $instance = $this->_patterns[$scheme][$host][$pattern];
+        if (isset($this->_pattern[$scheme][$host][$pattern])) {
+            $instance = $this->_pattern[$scheme][$host][$pattern];
         } else {
             $route = $this->_classes['route'];
             $instance = new $route($options);
             $this->_hosts[$scheme][$host] = $instance->host();
         }
 
-        foreach ($patterns as $pattern) {
-            if (!isset($this->_patterns[$scheme][$host][$pattern])) {
-                $this->_patterns[$scheme][$host][$pattern] = $instance;
-            }
+        if (!isset($this->_pattern[$scheme][$host][$pattern])) {
+            $this->_pattern[$scheme][$host][$pattern] = $instance;
         }
 
         $methods = $options['methods'] ? (array) $options['methods'] : [];
@@ -298,11 +294,9 @@ class Router extends \Lead\Collection\Collection
     }
 
     /**
-     * Routes an url pattern on a bunch of route rules.
+     * Routes a request.
      *
-     * @param array  $rules The rules to match on.
-     * @param string $path  The URL path to dispatch.
-     * @param array         The result array.
+     * @param array $request The request to route.
      */
     protected function _route($request)
     {

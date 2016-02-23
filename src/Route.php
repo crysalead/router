@@ -111,27 +111,35 @@ class Route
     protected $_prefix = '';
 
     /**
-     * Route's patterns.
+     * Route's pattern.
      *
-     * @var array
+     * @var string
      */
-    protected $_patterns = [];
+    protected $_pattern = '';
 
     /**
-     * Collection of tokens structures extracted from route's patterns.
+     * The tokens structure extracted from route's pattern.
      *
      * @see Parser::tokenize()
      * @var array
      */
-    protected $_tokens = null;
+    protected $_token = null;
 
     /**
-     * Rules extracted from route's tokens structures.
+     * The route's regular expression pattern.
+     *
+     * @see Parser::compile()
+     * @var string
+     */
+    protected $_regex = null;
+
+    /**
+     * The route's variables.
      *
      * @see Parser::compile()
      * @var array
      */
-    protected $_rules = null;
+    protected $_variables = null;
 
     /**
      * The route's handler to execute when a request match.
@@ -161,7 +169,7 @@ class Route
             'host'           => null,
             'methods'        => '*',
             'prefix'         => '',
-            'patterns'       => [],
+            'pattern'        => '',
             'name'           => '',
             'namespace'      => '',
             'handler'        => null,
@@ -194,9 +202,7 @@ class Route
         $this->_error = $config['error'];
         $this->_message = $config['message'];
 
-        foreach ((array) $config['patterns'] as $pattern) {
-            $this->append($pattern);
-        }
+        $this->pattern($config['pattern']);
     }
 
     /**
@@ -288,79 +294,76 @@ class Route
     }
 
     /**
-     * Returns route's patterns.
+     * Gets the route's pattern.
      *
-     * @return array The route's patterns.
+     * @return array The route's pattern.
      */
-    public function patterns()
+    public function pattern($pattern = null)
     {
-        return $this->_patterns;
-    }
-
-    /**
-     * Appends a pattern to the route.
-     *
-     * @param  string $pattern The pattern to append.
-     * @return self
-     */
-    public function append($pattern)
-    {
-        $this->_tokens = null;
-        $this->_rules = null;
-        $this->_patterns[] = $this->_prefix . ltrim($pattern, '/');
-        return $this;
-    }
-
-    /**
-     * Prepends a pattern to the route.
-     *
-     * @param  string $pattern The pattern to prepend.
-     * @return self
-     */
-    public function prepend($pattern)
-    {
-        $this->_tokens = null;
-        $this->_rules = null;
-        array_unshift($this->_patterns, $this->_prefix . ltrim($pattern, '/'));
-        return $this;
-    }
-
-    /**
-     * Returns the route's tokens structures.
-     *
-     * @return array A collection route's tokens structure.
-     */
-    public function tokens()
-    {
-        if ($this->_tokens === null) {
-            $parser = $this->_classes['parser'];
-            $this->_tokens = [];
-            $this->_rules = null;
-            foreach ($this->_patterns as $pattern) {
-                $this->_tokens[] = $parser::tokenize($pattern, '/');
-            }
+        if (!func_num_args()) {
+            return $this->_pattern;
         }
-        return $this->_tokens;
+        $this->_token = null;
+        $this->_regex = null;
+        $this->_variables = null;
+        $this->_pattern = $this->_prefix . ltrim($pattern, '/');
+        return $this;
     }
 
     /**
-     * Returns the compiled route.
+     * Returns the route's token structures.
      *
-     * @return array A collection of route regex and their associated variable names.
+     * @return array A collection route's token structure.
      */
-    public function rules()
+    public function token()
     {
-        if ($this->_rules !== null) {
-            return $this->_rules;
+        if ($this->_token === null) {
+            $parser = $this->_classes['parser'];
+            $this->_token = [];
+            $this->_regex = null;
+            $this->_variables = null;
+            $this->_token = $parser::tokenize($this->_pattern, '/');
+        }
+        return $this->_token;
+    }
+
+    /**
+     * Gets the route's regular expression pattern.
+     *
+     * @return string the route's regular expression pattern.
+     */
+    public function regex()
+    {
+        if ($this->_regex !== null) {
+            return $this->_regex;
         }
 
         $parser = $this->_classes['parser'];
 
-        foreach ($this->tokens() as $token) {
-            $this->_rules[] = $parser::compile($token);
-        }
+        $rule = $parser::compile($this->token());
+        $this->_regex = $rule[0];
+        $this->_variables = $rule[1];
 
-        return $this->_rules;
+        return $this->_regex;
+    }
+
+    /**
+     * Gets the route's variables.
+     *
+     * @return array The route's variables.
+     */
+    public function variables()
+    {
+        if ($this->_variables !== null) {
+            return $this->_variables;
+        }
+        $parser = $this->_classes['parser'];
+
+        $rule = $parser::compile($this->token());
+        $this->_regex = $rule[0];
+        $this->_variables = $rule[1];
+
+        return $this->_variables;
     }
 
     /**
@@ -401,17 +404,12 @@ class Route
             }
         }
 
-        $rules = $this->rules();
-
-        foreach ($rules as $rule) {
-            if (!preg_match('~^' . $rule[0] . '$~', $path, $matches)) {
-                continue;
-            }
-            $variables = $this->_buildVariables($rule[1], $matches);
-            $this->params = $hostVariables + $variables;
-            return true;
+        if (!preg_match('~^' . $this->regex() . '$~', $path, $matches)) {
+            return false;
         }
-        return false;
+        $variables = $this->_buildVariables($this->variables(), $matches);
+        $this->params = $hostVariables + $variables;
+        return true;
     }
 
     /**
@@ -543,21 +541,13 @@ class Route
 
         $params = $params + $this->params;
 
-        $tokens = $this->tokens();
-
         $link = '';
 
-        foreach ($tokens as $token) {
-            $missing = null;
-            $link = $this->_link($token, $params, false, $missing);
-            if (!$missing) {
-                break;
-            }
-        }
+        $missing = null;
+        $link = $this->_link($this->token(), $params, false, $missing);
 
         if (!empty($missing)) {
-            $patterns = join(',', $this->_patterns);
-            throw new RouterException("Missing parameters `'{$missing}'` for route: `'{$this->name}#/{$patterns}'`.");
+            throw new RouterException("Missing parameters `'{$missing}'` for route: `'{$this->name}#/{$this->_pattern}'`.");
         }
         $basePath = trim($options['basePath'], '/');
         if ($basePath) {

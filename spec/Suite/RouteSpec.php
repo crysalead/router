@@ -28,49 +28,6 @@ describe("Route", function() {
 
     });
 
-    describe("->append()", function() {
-
-        it("appends a new pattern to an existing route", function() {
-
-            $r = $this->router;
-            $route = $r->get('{foo}/{bar}/action', function($route) { return $route->params; });
-            $route->append('{foz}/{baz}[/{quz}]');
-
-            $response = new stdClass();
-
-            $route = $r->route('foo/bar/action');
-            $actual = $route->dispatch($response);
-
-            expect($actual)->toBe(['foo' => 'foo', 'bar' => 'bar']);
-
-            $route = $r->route('foo/bar/baz');
-            $actual = $route->dispatch($response);
-
-            expect($actual)->toBe(['foz' => 'foo', 'baz' => 'bar', 'quz' => 'baz']);
-
-        });
-
-    });
-
-    describe("->prepend()", function() {
-
-        it("prepends a new pattern to an existing route", function() {
-
-            $r = $this->router;
-            $route = $r->get('{foo}/{bar}/action', function($route) { return $route->params; });
-            $route->prepend('{foz}/{baz}[/{quz}]');
-
-            $response = new stdClass();
-
-            $route = $r->route('foo/bar/action');
-            $actual = $route->dispatch($response);
-
-            expect($actual)->toBe(['foz' => 'foo', 'baz' => 'bar', 'quz' => 'action']);
-
-        });
-
-    });
-
     describe("->apply()", function() {
 
         it("applies middlewares", function() {
