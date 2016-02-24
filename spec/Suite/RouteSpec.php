@@ -24,6 +24,34 @@ describe("Route", function() {
 
         });
 
+        it("updates the regex", function() {
+
+            $route = new Route();
+            expect($route->pattern('foo/bar/{id}[/{paths}]*'))->toBe($route);
+            expect($route->regex())->toBe('foo/bar/([^/]+)((?:/[^/]+)*)');
+
+            expect($route->pattern('foo/baz/{id}[/{paths}]*'))->toBe($route);
+            expect($route->regex())->toBe('foo/baz/([^/]+)((?:/[^/]+)*)');
+
+        });
+
+        it("updates the variables", function() {
+
+            $route = new Route();
+            expect($route->pattern('foo/bar/{id}[/{paths}]*'))->toBe($route);
+            expect($route->variables())->toBe([
+                'id'    => false,
+                'paths' => '/{paths}'
+            ]);
+
+            expect($route->pattern('foo/bar/{baz}[/{paths}]'))->toBe($route);
+            expect($route->variables())->toBe([
+                'baz'   => false,
+                'paths' => false
+            ]);
+
+        });
+
     });
 
     describe("->scope()", function() {

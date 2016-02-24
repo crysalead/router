@@ -109,6 +109,24 @@ describe("Router", function() {
 
         });
 
+        it("creates absolute links with no related host", function() {
+
+            $r = $this->router;
+            $r->basePath('app');
+
+            $r->bind('foo/{bar}', ['name' => 'foo'], function () {});
+
+            $link = $r->link('foo', [
+                'bar' => 'baz'
+            ], [
+                'host'     => 'www.example.com',
+                'scheme'   => 'https',
+                'absolute' => true
+            ]);
+            expect($link)->toBe('https://www.example.com/app/foo/baz');
+
+        });
+
         it("support nested routes", function() {
 
             $r = $this->router;
