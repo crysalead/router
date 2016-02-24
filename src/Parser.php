@@ -95,7 +95,7 @@ EOD;
      * @param string $delimiter The path delimiter.
      * @param array             An array of tokens structure.
      */
-    protected static function _tokenizePattern($pattern, $delimiter)
+    protected static function _tokenizePattern($pattern, $delimiter, &$variable = null)
     {
         $tokens = [];
         $index = 0;
@@ -104,7 +104,7 @@ EOD;
 
         foreach ($parts as $part) {
             if (is_string($part)) {
-                $tokens = array_merge($tokens, static::_tokenizeSegment($part, $delimiter));
+                $tokens = array_merge($tokens, static::_tokenizeSegment($part, $delimiter, $variable));
                 continue;
             }
 
@@ -112,12 +112,14 @@ EOD;
             $repeat = $greedy === '+' || $greedy === '*';
             $optional = $greedy === '?' || $greedy === '*';
 
+            $children = static::_tokenizePattern($part[0], $delimiter, $variable);
+
             $tokens[] = [
                 'optional' => $optional,
                 'greedy'   => $greedy ?: '?',
-                'repeat'   => $repeat,
+                'repeat'   => $repeat ? $variable : false,
                 'pattern'  => $part[0],
-                'tokens'   => static::_tokenizePattern($part[0], $delimiter)
+                'tokens'   => $children
             ];
 
         }
@@ -132,7 +134,7 @@ EOD;
      * @param string $delimiter The path delimiter.
      * @param array             An array of tokens structure.
      */
-    protected static function _tokenizeSegment($pattern, $delimiter)
+    protected static function _tokenizeSegment($pattern, $delimiter, &$variable = null)
     {
         $tokens = [];
         $index = 0;
@@ -150,11 +152,11 @@ EOD;
                     $path = '';
                 }
 
-                $name = $match[1][0];
+                $variable = $match[1][0];
                 $capture = $match[2][0] ?: '[^' . $delimiter . ']+';
 
                 $tokens[] = [
-                    'name'      => $name,
+                    'name'      => $variable,
                     'pattern'   => $capture
                 ];
             }

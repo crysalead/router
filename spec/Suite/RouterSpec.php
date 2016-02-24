@@ -66,6 +66,19 @@ describe("Router", function() {
 
         });
 
+        it("supports multiple optionnal parameters", function() {
+
+            $r = $this->router;
+            $r->bind('file[/{paths}]*', ['name' => 'file'], function () {});
+
+            $link = $r->link('file');
+            expect($link)->toBe('/file');
+
+            $link = $r->link('file', ['paths' => ['some', 'file', 'path']]);
+            expect($link)->toBe('/file/some/file/path');
+
+        });
+
         it("merges default params", function() {
 
             $r = $this->router;
@@ -84,12 +97,15 @@ describe("Router", function() {
             $r = $this->router;
             $r->basePath('app');
 
-            $r->group(['host' => 'www.example.com'], function($r) {
+            $r->group(['host' => 'www.{domain}.com', 'scheme' => 'https'], function($r) {
                 $r->bind('foo/{bar}', ['name' => 'foo'], function () {});
             });
 
-            $link = $r->link('foo', ['bar' => 'baz'], ['absolute' => true]);
-            expect($link)->toBe('http://www.example.com/app/foo/baz');
+            $link = $r->link('foo', [
+                'bar'    => 'baz',
+                'domain' => 'example'
+            ], ['absolute' => true]);
+            expect($link)->toBe('https://www.example.com/app/foo/baz');
 
         });
 
@@ -339,11 +355,11 @@ describe("Router", function() {
             $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function() {});
 
             $route = $r->route('foo/25', 'GET', 'foo.biz.bar');
-            expect($route->host()->host)->toBe('foo.{domain}.bar');
+            expect($route->host()->pattern())->toBe('foo.{domain}.bar');
             expect($route->params)->toBe(['domain' => 'biz', 'var1' => '25']);
 
             $route = $r->route('foo/50', 'GET', 'foo.buz.baz');
-            expect($route->host()->host)->toBe('foo.{domain}.baz');
+            expect($route->host()->pattern())->toBe('foo.{domain}.baz');
             expect($route->params)->toBe(['domain' => 'buz', 'var1' => '50']);
 
         });
@@ -369,11 +385,11 @@ describe("Router", function() {
             $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function() {});
 
             $route = $r->route('http://foo.biz.bar/foo/25', 'GET');
-            expect($route->host()->host)->toBe('foo.{domain}.bar');
+            expect($route->host()->pattern())->toBe('foo.{domain}.bar');
             expect($route->params)->toBe(['domain' => 'biz', 'var1' => '25']);
 
             $route = $r->route('http://foo.buz.baz/foo/50', 'GET');
-            expect($route->host()->host)->toBe('foo.{domain}.baz');
+            expect($route->host()->pattern())->toBe('foo.{domain}.baz');
             expect($route->params)->toBe(['domain' => 'buz', 'var1' => '50']);
 
         });

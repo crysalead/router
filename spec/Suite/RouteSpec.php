@@ -9,9 +9,20 @@ use Lead\Net\Http\Cgi\Request;
 
 describe("Route", function() {
 
-    beforeEach(function() {
+    describe("->pattern()", function() {
 
-        $this->router = new Router();
+        it("gets/sets the pattern", function() {
+
+            $route = new Route();
+            expect($route->pattern('foo/bar/{id}[/{paths}]*'))->toBe($route);
+            expect($route->pattern())->toBe('foo/bar/{id}[/{paths}]*');
+            expect($route->regex())->toBe('foo/bar/([^/]+)((?:/[^/]+)*)');
+            expect($route->variables())->toBe([
+                'id'    => false,
+                'paths' => '/{paths}'
+            ]);
+
+        });
 
     });
 
@@ -32,7 +43,7 @@ describe("Route", function() {
 
         it("applies middlewares", function() {
 
-            $r = $this->router;
+            $r = new Router();
             $route = $r->bind('/foo/bar', function($route) {
                 return 'A';
             })->apply(function($request, $response, $next) {
@@ -54,7 +65,7 @@ describe("Route", function() {
 
         it("passes route as argument of the handler function", function() {
 
-            $r = $this->router;
+            $r = new Router();
             $r->get('foo/{var1}[/{var2}]',
                 ['host' => '{subdomain}.{domain}.bar'],
                 function($route, $response) {
@@ -77,7 +88,7 @@ describe("Route", function() {
         it("throws an exception on non valid routes", function() {
 
             $closure = function() {
-                $r = $this->router;
+                $r = new Router();
                 $r->get('foo', function() {});
                 $route = $r->route('bar');
                 $route->dispatch();

@@ -194,7 +194,7 @@ class Route
 
         $this->_prefix = $config['prefix'];
 
-        $this->host($config['host']);
+        $this->host($config['host'], $config['scheme']);
         $this->methods($config['methods']);
 
         $this->_scope = $config['scope'];
@@ -220,11 +220,9 @@ class Route
             $this->_host = $host;
             return $this;
         }
-        if ($host !== '*') {
+        if ($host !== '*' || $scheme !== '*') {
             $class = $this->_classes['host'];
-            $this->_host = new $class(['scheme' => $scheme, 'host' => $host]);
-        } else {
-            $this->_host = null;
+            $this->_host = new $class(['scheme' => $scheme, 'pattern' => $host]);
         }
         return $this;
     }
@@ -337,33 +335,33 @@ class Route
         if ($this->_regex !== null) {
             return $this->_regex;
         }
-
-        $parser = $this->_classes['parser'];
-
-        $rule = $parser::compile($this->token());
-        $this->_regex = $rule[0];
-        $this->_variables = $rule[1];
-
+        $this->_compile();
         return $this->_regex;
     }
 
     /**
-     * Gets the route's variables.
+     * Gets the route's variables and their associated pattern in case of array variables.
      *
-     * @return array The route's variables.
+     * @return array The route's variables and their associated pattern.
      */
     public function variables()
     {
         if ($this->_variables !== null) {
             return $this->_variables;
         }
-        $parser = $this->_classes['parser'];
+        $this->_compile();
+        return $this->_variables;
+    }
 
+    /**
+     * Compiles the route's patten.
+     */
+    protected function _compile()
+    {
+        $parser = $this->_classes['parser'];
         $rule = $parser::compile($this->token());
         $this->_regex = $rule[0];
         $this->_variables = $rule[1];
-
-        return $this->_variables;
     }
 
     /**
@@ -529,22 +527,14 @@ class Route
             'query'    => '',
             'fragment' => ''
         ];
-        if ($host = $this->host()) {
-            $options += [
-                'scheme' => $host->scheme,
-                'host'   => $host->host
-            ];
-        }
 
         $options = array_filter($options, function($value) { return $value !== '*'; });
         $options += $defaults;
 
         $params = $params + $this->params;
 
-        $link = '';
-
         $missing = null;
-        $link = $this->_link($this->token(), $params, false, $missing);
+        $link = $this->_link($this->token(), $params, $missing);
 
         if (!empty($missing)) {
             throw new RouterException("Missing parameters `'{$missing}'` for route: `'{$this->name}#/{$this->_pattern}'`.");
@@ -559,8 +549,12 @@ class Route
         $fragment = $options['fragment'] ? '#' . $options['fragment'] : '';
 
         if ($options['absolute']) {
-            $scheme = $options['scheme'] ? $options['scheme'] . '://' : '//';
-            $link = "{$scheme}{$options['host']}{$link}";
+            if ($host = $this->host()) {
+                $link = $host->link($params) . "{$link}";
+            } else {
+                $scheme = $options['scheme'] ? $options['scheme'] . '://' : '//';
+                $link = "{$scheme}{$options['host']}{$link}";
+            }
         }
 
         return $link . $query . $fragment;
@@ -575,7 +569,7 @@ class Route
      * @param  array  $missing  Will be populated with the missing parameter name when applicable.
      * @return string           The URL path representation of the token structure array.
      */
-    public function _link($token, $params, $optional = false, &$missing)
+    protected function _link($token, $params, &$missing)
     {
         $link = '';
         foreach ($token['tokens'] as $child) {
@@ -584,11 +578,19 @@ class Route
                 continue;
             }
             if (isset($child['tokens'])) {
-                $link .= $this->_link($child, $params, $child['optional'], $missing);
+                if ($child['repeat']) {
+                    $name = $child['repeat'];
+                    $values = isset($params[$name]) && $params[$name] !== null ? (array) $params[$name] : [];
+                    foreach ($values as $value) {
+                        $link .= $this->_link($child, [$name => $value] + $params, $missing);
+                    }
+                } else {
+                    $link .= $this->_link($child, $params, $missing);
+                }
                 continue;
             }
             if (!array_key_exists($child['name'], $params)) {
-                if (!$optional) {
+                if (!$token['optional']) {
                     $missing = $child['name'];
                 }
                 return '';

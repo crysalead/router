@@ -18,22 +18,38 @@ class Host
      *
      * @var string
      */
-    public $scheme = '*';
+    protected $_scheme = '*';
 
     /**
      * The matching host.
      *
      * @var string
      */
-    public $host = '*';
+    protected $_pattern = '*';
 
     /**
-     * Rules extracted from host's tokens structures.
+     * The tokens structure extracted from host's pattern.
+     *
+     * @see Parser::tokenize()
+     * @var array
+     */
+    protected $_token = null;
+
+    /**
+     * The host's regular expression pattern.
+     *
+     * @see Parser::compile()
+     * @var string
+     */
+    protected $_regex = null;
+
+    /**
+     * The host's variables.
      *
      * @see Parser::compile()
      * @var array
      */
-    protected $_rule = null;
+    protected $_variables = null;
 
     /**
      * Constructs a route
@@ -44,7 +60,7 @@ class Host
     {
         $defaults = [
             'scheme'     => '*',
-            'host'       => '*',
+            'pattern'     => '*',
             'classes'    => [
                 'parser' => 'Lead\Router\Parser'
             ]
@@ -53,29 +69,100 @@ class Host
 
         $this->_classes = $config['classes'];
 
-        $this->scheme = $config['scheme'];
-        $this->host = $config['host'];
+        $this->scheme($config['scheme']);
+        $this->pattern($config['pattern']);
     }
 
     /**
-     * Returns the compiled route.
+     * Get/sets the host's scheme.
      *
-     * @return array A collection of route regex and their associated variable names.
+     * @param  string      $scheme The scheme on set or none to get the setted one.
+     * @return string|self         The scheme on get or `$this` on set.
      */
-    public function rule()
+    public function scheme($scheme = null)
     {
-        if ($this->_rule !== null) {
-            return $this->_rule;
+        if (!func_num_args()) {
+            return $this->_scheme;
         }
+        $this->_scheme = $scheme;
+        return $this;
+    }
 
-        if ($this->host !== '*') {
-            $parser = $this->_classes['parser'];
-            $token = $parser::tokenize($this->host, '.');
-            $this->_rule = $parser::compile($token);
-        } else {
-            $this->_rule = [];
+    /**
+     * Get/sets the host's pattern.
+     *
+     * @param  string      $pattern The pattern on set or none to get the setted one.
+     * @return string|self          The pattern on get or `$this` on set.
+     */
+    public function pattern($pattern = null)
+    {
+        if (!func_num_args()) {
+            return $this->_pattern;
         }
-        return $this->_rule;
+        $this->_token = null;
+        $this->_regex = null;
+        $this->_variables = null;
+        $this->_pattern = $pattern;
+        return $this;
+    }
+
+    /**
+     * Returns the route's token structures.
+     *
+     * @return array A collection route's token structure.
+     */
+    public function token()
+    {
+        if ($this->_token === null) {
+            $parser = $this->_classes['parser'];
+            $this->_token = [];
+            $this->_regex = null;
+            $this->_variables = null;
+            $this->_token = $parser::tokenize($this->_pattern, '.');
+        }
+        return $this->_token;
+    }
+
+    /**
+     * Gets the route's regular expression pattern.
+     *
+     * @return string the route's regular expression pattern.
+     */
+    public function regex()
+    {
+        if ($this->_regex !== null) {
+            return $this->_regex;
+        }
+        $this->_compile();
+        return $this->_regex;
+    }
+
+    /**
+     * Gets the route's variables and their associated pattern in case of array variables.
+     *
+     * @return array The route's variables and their associated pattern.
+     */
+    public function variables()
+    {
+        if ($this->_variables !== null) {
+            return $this->_variables;
+        }
+        $this->_compile();
+        return $this->_variables;
+    }
+
+    /**
+     * Compiles the host's patten.
+     */
+    protected function _compile()
+    {
+        if ($this->pattern() === '*') {
+            return;
+        }
+        $parser = $this->_classes['parser'];
+        $rule = $parser::compile($this->token());
+        $this->_regex = $rule[0];
+        $this->_variables = $rule[1];
     }
 
     /**
@@ -97,21 +184,97 @@ class Host
 
         $hostVariables = [];
 
-        if ($this->host === '*' || $host === '*') {
-            return true;
+        $anyHost = $this->pattern() === '*' || $host === '*';
+        $anyScheme = $this->scheme() === '*' || $scheme === '*';
+
+
+        if ($anyHost) {
+            if ($this->variables()) {
+                $hostVariables = array_fill_keys(array_keys($this->variables()), null);
+            }
+            return $anyScheme || $this->scheme() === $scheme;
         }
-        if (!$rule = $this->rule()) {
-            return true;
+
+        if (!$anyScheme && $this->scheme() !== $scheme) {
+            return false;
         }
-        if (!preg_match('~^' . $rule[0] . '$~', $host, $matches)) {
+
+        if (!preg_match('~^' . $this->regex() . '$~', $host, $matches)) {
             $hostVariables = null;
             return false;
         }
         $i = 0;
 
-        foreach ($rule[1] as $name => $pattern) {
+        foreach ($this->variables() as $name => $pattern) {
             $hostVariables[$name] = $matches[++$i];
         }
         return true;
+    }
+
+    /**
+     * Returns the host's link.
+     *
+     * @param  array  $params  The host parameters.
+     * @param  array  $options Options for generating the proper prefix. Accepted values are:
+     *                         - `'scheme'`   _string_ : The scheme.
+     *                         - `'host'`     _string_ : The host name.
+     * @return string          The link.
+     */
+    public function link($params = [], $options = [])
+    {
+        $defaults = [
+            'scheme'   => $this->scheme(),
+            'host'     => 'localhost'
+        ];
+        $options += $defaults;
+
+        $missing = null;
+        $link = $this->_link($this->token(), $params, $missing);
+
+        if (!empty($missing)) {
+            throw new RouterException("Missing parameters `'{$missing}'` for host: `'{$this->_pattern}'`.");
+        }
+        $scheme = $options['scheme'] !== '*' ? $options['scheme'] . '://' : '//';
+        return $scheme . $link;
+    }
+
+    /**
+     * Helper for `Host::link()`.
+     *
+     * @param  array  $token    The token structure array.
+     * @param  array  $params   The route parameters.
+     * @param  array  $optional Indicates if the parameters are optionnal or not.
+     * @param  array  $missing  Will be populated with the missing parameter name when applicable.
+     * @return string           The URL path representation of the token structure array.
+     */
+    protected function _link($token, $params, &$missing)
+    {
+        $link = '';
+        foreach ($token['tokens'] as $child) {
+            if (is_string($child)) {
+                $link .= $child;
+                continue;
+            }
+            if (isset($child['tokens'])) {
+                if ($child['repeat']) {
+                    $name = $child['repeat'];
+                    $values = isset($params[$name]) && $params[$name] !== null ? (array) $params[$name] : [];
+                    foreach ($values as $value) {
+                        $link .= $this->_link($child, [$name => $value] + $params, $missing);
+                    }
+                } else {
+                    $link .= $this->_link($child, $params, $missing);
+                }
+                continue;
+            }
+            if (!array_key_exists($child['name'], $params)) {
+                if (!$token['optional']) {
+                    $missing = $child['name'];
+                }
+                return '';
+            }
+            $link .= $params[$child['name']];
+        }
+        return $link;
     }
 }
