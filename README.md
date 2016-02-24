@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/crysalead/router.svg?branch=master)](https://travis-ci.org/crysalead/router)
 [![Code Coverage](https://scrutinizer-ci.com/g/crysalead/router/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/crysalead/router/)
 
-This library extends the [FastRoute](https://github.com/nikic/FastRoute) implementation with some additional features:
+[Complete benchmark results can be found here.](https://github.com/jails/php-router-benchmark)
 
  * Compatible with PSR-7
  * Named routes
@@ -45,11 +45,11 @@ Examples:
 - `'/user/{id:[0-9a-fA-F]{1,8}}'` - Only matches if the id parameter consists of 1 to 8 hex digits.
 - `'/files/{path:.*}'`            - Matches any URL starting with '/files/' and captures the rest of the path into the parameter 'path'.
 
-Note: the difference between `/{controller}[/{action}[/{args}]*]` and `/{controller}[/{action}[/{args:.*}]]` for example is `args` will be an array on arguments using `[/{args}]*` and a "slashed" string off all arguments using `[/{args:.*}]`.
+Note: the difference between `/{controller}[/{action}[/{args}]*]` and `/{controller}[/{action}[/{args:.*}]]` for example is `args` will be an array using `[/{args}]*` while a unique "slashed" string using `[/{args:.*}]`.
 
 ### The Router
 
-The `Router` manages object creation, dependencies, and wiring. All you need is to instantiate it first.
+The `Router` instance can be nstantiate so:
 
 ```php
 use Lead\Router\Router;
@@ -57,7 +57,7 @@ use Lead\Router\Router;
 $router = new Router();
 ```
 
-Optionally, if your project lives in a sub-folder of your web root you'll need to set a base path using `basePath()` .
+Optionally, if your project lives in a sub-folder of your web root you'll need to set a base path using `basePath()`. This base path will be ignored so your routes won't need to be prefixed with it to matches the request path.
 
 ```php
 $router->basePath('/my/sub/dir');
@@ -131,18 +131,17 @@ $route->dispatched;   // To store the dispated instance if applicable.
 
 ```php
 $route->host();       // The route's host instance
-$route->append();     // To append a new pattern to this route
-$route->prepend();    // To prepend a new pattern to this route
-$route->patterns();   // The patterns
-$route->tokens();     // The collection of route's tokens structure
-$route->rules();      // The collection of route's rules
+$route->pattern();    // The pattern
+$route->regex();      // The regex
+$route->variables();  // The variables
+$route->token();      // The route's pattern token structure
 $route->scope();      // The route's scope
 $route->error();      // The route's error number
 $route->message();    // The route's error message
 $route->link();       // The route's link
 $route->apply();      // To add a new middleware
 $route->middleware(); // The route's middleware generator
-$route->handlers();   // The route's handler
+$route->handler();    // The route's handler
 $route->dispatch();   // To dispatch the route (i.e execute the route's handler)
 ```
 
