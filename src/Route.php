@@ -533,12 +533,8 @@ class Route
 
         $params = $params + $this->params;
 
-        $missing = null;
-        $link = $this->_link($this->token(), $params, $missing);
+        $link = $this->_link($this->token(), $params);
 
-        if (!empty($missing)) {
-            throw new RouterException("Missing parameters `'{$missing}'` for route: `'{$this->name}#/{$this->_pattern}'`.");
-        }
         $basePath = trim($options['basePath'], '/');
         if ($basePath) {
             $basePath = '/' . $basePath;
@@ -565,11 +561,9 @@ class Route
      *
      * @param  array  $token    The token structure array.
      * @param  array  $params   The route parameters.
-     * @param  array  $optional Indicates if the parameters are optionnal or not.
-     * @param  array  $missing  Will be populated with the missing parameter name when applicable.
      * @return string           The URL path representation of the token structure array.
      */
-    protected function _link($token, $params, &$missing)
+    protected function _link($token, $params)
     {
         $link = '';
         foreach ($token['tokens'] as $child) {
@@ -582,16 +576,16 @@ class Route
                     $name = $child['repeat'];
                     $values = isset($params[$name]) && $params[$name] !== null ? (array) $params[$name] : [];
                     foreach ($values as $value) {
-                        $link .= $this->_link($child, [$name => $value] + $params, $missing);
+                        $link .= $this->_link($child, [$name => $value] + $params);
                     }
                 } else {
-                    $link .= $this->_link($child, $params, $missing);
+                    $link .= $this->_link($child, $params);
                 }
                 continue;
             }
             if (!array_key_exists($child['name'], $params)) {
                 if (!$token['optional']) {
-                    $missing = $child['name'];
+                    throw new RouterException("Missing parameters `'{$child['name']}'` for route: `'{$this->name}#/{$this->_pattern}'`.");
                 }
                 return '';
             }
