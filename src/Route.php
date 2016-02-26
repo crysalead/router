@@ -405,7 +405,7 @@ class Route
         if (!preg_match('~^' . $this->regex() . '$~', $path, $matches)) {
             return false;
         }
-        $variables = $this->_buildVariables($this->variables(), $matches);
+        $variables = $this->_buildVariables($matches);
         $this->params = $hostVariables + $variables;
         return true;
     }
@@ -417,13 +417,13 @@ class Route
      * @param  array $values   The matched values.
      * @return array           The route's variables.
      */
-    protected function _buildVariables($varNames, $values)
+    protected function _buildVariables($values)
     {
         $variables = [];
         $parser = $this->_classes['parser'];
 
         $i = 1;
-        foreach ($varNames as $name => $pattern) {
+        foreach ($this->variables() as $name => $pattern) {
             if (!isset($values[$i])) {
                 $variables[$name] = !$pattern ? null : [];
                 continue;
