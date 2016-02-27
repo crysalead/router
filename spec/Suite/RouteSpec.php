@@ -72,7 +72,7 @@ describe("Route", function() {
         it("applies middlewares", function() {
 
             $r = new Router();
-            $route = $r->bind('/foo/bar', function($route) {
+            $route = $r->bind('foo/bar', function($route) {
                 return 'A';
             })->apply(function($request, $response, $next) {
                 return '1' . $next() . '1';
@@ -84,6 +84,167 @@ describe("Route", function() {
             $actual = $route->dispatch();
 
             expect($actual)->toBe('21A12');
+
+        });
+
+    });
+
+    describe(".link()", function() {
+
+        it("creates relative links", function() {
+
+            $route = new Route(['pattern' => 'foo/{bar}']);
+
+            $link = $route->link(['bar' => 'baz']);
+            expect($link)->toBe('/foo/baz');
+
+        });
+
+        it("supports optionnal parameters", function() {
+
+            $route = new Route(['pattern' => 'foo[/{bar}]']);
+
+            $link = $route->link();
+            expect($link)->toBe('/foo');
+
+            $link = $route->link(['bar' => 'baz']);
+            expect($link)->toBe('/foo/baz');
+
+        });
+
+        it("supports multiple optionnal parameters", function() {
+
+            $route = new Route(['pattern' => 'file[/{paths}]*']);
+
+            $link = $route->link();
+            expect($link)->toBe('/file');
+
+            $link = $route->link(['paths' => ['some', 'file', 'path']]);
+            expect($link)->toBe('/file/some/file/path');
+
+        });
+
+        it("merges default params", function() {
+
+            $route = new Route(['pattern' => 'foo/{bar}', 'params' => ['bar' => 'baz']]);
+
+            $link = $route->link();
+            expect($link)->toBe('/foo/baz');
+
+        });
+
+        it("creates absolute links with custom base path", function() {
+
+            $route = new Route([
+                'pattern' => 'foo/{bar}',
+                'host' => 'www.{domain}.com',
+                'scheme' => 'https'
+            ]);
+
+            $link = $route->link([
+                'bar'    => 'baz',
+                'domain' => 'example'
+            ], [
+                'basePath' => 'app',
+                'absolute' => true
+            ]);
+            expect($link)->toBe('https://www.example.com/app/foo/baz');
+
+        });
+
+        it("allows host and scheme overriding", function() {
+
+            $route = new Route([
+                'pattern' => 'foo/{bar}',
+                'host' => 'www.{domain}.com',
+                'scheme' => 'https'
+            ]);
+
+            $link =$route->link([
+                'bar'    => 'baz',
+                'domain' => 'example'
+            ], [
+                'scheme'   => 'http',
+                'host'     => 'www.overrided.com',
+                'basePath' => 'app',
+                'absolute' => true
+            ]);
+            expect($link)->toBe('http://www.overrided.com/app/foo/baz');
+
+        });
+
+        it("supports repeatable parameter placeholders as an array", function() {
+
+            $route = new Route(['pattern' => 'post[/{id}]*']);
+            expect($route->link(['id' => '123']))->toBe('/post/123');
+            expect($route->link(['id' => ['123']]))->toBe('/post/123');
+            expect($route->link(['id' => ['123', '456', '789']]))->toBe('/post/123/456/789');
+            expect($route->link([]))->toBe('/post');
+
+            $route = new Route(['pattern' => '/post[/{id}]+']);
+            expect($route->link(['id' => ['123']]))->toBe('/post/123');
+            expect($route->link(['id' => ['123', '456', '789']]))->toBe('/post/123/456/789');
+
+        });
+
+        it("supports route with multiple optional segments", function() {
+
+            $route = new Route(['pattern' => '[{relation}/{rid:[^/:][^/]*}/]post[/{id:[^/:][^/]*}][/:{action}]']);
+
+            $link = $route->link();
+            expect($link)->toBe('/post');
+
+            $link = $route->link(['action' => 'add']);
+            expect($link)->toBe('/post/:add');
+
+            $link = $route->link(['action' => 'edit', 'id' => 12]);
+            expect($link)->toBe('/post/12/:edit');
+
+            $link = $route->link(['relation' => 'user', 'rid' => 5]);
+            expect($link)->toBe('/user/5/post');
+
+            $link = $route->link(['relation' => 'user', 'rid' => 5, 'action' => 'edit', 'id' => 12]);
+            expect($link)->toBe('/user/5/post/12/:edit');
+
+        });
+
+        it("throws an exception for missing variables", function() {
+
+            $closure = function() {
+                $route = new Route(['pattern' => 'post[/{id}]+']);
+                echo $route->link([]);
+            };
+            expect($closure)->toThrow(new RouterException("Missing parameters `'id'` for route: `'#/post[/{id}]+'`."));
+
+        });
+
+        it("throws an exception when a variable doesn't match its capture pattern", function() {
+
+            $closure = function() {
+                $route = new Route(['pattern' => 'post/{id:[0-9]{3}}']);
+                $route->link(['id' => '1234']);
+            };
+            expect($closure)->toThrow(new RouterException("Expected `'id'` to match `'[0-9]{3}'`, but received `'1234'`."));
+
+        });
+
+        it("throws an exception when a an array is provided for a non repeatable parameter placeholder", function() {
+
+            $closure = function() {
+                $route = new Route(['pattern' => 'post/{id}']);
+                $route->link(['id' => ['123', '456']]);
+            };
+            expect($closure)->toThrow(new RouterException("Expected `'id'` to not repeat, but received `[123,456]`."));
+
+        });
+
+        it("throws an exception when one element of an array doesn't match the capture pattern", function() {
+
+            $closure = function() {
+                $route = new Route(['pattern' => 'post[/{id:[0-9]{3}}]+']);
+                $route->link(['id' => ['123', '456', '78']]);
+            };
+            expect($closure)->toThrow(new RouterException("Expected `'id'` to match `'[0-9]{3}'`, but received `'78'`."));
 
         });
 

@@ -43,56 +43,7 @@ describe("Router", function() {
 
     describe("->link()", function() {
 
-        it("creates relative links", function() {
-
-            $r = $this->router;
-            $r->bind('foo/{bar}', ['name' => 'foo'], function () {});
-
-            $link = $r->link('foo', ['bar' => 'baz']);
-            expect($link)->toBe('/foo/baz');
-
-        });
-
-        it("supports optionnal parameters", function() {
-
-            $r = $this->router;
-            $r->bind('foo[/{bar}]', ['name' => 'foo'], function () {});
-
-            $link = $r->link('foo');
-            expect($link)->toBe('/foo');
-
-            $link = $r->link('foo', ['bar' => 'baz']);
-            expect($link)->toBe('/foo/baz');
-
-        });
-
-        it("supports multiple optionnal parameters", function() {
-
-            $r = $this->router;
-            $r->bind('file[/{paths}]*', ['name' => 'file'], function () {});
-
-            $link = $r->link('file');
-            expect($link)->toBe('/file');
-
-            $link = $r->link('file', ['paths' => ['some', 'file', 'path']]);
-            expect($link)->toBe('/file/some/file/path');
-
-        });
-
-        it("merges default params", function() {
-
-            $r = $this->router;
-            $r->bind('foo/{bar}', [
-                'name'   => 'foo',
-                'params' => ['bar' => 'baz']
-            ], function () {});
-
-            $link = $r->link('foo');
-            expect($link)->toBe('/foo/baz');
-
-        });
-
-        it("creates absolute links", function() {
+        it("forwards router base path", function() {
 
             $r = $this->router;
             $r->basePath('app');
@@ -109,25 +60,7 @@ describe("Router", function() {
 
         });
 
-        it("creates absolute links with no related host", function() {
-
-            $r = $this->router;
-            $r->basePath('app');
-
-            $r->bind('foo/{bar}', ['name' => 'foo'], function () {});
-
-            $link = $r->link('foo', [
-                'bar' => 'baz'
-            ], [
-                'host'     => 'www.example.com',
-                'scheme'   => 'https',
-                'absolute' => true
-            ]);
-            expect($link)->toBe('https://www.example.com/app/foo/baz');
-
-        });
-
-        it("support nested routes", function() {
+        it("maintains prefixes in nested routes", function() {
 
             $r = $this->router;
             $r->group('foo', ['name' => 'foz'], function($r) {
@@ -184,44 +117,6 @@ describe("Router", function() {
             expect($link)->toBe('/en/post/view/5');
 
         });
-
-        it("supports route with multiple optional segments", function() {
-
-            $r = $this->router;
-
-            $pattern = '[{relation}/{rid:[^/:][^/]*}/]post[/{id:[^/:][^/]*}][/:{action}]';
-
-            $route = $r->bind($pattern, ['name' => 'post'], function () {});
-
-            $link = $r->link('post');
-            expect($link)->toBe('/post');
-
-            $link = $r->link('post', ['action' => 'add']);
-            expect($link)->toBe('/post/:add');
-
-            $link = $r->link('post', ['action' => 'edit', 'id' => 12]);
-            expect($link)->toBe('/post/12/:edit');
-
-            $link = $r->link('post', ['relation' => 'user', 'rid' => 5]);
-            expect($link)->toBe('/user/5/post');
-
-            $link = $r->link('post', ['relation' => 'user', 'rid' => 5, 'action' => 'edit', 'id' => 12]);
-            expect($link)->toBe('/user/5/post/12/:edit');
-
-        });
-
-        it("throws an exception when some required parameters are missing", function() {
-
-            $closure = function() {
-                $r = $this->router;
-                $r->bind('foo/{bar}', ['name' => 'foo'], function () {});
-                $r->link('foo');
-            };
-
-            expect($closure)->toThrow(new RouterException("Missing parameters `'bar'` for route: `'foo#/foo/{bar}'`."));
-
-        });
-
     });
 
     describe("->route()", function() {

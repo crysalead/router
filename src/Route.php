@@ -521,8 +521,6 @@ class Route
     {
         $defaults = [
             'absolute' => false,
-            'scheme'   => 'http',
-            'host'     => 'localhost',
             'basePath' => '',
             'query'    => '',
             'fragment' => ''
@@ -546,10 +544,11 @@ class Route
 
         if ($options['absolute']) {
             if ($host = $this->host()) {
-                $link = $host->link($params) . "{$link}";
+                $link = $host->link($params, $options) . "{$link}";
             } else {
-                $scheme = $options['scheme'] ? $options['scheme'] . '://' : '//';
-                $link = "{$scheme}{$options['host']}{$link}";
+                $scheme = !empty($options['scheme']) ? $options['scheme'] . '://' : '//';
+                $host = isset($options['host']) ? $options['host'] : 'localhost';
+                $link = "{$scheme}{$host}{$link}";
             }
         }
 
@@ -575,6 +574,9 @@ class Route
                 if ($child['repeat']) {
                     $name = $child['repeat'];
                     $values = isset($params[$name]) && $params[$name] !== null ? (array) $params[$name] : [];
+                    if (!$values && !$child['optional']) {
+                        throw new RouterException("Missing parameters `'{$name}'` for route: `'{$this->name}#/{$this->_pattern}'`.");
+                    }
                     foreach ($values as $value) {
                         $link .= $this->_link($child, [$name => $value] + $params);
                     }
@@ -583,11 +585,19 @@ class Route
                 }
                 continue;
             }
+
             if (!array_key_exists($child['name'], $params)) {
                 if (!$token['optional']) {
                     throw new RouterException("Missing parameters `'{$child['name']}'` for route: `'{$this->name}#/{$this->_pattern}'`.");
                 }
                 return '';
+            }
+            if (is_array($params[$child['name']])) {
+                throw new RouterException("Expected `'" . $child['name'] . "'` to not repeat, but received `[" . join(',', $params[$child['name']]) . "]`.");
+            }
+            $value = rawurlencode($params[$child['name']]);
+            if (!preg_match('~^' . $child['pattern'] . '$~', $value)) {
+                throw new RouterException("Expected `'" . $child['name'] . "'` to match `'" . $child['pattern'] . "'`, but received `'" . $value . "'`.");
             }
             $link .= $params[$child['name']];
         }

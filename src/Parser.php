@@ -212,7 +212,7 @@ EOD;
                 if ($opened === 0) {
                     $greedy = '?';
                     if ($i < $len -1) {
-                        if ($pattern[$i + 1] === '*' || $pattern[$i + 1] === '?') {
+                        if ($pattern[$i + 1] === '*' || $pattern[$i + 1] === '+') {
                             $greedy = $pattern[$i + 1];
                             $i++;
                         }

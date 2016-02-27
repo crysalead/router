@@ -223,19 +223,16 @@ class Host
     public function link($params = [], $options = [])
     {
         $defaults = [
-            'scheme'   => $this->scheme(),
-            'host'     => 'localhost'
+            'scheme'   => $this->scheme()
         ];
         $options += $defaults;
 
-        $missing = null;
-        $link = $this->_link($this->token(), $params, $missing);
-
-        if (!empty($missing)) {
-            throw new RouterException("Missing parameters `'{$missing}'` for host: `'{$this->_pattern}'`.");
+        if (!isset($options['host'])) {
+            $options['host'] = $this->_link($this->token(), $params);
         }
+
         $scheme = $options['scheme'] !== '*' ? $options['scheme'] . '://' : '//';
-        return $scheme . $link;
+        return $scheme . $options['host'];
     }
 
     /**
@@ -243,11 +240,9 @@ class Host
      *
      * @param  array  $token    The token structure array.
      * @param  array  $params   The route parameters.
-     * @param  array  $optional Indicates if the parameters are optionnal or not.
-     * @param  array  $missing  Will be populated with the missing parameter name when applicable.
      * @return string           The URL path representation of the token structure array.
      */
-    protected function _link($token, $params, &$missing)
+    protected function _link($token, $params)
     {
         $link = '';
         foreach ($token['tokens'] as $child) {
@@ -260,16 +255,16 @@ class Host
                     $name = $child['repeat'];
                     $values = isset($params[$name]) && $params[$name] !== null ? (array) $params[$name] : [];
                     foreach ($values as $value) {
-                        $link .= $this->_link($child, [$name => $value] + $params, $missing);
+                        $link .= $this->_link($child, [$name => $value] + $params);
                     }
                 } else {
-                    $link .= $this->_link($child, $params, $missing);
+                    $link .= $this->_link($child, $params);
                 }
                 continue;
             }
             if (!array_key_exists($child['name'], $params)) {
                 if (!$token['optional']) {
-                    $missing = $child['name'];
+                    throw new RouterException("Missing parameters `'{$child['name']}'` for host: `'{$this->_pattern}'`.");
                 }
                 return '';
             }
