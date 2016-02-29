@@ -80,8 +80,8 @@ class Router extends \Lead\Collection\Collection
         ];
         $config += $defaults;
         $this->_classes = $config['classes'];
-        $this->_basePath = $config['basePath'];
         $this->_strategies = $config['strategies'];
+        $this->basePath($config['basePath']);
 
         $scope = $this->_classes['scope'];
         $this->_scopes[] = new $scope(['router' => $this]);
@@ -130,7 +130,8 @@ class Router extends \Lead\Collection\Collection
         if (!func_num_args()) {
             return $this->_basePath;
         }
-        $this->_basePath = $basePath && $basePath !== '/' ? '/' . trim($basePath, '/') : '';
+        $basePath = trim($basePath, '/');
+        $this->_basePath = $basePath ? '/' . $basePath : '';
         return $this;
     }
 

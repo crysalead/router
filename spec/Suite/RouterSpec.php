@@ -17,6 +17,41 @@ describe("Router", function() {
 
     });
 
+    describe("->__construct()", function() {
+
+        it("formats the basePath", function() {
+
+            $router = new Router(['basePath' => '/']);
+            expect($router->basePath())->toBe('');
+
+        });
+
+    });
+
+    describe("->basePath()", function() {
+
+        it("sets an empty basePath", function() {
+
+            expect($this->router->basePath('/'))->toBe($this->router);
+            expect($this->router->basePath())->toBe('');
+
+            expect($this->router->basePath(''))->toBe($this->router);
+            expect($this->router->basePath())->toBe('');
+
+        });
+
+        it("adds an leading slash for non empty basePath", function() {
+
+            expect($this->router->basePath('app'))->toBe($this->router);
+            expect($this->router->basePath())->toBe('/app');
+
+            expect($this->router->basePath('/base'))->toBe($this->router);
+            expect($this->router->basePath())->toBe('/base');
+
+        });
+
+    });
+
     describe("->bind()", function() {
 
         it("binds a named route", function() {
