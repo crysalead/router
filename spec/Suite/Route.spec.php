@@ -89,7 +89,7 @@ describe("Route", function() {
 
     });
 
-    describe(".link()", function() {
+    describe("->link()", function() {
 
         it("creates relative links", function() {
 
@@ -208,6 +208,27 @@ describe("Route", function() {
 
         });
 
+        it("supports route with complex repeatable optional segments", function() {
+
+            $route = new Route(['pattern' => '[{relations:[^/]+/[^/:][^/]*}/]*post[/{id:[^/:][^/]*}][/:{action}]']);
+
+            $link = $route->link();
+            expect($link)->toBe('/post');
+
+            $link = $route->link(['action' => 'add']);
+            expect($link)->toBe('/post/:add');
+
+            $link = $route->link(['action' => 'edit', 'id' => 12]);
+            expect($link)->toBe('/post/12/:edit');
+
+            $link = $route->link(['relations' => [['user', 5]]]);
+            expect($link)->toBe('/user/5/post');
+
+            $link = $route->link(['relations' => [['user', 5]], 'action' => 'edit', 'id' => 12]);
+            expect($link)->toBe('/user/5/post/12/:edit');
+
+        });
+
         it("throws an exception for missing variables", function() {
 
             $closure = function() {
@@ -234,7 +255,7 @@ describe("Route", function() {
                 $route = new Route(['pattern' => 'post/{id}']);
                 $route->link(['id' => ['123', '456']]);
             };
-            expect($closure)->toThrow(new RouterException("Expected `'id'` to not repeat, but received `[123,456]`."));
+            expect($closure)->toThrow(new RouterException("Expected `'id'` to match `'[^/]+'`, but received `'123/456'`."));
 
         });
 

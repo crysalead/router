@@ -434,7 +434,13 @@ class Route
                 $token = $parser::tokenize($pattern, '/');
                 $rule = $parser::compile($token);
                 if (preg_match_all('~' . $rule[0] . '~', $values[$i], $parts)) {
-                    $variables[$name] = $parts[1];
+                    foreach ($parts[1] as $value) {
+                        if (strpos($value, '/') !== false) {
+                            $variables[$name][] = explode('/', $value);
+                        } else {
+                            $variables[$name][] = $value;
+                        }
+                    }
                 } else {
                     $variables[$name] = [];
                 }
@@ -586,20 +592,27 @@ class Route
                 continue;
             }
 
-            if (!array_key_exists($child['name'], $params)) {
+            if (!isset($params[$child['name']])) {
                 if (!$token['optional']) {
                     throw new RouterException("Missing parameters `'{$child['name']}'` for route: `'{$this->name}#/{$this->_pattern}'`.");
                 }
                 return '';
             }
-            if (is_array($params[$child['name']])) {
-                throw new RouterException("Expected `'" . $child['name'] . "'` to not repeat, but received `[" . join(',', $params[$child['name']]) . "]`.");
+
+            if ($data = $params[$child['name']]) {
+                $parts = is_array($data) ? $data : [$data];
+            } else {
+                $parts = [];
             }
-            $value = rawurlencode($params[$child['name']]);
+            foreach ($parts as $key => $value) {
+                $parts[$key] = rawurlencode($value);
+            }
+            $value = join('/', $parts);
+
             if (!preg_match('~^' . $child['pattern'] . '$~', $value)) {
                 throw new RouterException("Expected `'" . $child['name'] . "'` to match `'" . $child['pattern'] . "'`, but received `'" . $value . "'`.");
             }
-            $link .= $params[$child['name']];
+            $link .= $value;
         }
         return $link;
     }

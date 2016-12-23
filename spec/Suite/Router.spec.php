@@ -378,6 +378,23 @@ describe("Router", function() {
 
         });
 
+        it("matches relationships based routes", function() {
+
+            $r = $this->router;
+            $r->get('[{relations:[^/]+/[^/:][^/]*}/]*comment[/{id:[^/:][^/]*}][/:{action}]', function () {});
+
+            $route = $r->route('blog/1/post/22/comment/:show', 'GET');
+            expect($route->params)->toBe([
+                'relations' => [
+                    ['blog', '1'],
+                    ['post', '22']
+                ],
+                'id' => null,
+                'action' => 'show'
+            ]);
+
+        });
+
         it("dispatches HEAD requests on matching GET routes if the HEAD routes are missing", function() {
 
             $r = $this->router;
