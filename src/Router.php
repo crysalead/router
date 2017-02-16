@@ -153,6 +153,10 @@ class Router extends \Lead\Collection\Collection
             throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
         }
 
+        if (isset($options['method'])) {
+            throw new RouterException("Use the `'methods'` option to limit HTTP verbs on a route binding definition.");
+        }
+
         $scope = end($this->_scopes);
         $options = $scope->scopify($options);
         $options['pattern'] = $pattern;

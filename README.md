@@ -87,9 +87,10 @@ use Lead\Router\Router;
 
 $router = new Router();
 
-$router->bind($pattern, $handler);                      // route matching any request method
-$router->bind($pattern, $options, $handler);            // alternative syntax with some options.
-$router->bind($pattern, ['method' => 'get'], $handler); // route matching only get requests
+$router->bind($pattern, $handler);                                 // route matching any request method
+$router->bind($pattern, $options, $handler);                       // alternative syntax with some options.
+$router->bind($pattern, ['methods' => 'GET'], $handler);           // route matching on only GET requests
+$router->bind($pattern, ['methods' => ['POST', 'PUT']], $handler); // route matching on POST and PUT requests
 
 // Alternative syntax
 $router->get($pattern, $handler);    // route matching only get requests

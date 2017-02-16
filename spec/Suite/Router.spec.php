@@ -74,6 +74,17 @@ describe("Router", function() {
 
         });
 
+        it("throws an exception when trying to use the `'method'` option", function() {
+
+            $closure = function() {
+                $r = $this->router;
+                $r->bind('foo', ['method' => 'GET'], function() {});
+            };
+
+            expect($closure)->toThrow(new RouterException("Use the `'methods'` option to limit HTTP verbs on a route binding definition."));
+
+        });
+
     });
 
     describe("->link()", function() {
