@@ -67,6 +67,46 @@ describe("Route", function() {
 
     });
 
+    describe("->methods()", function() {
+
+        it("gets/sets route methods", function() {
+
+            $route = new Route();
+            expect($route->methods(['POST', 'PUT']))->toBe($route);
+            expect($route->methods())->toBe(['POST', 'PUT']);
+
+        });
+
+        it("formats method names", function() {
+
+            $route = new Route();
+            expect($route->methods(['post', 'put']))->toBe($route);
+            expect($route->methods())->toBe(['POST', 'PUT']);
+
+        });
+
+    });
+
+    describe("->allow()", function() {
+
+        it("adds some extra allowed methods", function() {
+
+            $route = new Route(['methods' => []]);
+            expect($route->allow(['POST', 'PUT']))->toBe($route);
+            expect($route->methods())->toBe(['POST', 'PUT']);
+
+        });
+
+        it("formats newly allowed method names", function() {
+
+            $route = new Route(['methods' => []]);
+            expect($route->allow(['post', 'put']))->toBe($route);
+            expect($route->methods())->toBe(['POST', 'PUT']);
+
+        });
+
+    });
+
     describe("->apply()", function() {
 
         it("applies middlewares", function() {

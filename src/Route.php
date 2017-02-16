@@ -239,6 +239,7 @@ class Route
             return array_keys($this->_methods);
         }
         $methods = $methods ? (array) $methods : [];
+        $methods = array_map('strtoupper', $methods);
         $this->_methods = array_fill_keys($methods, true);
         return $this;
     }
@@ -252,8 +253,9 @@ class Route
     public function allow($methods = [])
     {
         $methods = $methods ? (array) $methods : [];
+        $methods = array_map('strtoupper', $methods);
         $this->_methods = array_fill_keys($methods, true) + $this->_methods;
-         return $this;
+        return $this;
     }
 
     /**

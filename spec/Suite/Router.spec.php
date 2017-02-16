@@ -63,6 +63,25 @@ describe("Router", function() {
 
         });
 
+        it("matches on methods passed in methods", function() {
+
+            $r = $this->router;
+            $r->bind('foo/bar', ['methods' => ['POST', 'PUT']], function () {});
+
+            $route = $r->route('foo/bar', 'POST');
+            expect($route->methods())->toBe(['POST', 'PUT']);
+            expect($route->error())->not->toBe(Route::NOT_FOUND);
+
+            $route = $r->route('foo/bar', 'PUT');
+            expect($route->methods())->toBe(['POST', 'PUT']);
+            expect($route->error())->not->toBe(Route::NOT_FOUND);
+
+            $route = $r->route('foo/bar', 'GET');
+            expect($route->error())->toBe(Route::NOT_FOUND);
+            expect($route->message())->toBe("No route found for `*:*:GET:/foo/bar`.");
+
+        });
+
         it("throws an exception when the handler is not a closure", function() {
 
             $closure = function() {

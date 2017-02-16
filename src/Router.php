@@ -187,7 +187,7 @@ class Router extends \Lead\Collection\Collection
         $instance->allow($methods);
 
         foreach ($methods as $method) {
-            $this->_routes[$scheme][$host][$method][] = $instance;
+            $this->_routes[$scheme][$host][strtoupper($method)][] = $instance;
         }
 
         if (isset($options['name'])) {
@@ -399,7 +399,6 @@ class Router extends \Lead\Collection\Collection
      */
     public function __call($name, $params)
     {
-        $method = strtoupper($name);
         if ($strategy = $this->strategy($name)) {
             array_unshift($params, $this);
             return call_user_func_array($strategy, $params);
@@ -408,7 +407,7 @@ class Router extends \Lead\Collection\Collection
             $params[2] = $params[1];
             $params[1] = [];
         }
-        $params[1]['methods'] = [$method];
+        $params[1]['methods'] = [$name];
         return call_user_func_array([$this, 'bind'], $params);
     }
 
