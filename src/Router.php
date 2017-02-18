@@ -295,6 +295,7 @@ class Router extends \Lead\Collection\Collection
             $request = $parsed + $request;
         }
         $request['path'] = (ltrim(strtok($request['path'], '?'), '/'));
+        $request['method'] = strtoupper($request['method']);
         return $request;
     }
 

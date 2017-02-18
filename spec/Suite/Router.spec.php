@@ -63,7 +63,7 @@ describe("Router", function() {
 
         });
 
-        it("matches on methods passed in methods", function() {
+        it("matches on methods", function() {
 
             $r = $this->router;
             $r->bind('foo/bar', ['methods' => ['POST', 'PUT']], function () {});
@@ -77,6 +77,25 @@ describe("Router", function() {
             expect($route->error())->not->toBe(Route::NOT_FOUND);
 
             $route = $r->route('foo/bar', 'GET');
+            expect($route->error())->toBe(Route::NOT_FOUND);
+            expect($route->message())->toBe("No route found for `*:*:GET:/foo/bar`.");
+
+        });
+
+        it("supports lowercase method names", function() {
+
+            $r = $this->router;
+            $r->bind('foo/bar', ['methods' => ['POST', 'PUT']], function () {});
+
+            $route = $r->route('foo/bar', 'post');
+            expect($route->methods())->toBe(['POST', 'PUT']);
+            expect($route->error())->not->toBe(Route::NOT_FOUND);
+
+            $route = $r->route('foo/bar', 'put');
+            expect($route->methods())->toBe(['POST', 'PUT']);
+            expect($route->error())->not->toBe(Route::NOT_FOUND);
+
+            $route = $r->route('foo/bar', 'get');
             expect($route->error())->toBe(Route::NOT_FOUND);
             expect($route->message())->toBe("No route found for `*:*:GET:/foo/bar`.");
 
