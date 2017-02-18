@@ -49,7 +49,7 @@ Note: the difference between `/{controller}[/{action}[/{args}]*]` and `/{control
 
 ### The Router
 
-The `Router` instance can be nstantiate so:
+The `Router` instance can be instantiated so:
 
 ```php
 use Lead\Router\Router;
@@ -104,7 +104,7 @@ The second parameter is an `$options` array where possible values are:
 
 * `'scheme'`: the scheme constraint (default: `'*'`)
 * `'host'`: the host constraint (default: `'*'`)
-* `'method'`: the method constraint (default: `'*'`)
+* `'methods'`: the method constraint (default: `'*'`)
 * `'name'`: the name of the route (optional)
 * `'namespace'`: the namespace to attach to a route (optional)
 
@@ -183,7 +183,9 @@ $router->group('admin', ['namespace' => 'App\Admin\Controller'], function($route
 });
 ```
 
-The above example will be able to route `/admin/user/edit` on `App\Admin\Controller\User::edit()`.
+The above example will be able to route `/admin/user/edit` on `App\Admin\Controller\User::edit()`. The `{controller}` would be
+the file name of your controller, and, in this case, your user class must be `user.php`. If your class is `User.php`, then the
+route would be `/admin/User/edit`.
 
 ### Sub-Domain And/Or Prefix Routing
 
@@ -268,11 +270,25 @@ use Lead\Router\Router;
 
 $router = new Router();
 
+// Bind to all methods
 $router->bind('foo/bar', function() {
     return "Hello World!";
 });
 
-$route = $router->route('foo/bar', 'GET', 'www.domain.com', 'https');
+// Bind to POST and PUT at dev.example.com only
+$router->bind('foo/bar/edit', ['methods' => ['POST',' PUT'], 'host' => 'dev.example.com'], function() {
+    return "Hello World!!";
+});
+
+// The Router class makes no assumption of the ingoing request, so you have to pass
+// uri, methods, host, and protocol into `->route()` or use a PSR-7 Compatible Request.
+// Do not rely on $_SERVER, you must check or sanitize it!
+$route = $router->route(
+    $_SERVER['REQUEST_URI'], // foo/bar
+    $_SERVER['REQUEST_METHOD'], // get, post, put...etc
+    $_SERVER['HTTP_HOST'], // www.example.com
+    $_SERVER['SERVER_PROTOCOL'] // http or https
+    );
 
 echo $route->dispatch(); // Can throw an exception if the route is not valid.
 ```
@@ -292,6 +308,7 @@ $response = new Response();
 $router = new Router();
 $router->bind('foo/bar', function($route, $response) {
     $response->body("Hello World!");
+    return $response;
 });
 
 $route = $router->route($request);
@@ -313,6 +330,7 @@ $response = new Response();
 $router = new Router();
 $router->bind('foo/bar', function($route, $response) {
     $response->body("Hello World!");
+    return $response;
 });
 
 $route = $router->route($request);
