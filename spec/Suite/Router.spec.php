@@ -201,6 +201,16 @@ describe("Router", function() {
             expect($link)->toBe('/en/post/view/5');
 
         });
+
+        it("throws an exception when no route is found for a specified name", function() {
+
+            $closure = function() {
+                $this->router->link('not.binded.yet', []);
+            };
+
+            expect($closure)->toThrow(new RouterException("No binded route defined for `'not.binded.yet'`, bind it first with `bind()`."));
+
+        });
     });
 
     describe("->route()", function() {

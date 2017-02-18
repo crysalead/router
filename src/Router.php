@@ -435,6 +435,9 @@ class Router extends \Lead\Collection\Collection
 
         $params += $this->_defaults;
 
+        if (!isset($this[$name])) {
+            throw new RouterException("No binded route defined for `'{$name}'`, bind it first with `bind()`.");
+        }
         $route = $this[$name];
         return $route->link($params, $options);
     }
