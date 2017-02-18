@@ -174,7 +174,7 @@ It's possible to apply a scope to a set of routes all together by grouping them 
 ```php
 $router->group('admin', ['namespace' => 'App\Admin\Controller'], function($router) {
     $router->bind('{controller}[/{action}]', function($route, $response) {
-        $controller = $route->namespace . $route->params['controller'];
+        $controller = $route->namespace . ucfirst($route->params['controller']);
         $instance = new $controller($route->params, $route->request, $route->response);
         $action = isset($route->params['action']) ? $route->params['action'] : 'index';
         $instance->{$action}();
@@ -183,9 +183,7 @@ $router->group('admin', ['namespace' => 'App\Admin\Controller'], function($route
 });
 ```
 
-The above example will be able to route `/admin/user/edit` on `App\Admin\Controller\User::edit()`. The `{controller}` would be
-the file name of your controller, and, in this case, your user class must be `user.php`. If your class is `User.php`, then the
-route would be `/admin/User/edit`.
+The above example will be able to route `/admin/user/edit` on `App\Admin\Controller\User::edit()`. The fully-namespaced class name of the controller is built using the `{controller}` variable and it's then instanciated to process the request by running the `{action}` method.
 
 ### Sub-Domain And/Or Prefix Routing
 
@@ -288,7 +286,7 @@ $route = $router->route(
     $_SERVER['REQUEST_METHOD'], // get, post, put...etc
     $_SERVER['HTTP_HOST'], // www.example.com
     $_SERVER['SERVER_PROTOCOL'] // http or https
-    );
+);
 
 echo $route->dispatch(); // Can throw an exception if the route is not valid.
 ```
