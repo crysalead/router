@@ -10,7 +10,7 @@
     ],
     "require": {
         "php": ">=5.5",
-        "crysalead/collection": "~2.0",
+        "crysalead/collection": "~3.0",
         "crysalead/net": "dev-master",
         "psr/http-message": "~1.0"
     },
