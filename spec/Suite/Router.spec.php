@@ -577,6 +577,36 @@ describe("Router", function() {
 
         });
 
+        context("with a prefix contraint and an optional parameter", function() {
+
+            beforeEach(function() {
+
+                $r = $this->router;
+                $r->group('foo', function($r) {
+                    $r->bind('[{var1}]', function () {});
+                });
+
+            });
+
+            it("respects url's prefix constraint", function() {
+
+                $r = $this->router;
+                $route = $r->route('foo');
+                expect($route->params)->toBe(['var1' => null]);
+
+            });
+
+            it("bails out when the prefix doesn't match", function() {
+
+                $r = $this->router;
+                $route = $r->route('bar/foo', 'GET');
+                expect($route->error())->toBe(Route::NOT_FOUND);
+                expect($route->message())->toBe("No route found for `*:*:GET:/bar/foo`.");
+
+            });
+
+        });
+
         context("with a host constraint", function() {
 
             beforeEach(function() {

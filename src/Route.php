@@ -192,7 +192,7 @@ class Route
 
         $this->_classes = $config['classes'];
 
-        $this->_prefix = $config['prefix'];
+        $this->_prefix = rtrim($config['prefix'], '/');
 
         $this->host($config['host'], $config['scheme']);
         $this->methods($config['methods']);
@@ -306,7 +306,11 @@ class Route
         $this->_token = null;
         $this->_regex = null;
         $this->_variables = null;
-        $this->_pattern = $this->_prefix . ltrim($pattern, '/');
+        $pattern = trim($pattern, '/');
+        if ($this->_prefix && $pattern) {
+            $pattern = $pattern[0] === '[' ? '[/' . substr($pattern, 1) : '/' . $pattern;
+        }
+        $this->_pattern = $this->_prefix . $pattern;
         return $this;
     }
 
