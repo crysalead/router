@@ -334,8 +334,7 @@ describe("Router", function() {
         it("supports multiple optional segments", function() {
 
             $patterns = [
-                '/[{var1}[/{var2}]]',
-                '[{var1}[/{var2}]]'
+                '/[{var1}[/{var2}]]'
             ];
 
             $r = $this->router;
@@ -440,7 +439,7 @@ describe("Router", function() {
         it("matches relationships based routes", function() {
 
             $r = $this->router;
-            $r->get('[{relations:[^/]+/[^/:][^/]*}/]*comment[/{id:[^/:][^/]*}][/:{action}]', function () {});
+            $r->get('[/{relations:[^/]+/[^/:][^/]*}]*/comment[/{id:[^/:][^/]*}][/:{action}]', function () {});
 
             $route = $r->route('blog/1/post/22/comment/:show', 'GET');
             expect($route->params)->toBe([
@@ -807,7 +806,7 @@ describe("Router", function() {
 
             $r->mystrategy();
             $route = $r->route('foo/bar');
-            expect($route->pattern())->toBe('foo/bar');
+            expect($route->pattern())->toBe('/foo/bar');
 
         });
 

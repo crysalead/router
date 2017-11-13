@@ -192,7 +192,10 @@ class Route
 
         $this->_classes = $config['classes'];
 
-        $this->_prefix = rtrim($config['prefix'], '/');
+        $this->_prefix = trim($config['prefix'], '/');
+        if ($this->_prefix) {
+            $this->_prefix = '/' . $this->_prefix;
+        }
 
         $this->host($config['host'], $config['scheme']);
         $this->methods($config['methods']);
@@ -306,9 +309,10 @@ class Route
         $this->_token = null;
         $this->_regex = null;
         $this->_variables = null;
-        $pattern = trim($pattern, '/');
-        if ($this->_prefix && $pattern) {
-            $pattern = $pattern[0] === '[' ? '[/' . substr($pattern, 1) : '/' . $pattern;
+
+        if ($pattern && $pattern[0] !== '[') {
+            $pattern = trim($pattern, '/');
+            $pattern = $pattern ? '/' . $pattern : '';
         }
         $this->_pattern = $this->_prefix . $pattern;
         return $this;
@@ -407,6 +411,8 @@ class Route
                 return false;
             }
         }
+
+        $path = '/' . trim($path, '/');
 
         if (!preg_match('~^' . $this->regex() . '$~', $path, $matches)) {
             return false;
@@ -587,7 +593,7 @@ class Route
                     $name = $child['repeat'];
                     $values = isset($params[$name]) && $params[$name] !== null ? (array) $params[$name] : [];
                     if (!$values && !$child['optional']) {
-                        throw new RouterException("Missing parameters `'{$name}'` for route: `'{$this->name}#/{$this->_pattern}'`.");
+                        throw new RouterException("Missing parameters `'{$name}'` for route: `'{$this->name}#{$this->_pattern}'`.");
                     }
                     foreach ($values as $value) {
                         $link .= $this->_link($child, [$name => $value] + $params);
@@ -600,7 +606,7 @@ class Route
 
             if (!isset($params[$child['name']])) {
                 if (!$token['optional']) {
-                    throw new RouterException("Missing parameters `'{$child['name']}'` for route: `'{$this->name}#/{$this->_pattern}'`.");
+                    throw new RouterException("Missing parameters `'{$child['name']}'` for route: `'{$this->name}#{$this->_pattern}'`.");
                 }
                 return '';
             }

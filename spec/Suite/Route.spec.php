@@ -14,9 +14,9 @@ describe("Route", function() {
         it("gets/sets the pattern", function() {
 
             $route = new Route();
-            expect($route->pattern('foo/bar/{id}[/{paths}]*'))->toBe($route);
-            expect($route->pattern())->toBe('foo/bar/{id}[/{paths}]*');
-            expect($route->regex())->toBe('foo/bar/([^/]+)((?:/[^/]+)*)');
+            expect($route->pattern('/foo/bar/{id}[/{paths}]*'))->toBe($route);
+            expect($route->pattern())->toBe('/foo/bar/{id}[/{paths}]*');
+            expect($route->regex())->toBe('/foo/bar/([^/]+)((?:/[^/]+)*)');
             expect($route->variables())->toBe([
                 'id'    => false,
                 'paths' => '/{paths}'
@@ -27,24 +27,24 @@ describe("Route", function() {
         it("updates the regex", function() {
 
             $route = new Route();
-            expect($route->pattern('foo/bar/{id}[/{paths}]*'))->toBe($route);
-            expect($route->regex())->toBe('foo/bar/([^/]+)((?:/[^/]+)*)');
+            expect($route->pattern('/foo/bar/{id}[/{paths}]*'))->toBe($route);
+            expect($route->regex())->toBe('/foo/bar/([^/]+)((?:/[^/]+)*)');
 
-            expect($route->pattern('foo/baz/{id}[/{paths}]*'))->toBe($route);
-            expect($route->regex())->toBe('foo/baz/([^/]+)((?:/[^/]+)*)');
+            expect($route->pattern('/foo/baz/{id}[/{paths}]*'))->toBe($route);
+            expect($route->regex())->toBe('/foo/baz/([^/]+)((?:/[^/]+)*)');
 
         });
 
         it("updates the variables", function() {
 
             $route = new Route();
-            expect($route->pattern('foo/bar/{id}[/{paths}]*'))->toBe($route);
+            expect($route->pattern('/foo/bar/{id}[/{paths}]*'))->toBe($route);
             expect($route->variables())->toBe([
                 'id'    => false,
                 'paths' => '/{paths}'
             ]);
 
-            expect($route->pattern('foo/bar/{baz}[/{paths}]'))->toBe($route);
+            expect($route->pattern('/foo/bar/{baz}[/{paths}]'))->toBe($route);
             expect($route->variables())->toBe([
                 'baz'   => false,
                 'paths' => false
@@ -133,7 +133,7 @@ describe("Route", function() {
 
         it("creates relative links", function() {
 
-            $route = new Route(['pattern' => 'foo/{bar}']);
+            $route = new Route(['pattern' => '/foo/{bar}']);
 
             $link = $route->link(['bar' => 'baz']);
             expect($link)->toBe('/foo/baz');
@@ -142,7 +142,7 @@ describe("Route", function() {
 
         it("supports optionnal parameters", function() {
 
-            $route = new Route(['pattern' => 'foo[/{bar}]']);
+            $route = new Route(['pattern' => '/foo[/{bar}]']);
 
             $link = $route->link();
             expect($link)->toBe('/foo');
@@ -154,7 +154,7 @@ describe("Route", function() {
 
         it("supports multiple optionnal parameters", function() {
 
-            $route = new Route(['pattern' => 'file[/{paths}]*']);
+            $route = new Route(['pattern' => '/file[/{paths}]*']);
 
             $link = $route->link();
             expect($link)->toBe('/file');
@@ -166,7 +166,7 @@ describe("Route", function() {
 
         it("merges default params", function() {
 
-            $route = new Route(['pattern' => 'foo/{bar}', 'params' => ['bar' => 'baz']]);
+            $route = new Route(['pattern' => '/foo/{bar}', 'params' => ['bar' => 'baz']]);
 
             $link = $route->link();
             expect($link)->toBe('/foo/baz');
