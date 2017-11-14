@@ -248,6 +248,36 @@ describe("Router", function() {
 
         });
 
+        it("supports empty as index route", function() {
+
+            $r = $this->router;
+            $r->bind('', function () {});
+
+            $route = $r->route('', 'GET');
+            expect($this->export($route->request))->toEqual([
+                'host'   => '*',
+                'scheme' => '*',
+                'method' => 'GET',
+                'path'   => ''
+            ]);
+
+        });
+
+        it("supports a slash as indes route", function() {
+
+            $r = $this->router;
+            $r->bind('/', function () {});
+
+            $route = $r->route('', 'GET');
+            expect($this->export($route->request))->toEqual([
+                'host'   => '*',
+                'scheme' => '*',
+                'method' => 'GET',
+                'path'   => ''
+            ]);
+
+        });
+
         it("supports route variables", function() {
 
             $r = $this->router;

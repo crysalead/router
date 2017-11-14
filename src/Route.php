@@ -310,10 +310,10 @@ class Route
         $this->_regex = null;
         $this->_variables = null;
 
-        if ($pattern && $pattern[0] !== '[') {
-            $pattern = trim($pattern, '/');
-            $pattern = $pattern ? '/' . $pattern : '';
+        if (!$pattern || $pattern[0] !== '[') {
+            $pattern = '/' . trim($pattern, '/');
         }
+
         $this->_pattern = $this->_prefix . $pattern;
         return $this;
     }
