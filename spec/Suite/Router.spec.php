@@ -493,7 +493,7 @@ describe("Router", function() {
 
         });
 
-        it("dispatches HEAD requests on matching GET routes if the HEAD routes are missing", function() {
+        it("dispatches HEAD requests on matching HEAD routes", function() {
 
             $r = $this->router;
 
