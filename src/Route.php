@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 namespace Lead\Router;
 
 use Closure;
@@ -211,7 +213,7 @@ class Route
     /**
      * Gets/sets the route host.
      *
-     * @param  object      $host The host instance to set or none to get the setted one.
+     * @param  object $host The host instance to set or none to get the setted one.
      * @return object|self       The current host on get or `$this` on set.
      */
     public function host($host = null, $scheme = '*')
@@ -264,7 +266,7 @@ class Route
     /**
      * Gets/sets the route scope.
      *
-     * @param  object      $scope The scope instance to set or none to get the setted one.
+     * @param  object $scope The scope instance to set or none to get the setted one.
      * @return object|self        The current scope on get or `$this` on set.
      */
     public function scope($scope = null)
@@ -306,6 +308,7 @@ class Route
         if (!func_num_args()) {
             return $this->_pattern;
         }
+
         $this->_token = null;
         $this->_regex = null;
         $this->_variables = null;
@@ -315,6 +318,7 @@ class Route
         }
 
         $this->_pattern = $this->_prefix . $pattern;
+
         return $this;
     }
 
@@ -377,7 +381,7 @@ class Route
     /**
      * Gets/sets the route's handler.
      *
-     * @param  array      $handler The route handler.
+     * @param  array $handler The route handler.
      * @return array|self
      */
     public function handler($handler = null)
@@ -392,7 +396,7 @@ class Route
     /**
      * Checks if the route instance matches a request.
      *
-     * @param  array   $request a request.
+     * @param  array $request a request.
      * @return boolean
      */
     public function match($request, &$variables = null, &$hostVariables = null)
@@ -478,7 +482,7 @@ class Route
 
         $generator = $this->middleware();
 
-        $next = function() use ($request, $response, $generator, &$next) {
+        $next = function () use ($request, $response, $generator, &$next) {
             $handler = $generator->current();
             $generator->next();
             return $handler($request, $response, $next);
@@ -503,7 +507,7 @@ class Route
             }
         }
 
-        yield function() {
+        yield function () {
             $handler = $this->handler();
             return $handler($this, $this->response);
         };
@@ -525,14 +529,14 @@ class Route
     /**
      * Returns the route's link.
      *
-     * @param  array  $params  The route parameters.
-     * @param  array  $options Options for generating the proper prefix. Accepted values are:
-     *                         - `'absolute'` _boolean_: `true` or `false`.
-     *                         - `'scheme'`   _string_ : The scheme.
-     *                         - `'host'`     _string_ : The host name.
-     *                         - `'basePath'` _string_ : The base path.
-     *                         - `'query'`    _string_ : The query string.
-     *                         - `'fragment'` _string_ : The fragment string.
+     * @param array $params  The route parameters.
+     * @param array $options Options for generating the proper prefix. Accepted values are:
+     *                       - `'absolute'` _boolean_: `true` or `false`. - `'scheme'`  
+     *                       _string_ : The scheme. - `'host'`     _string_ : The host
+     *                       name. - `'basePath'` _string_ : The base path. - `'query'`   
+     *                       _string_ : The query string. - `'fragment'` _string_ : The
+     *                       fragment string.
+     *
      * @return string          The link.
      */
     public function link($params = [], $options = [])
@@ -544,7 +548,11 @@ class Route
             'fragment' => ''
         ];
 
-        $options = array_filter($options, function($value) { return $value !== '*'; });
+        $options = array_filter(
+            $options, function ($value) {
+                return $value !== '*'; 
+            }
+        );
         $options += $defaults;
 
         $params = $params + $this->params;
@@ -576,8 +584,8 @@ class Route
     /**
      * Helper for `Route::link()`.
      *
-     * @param  array  $token    The token structure array.
-     * @param  array  $params   The route parameters.
+     * @param  array $token  The token structure array.
+     * @param  array $params The route parameters.
      * @return string           The URL path representation of the token structure array.
      */
     protected function _link($token, $params)
@@ -617,7 +625,7 @@ class Route
                 $parts = [];
             }
             foreach ($parts as $key => $value) {
-                $parts[$key] = rawurlencode($value);
+                $parts[$key] = rawurlencode((string)$value);
             }
             $value = join('/', $parts);
 

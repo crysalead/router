@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 namespace Lead\Router;
 
 class Scope
@@ -63,16 +65,18 @@ class Scope
     /**
      * Creates a new sub scope based on the instance scope.
      *
-     * @param  array  $options The route options to scopify.
+     * @param  array $options The route options to scopify.
      * @return object          The new sub scope.
      */
     public function seed($options)
     {
-        return new static([
+        return new static(
+            [
             'router' => $this->_router,
             'parent' => $this,
             'scope'  => $this->scopify($options)
-        ]);
+            ]
+        );
     }
 
     /**
@@ -138,8 +142,8 @@ class Scope
     /**
      * Delegates calls to the router instance.
      *
-     * @param  string $name   The method name.
-     * @param  array  $params The parameters.
+     * @param string $name   The method name.
+     * @param array  $params The parameters.
      */
     public function __call($name, $params)
     {

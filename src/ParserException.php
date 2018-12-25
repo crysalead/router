@@ -1,7 +1,11 @@
 <?php
+declare(strict_types=1);
+
 namespace Lead\Router;
 
-class ParserException extends \RuntimeException
+use RuntimeException;
+
+class ParserException extends RuntimeException
 {
     const SQUARE_BRACKET_MISMATCH = 1;
 
@@ -26,7 +30,7 @@ class ParserException extends \RuntimeException
     /**
      * Creates a square bracket mismatch exception.
      *
-     * @return object
+     * @return $this
      */
     public static function squareBracketMismatch()
     {
@@ -36,7 +40,7 @@ class ParserException extends \RuntimeException
     /**
      * Creates a duplicate placeholder exception.
      *
-     * @return object
+     * @return $this
      */
     public static function duplicatePlaceholder($placeholder = '')
     {
@@ -48,7 +52,7 @@ class ParserException extends \RuntimeException
     /**
      * Creates a placeholder exceeded exception.
      *
-     * @return object
+     * @return $this
      */
     public static function placeholderExceeded()
     {

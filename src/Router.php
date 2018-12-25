@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 namespace Lead\Router;
 
 use Closure;
@@ -9,8 +11,11 @@ use Lead\Router\RouterException;
 /**
  * The Router class.
  */
-class Router extends \Lead\Collection\Collection
+class Router implements \ArrayAccess, \Iterator, \Countable
 {
+
+    protected $_data = [];
+
     /**
      * Class dependencies.
      *
@@ -68,15 +73,15 @@ class Router extends \Lead\Collection\Collection
     public function __construct($config = [])
     {
         $defaults = [
-            'basePath'      => '',
-            'scope'         => [],
-            'strategies'    => [],
-            'classes'       => [
-                'parser'    => 'Lead\Router\Parser',
-                'host'      => 'Lead\Router\Host',
-                'route'     => 'Lead\Router\Route',
-                'scope'     => 'Lead\Router\Scope'
-            ]
+        'basePath' => '',
+        'scope' => [],
+        'strategies' => [],
+        'classes' => [
+        'parser' => 'Lead\Router\Parser',
+        'host' => 'Lead\Router\Host',
+        'route' => 'Lead\Router\Route',
+        'scope' => 'Lead\Router\Scope'
+        ]
         ];
         $config += $defaults;
         $this->_classes = $config['classes'];
@@ -106,6 +111,7 @@ class Router extends \Lead\Collection\Collection
     public function pushScope($scope)
     {
         $this->_scopes[] = $scope;
+
         return $this;
     }
 
@@ -122,7 +128,7 @@ class Router extends \Lead\Collection\Collection
     /**
      * Gets/sets the base path of the router.
      *
-     * @param  string      $basePath The base path to set or none to get the setted one.
+     * @param  string $basePath The base path to set or none to get the setted one.
      * @return string|self
      */
     public function basePath($basePath = null)
@@ -132,6 +138,7 @@ class Router extends \Lead\Collection\Collection
         }
         $basePath = trim($basePath, '/');
         $this->_basePath = $basePath ? '/' . $basePath : '';
+
         return $this;
     }
 
@@ -182,7 +189,7 @@ class Router extends \Lead\Collection\Collection
             $this->_pattern[$scheme][$host][$pattern] = $instance;
         }
 
-        $methods = $options['methods'] ? (array) $options['methods'] : [];
+        $methods = $options['methods'] ? (array)$options['methods'] : [];
 
         $instance->allow($methods);
 
@@ -193,6 +200,7 @@ class Router extends \Lead\Collection\Collection
         if (isset($options['name'])) {
             $this->_data[$options['name']] = $instance;
         }
+
         return $instance;
     }
 
@@ -233,16 +241,16 @@ class Router extends \Lead\Collection\Collection
     /**
      * Routes a Request.
      *
-     * @param  mixed  $request The request to route.
+     * @param  mixed $request The request to route.
      * @return object          A route matching the request or a "route not found" route.
      */
     public function route($request)
     {
         $defaults = [
-            'path'   => '',
-            'method' => 'GET',
-            'host'   => '*',
-            'scheme' => '*'
+        'path' => '',
+        'method' => 'GET',
+        'host' => '*',
+        'scheme' => '*'
         ];
 
         $this->_defaults = [];
@@ -250,10 +258,10 @@ class Router extends \Lead\Collection\Collection
         if ($request instanceof RequestInterface) {
             $uri = $request->getUri();
             $r = [
-                'scheme' => $uri->getScheme(),
-                'host'   => $uri->getHost(),
-                'method' => $request->getMethod(),
-                'path'   => $uri->getPath()
+            'scheme' => $uri->getScheme(),
+            'host' => $uri->getHost(),
+            'method' => $request->getMethod(),
+            'path' => $uri->getPath()
             ];
             if (method_exists($request, 'basePath')) {
                 $this->basePath($request->basePath());
@@ -294,8 +302,9 @@ class Router extends \Lead\Collection\Collection
             $parsed = array_intersect_key(parse_url($request['path']), $request);
             $request = $parsed + $request;
         }
-        $request['path'] = (ltrim(strtok($request['path'], '?'), '/'));
+        $request['path'] = (ltrim((string)strtok($request['path'], '?'), '/'));
         $request['method'] = strtoupper($request['method']);
+
         return $request;
     }
 
@@ -334,6 +343,7 @@ class Router extends \Lead\Collection\Collection
                             }
                             continue;
                         }
+
                         return $route;
                     }
                 }
@@ -363,6 +373,7 @@ class Router extends \Lead\Collection\Collection
         foreach (func_get_args() as $mw) {
             $this->_scopes[0]->apply($mw);
         }
+
         return $this;
     }
 
@@ -379,29 +390,33 @@ class Router extends \Lead\Collection\Collection
             if (!isset($this->_strategies[$name])) {
                 return;
             }
+
             return $this->_strategies[$name];
         }
         if ($handler === false) {
             unset($this->_strategies[$name]);
+
             return;
         }
         if (!$handler instanceof Closure && !method_exists($handler, '__invoke')) {
             throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
         }
         $this->_strategies[$name] = $handler;
+
         return $this;
     }
 
     /**
      * Adds a route based on a custom HTTP verb.
      *
-     * @param  string $name   The HTTP verb to define a route on.
-     * @param  array  $params The route's parameters.
+     * @param string $name   The HTTP verb to define a route on.
+     * @param array  $params The route's parameters.
      */
     public function __call($name, $params)
     {
         if ($strategy = $this->strategy($name)) {
             array_unshift($params, $this);
+
             return call_user_func_array($strategy, $params);
         }
         if (is_callable($params[1])) {
@@ -409,27 +424,28 @@ class Router extends \Lead\Collection\Collection
             $params[1] = [];
         }
         $params[1]['methods'] = [$name];
+
         return call_user_func_array([$this, 'bind'], $params);
     }
 
     /**
      * Returns a route's link.
      *
-     * @param  string $name    A route name.
-     * @param  array  $params  The route parameters.
-     * @param  array  $options Options for generating the proper prefix. Accepted values are:
-     *                         - `'absolute'` _boolean_: `true` or `false`.
-     *                         - `'scheme'`   _string_ : The scheme.
-     *                         - `'host'`     _string_ : The host name.
-     *                         - `'basePath'` _string_ : The base path.
-     *                         - `'query'`    _string_ : The query string.
-     *                         - `'fragment'` _string_ : The fragment string.
+     * @param string $name    A route name.
+     * @param array  $params  The route parameters.
+     * @param array  $options Options for generating the proper prefix. Accepted values are:
+     *                        - `'absolute'` _boolean_: `true` or `false`. - `'scheme'`  
+     *                        _string_ : The scheme. - `'host'`     _string_ : The host
+     *                        name. - `'basePath'` _string_ : The base path. - `'query'`   
+     *                        _string_ : The query string. - `'fragment'` _string_ : The
+     *                        fragment string.
+     *
      * @return string          The link.
      */
     public function link($name, $params = [], $options = [])
     {
         $defaults = [
-            'basePath' => $this->basePath()
+        'basePath' => $this->basePath()
         ];
         $options += $defaults;
 
@@ -439,6 +455,7 @@ class Router extends \Lead\Collection\Collection
             throw new RouterException("No binded route defined for `'{$name}'`, bind it first with `bind()`.");
         }
         $route = $this[$name];
+
         return $route->link($params, $options);
     }
 
@@ -453,5 +470,166 @@ class Router extends \Lead\Collection\Collection
         $this->_routes = [];
         $scope = $this->_classes['scope'];
         $this->_scopes = [new $scope(['router' => $this])];
+    }
+
+    /**
+     * Return the current element
+     *
+     * @link   https://php.net/manual/en/iterator.current.php
+     * @return mixed Can return any type.
+     * @since  5.0.0
+     */
+    public function current()
+    {
+        return current($this->_data);
+    }
+
+    /**
+     * Move forward to next element
+     *
+     * @link   https://php.net/manual/en/iterator.next.php
+     * @return void Any returned value is ignored.
+     * @since  5.0.0
+     */
+    public function next()
+    {
+        $value = $this->_skipNext ? current($this->_data) : next($this->_data);
+        $this->_skipNext = false;
+
+        return key($this->_data) !== null ? $value : null;
+    }
+
+    /**
+     * Return the key of the current element
+     *
+     * @link   https://php.net/manual/en/iterator.key.php
+     * @return mixed scalar on success, or null on failure.
+     * @since  5.0.0
+     */
+    public function key()
+    {
+        return array_keys($this->_data);
+    }
+
+    /**
+     * Checks if current position is valid
+     *
+     * @link   https://php.net/manual/en/iterator.valid.php
+     * @return boolean The return value will be casted to boolean and then evaluated.
+     * Returns true on success or false on failure.
+     * @since  5.0.0
+     */
+    public function valid()
+    {
+        return key($this->_data) !== null;
+    }
+
+    /**
+     * Rewind the Iterator to the first element
+     *
+     * @link   https://php.net/manual/en/iterator.rewind.php
+     * @return void Any returned value is ignored.
+     * @since  5.0.0
+     */
+    public function rewind()
+    {
+        $this->_skipNext = false;
+
+        return reset($this->_data);
+    }
+
+    /**
+     * Whether a offset exists
+     *
+     * @link   https://php.net/manual/en/arrayaccess.offsetexists.php
+     * @param  mixed $offset <p>
+     *                       An offset to check for.
+     *                       </p>
+     * @return boolean true on success or false on failure.
+     * </p>
+     * <p>
+     * The return value will be casted to boolean if non-boolean was returned.
+     * @since  5.0.0
+     */
+    public function offsetExists($offset)
+    {
+        return array_key_exists($offset, $this->_data);
+    }
+
+    /**
+     * Offset to retrieve
+     *
+     * @link   https://php.net/manual/en/arrayaccess.offsetget.php
+     * @param  mixed $offset <p>
+     *                       The offset to retrieve.
+     *                       </p>
+     * @return mixed Can return all value types.
+     * @since  5.0.0
+     */
+    public function offsetGet($offset)
+    {
+        return $this->_data[$offset];
+    }
+
+    /**
+     * Offset to set
+     *
+     * @link  https://php.net/manual/en/arrayaccess.offsetset.php
+     * @param mixed $offset <p>
+     *                      The offset to assign the value to.
+     *                      </p>
+     * @param mixed $value  <p>
+     *                      The
+     *                      value
+     *                      to
+     *                      set.
+     *                      </p>
+     *
+     * @return void
+     * @since  5.0.0
+     */
+    public function offsetSet($offset, $value)
+    {
+        if (is_null($offset)) {
+            return $this->_data[] = $value;
+        }
+
+        return $this->_data[$offset] = $value;
+    }
+
+    /**
+     * Offset to unset
+     *
+     * @link   https://php.net/manual/en/arrayaccess.offsetunset.php
+     * @param  mixed $offset <p>
+     *                       The offset to unset.
+     *                       </p>
+     * @return void
+     * @since  5.0.0
+     */
+    public function offsetUnset($offset)
+    {
+        $this->_skipNext = $offset === key($this->_data);
+        unset($this->_data[$offset]);
+    }
+
+    /**
+     * Count elements of an object
+     *
+     * @link   https://php.net/manual/en/countable.count.php
+     * @return int The custom count as an integer.
+     * </p>
+     * <p>
+     * The return value is cast to an integer.
+     * @since  5.1.0
+     */
+    /**
+     * Counts the items of the object.
+     *
+     * @return integer Returns the number of items in the collection.
+     */
+    public function count()
+    {
+        return count($this->_data);
     }
 }

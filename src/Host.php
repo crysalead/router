@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 namespace Lead\Router;
 
 /**
@@ -76,7 +78,7 @@ class Host
     /**
      * Get/sets the host's scheme.
      *
-     * @param  string      $scheme The scheme on set or none to get the setted one.
+     * @param  string $scheme The scheme on set or none to get the setted one.
      * @return string|self         The scheme on get or `$this` on set.
      */
     public function scheme($scheme = null)
@@ -91,7 +93,7 @@ class Host
     /**
      * Get/sets the host's pattern.
      *
-     * @param  string      $pattern The pattern on set or none to get the setted one.
+     * @param  string $pattern The pattern on set or none to get the setted one.
      * @return string|self          The pattern on get or `$this` on set.
      */
     public function pattern($pattern = null)
@@ -168,8 +170,8 @@ class Host
     /**
      * Checks if a host matches a host pattern.
      *
-     * @param  string  $host          The host to check.
-     * @param  string  $hostVariables The matches host variables
+     * @param  string $host          The host to check.
+     * @param  string $hostVariables The matches host variables
      * @return boolean                Returns `true` on success, false otherwise.
      */
     public function match($request, &$hostVariables = null)
@@ -214,10 +216,11 @@ class Host
     /**
      * Returns the host's link.
      *
-     * @param  array  $params  The host parameters.
-     * @param  array  $options Options for generating the proper prefix. Accepted values are:
-     *                         - `'scheme'`   _string_ : The scheme.
-     *                         - `'host'`     _string_ : The host name.
+     * @param array $params  The host parameters.
+     * @param array $options Options for generating the proper prefix. Accepted values are:
+     *                       - `'scheme'`   _string_ : The scheme. - `'host'`     _string_
+     *                       : The host name.
+     *
      * @return string          The link.
      */
     public function link($params = [], $options = [])
@@ -238,8 +241,8 @@ class Host
     /**
      * Helper for `Host::link()`.
      *
-     * @param  array  $token    The token structure array.
-     * @param  array  $params   The route parameters.
+     * @param  array $token  The token structure array.
+     * @param  array $params The route parameters.
      * @return string           The URL path representation of the token structure array.
      */
     protected function _link($token, $params)

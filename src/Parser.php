@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 namespace Lead\Router;
 
 /**
@@ -43,7 +45,8 @@ namespace Lead\Router;
  * ]
  * ```
  */
-class Parser {
+class Parser
+{
 
     /**
      * Variable capturing block regex.
@@ -67,8 +70,8 @@ EOD;
     /**
      * Tokenizes a route pattern. Optional segments are identified by square brackets.
      *
-     * @param string $pattern   A route pattern
-     * @param string $delimiter The path delimiter.
+     * @param string                                           $pattern   A route pattern
+     * @param string                                           $delimiter The path delimiter.
      * @param array             The tokens structure root node.
      */
     public static function tokenize($pattern, $delimiter = '/')
@@ -91,8 +94,8 @@ EOD;
     /**
      * Tokenizes patterns.
      *
-     * @param string $pattern   A route pattern
-     * @param string $delimiter The path delimiter.
+     * @param string                                         $pattern   A route pattern
+     * @param string                                         $delimiter The path delimiter.
      * @param array             An array of tokens structure.
      */
     protected static function _tokenizePattern($pattern, $delimiter, &$variable = null)
@@ -130,8 +133,8 @@ EOD;
      * Tokenizes segments which are patterns with optional segments filtered out.
      * Only classic placeholder are supported.
      *
-     * @param string $pattern   A route pattern with no optional segments.
-     * @param string $delimiter The path delimiter.
+     * @param string                                         $pattern   A route pattern with no optional segments.
+     * @param string                                         $delimiter The path delimiter.
      * @param array             An array of tokens structure.
      */
     protected static function _tokenizeSegment($pattern, $delimiter, &$variable = null)
@@ -181,7 +184,7 @@ EOD;
      *
      * Unfortunately recursive regex matcher can't help here so this function is required.
      *
-     * @param string $pattern A route pattern.
+     * @param string                               $pattern A route pattern.
      * @param array           The splitted pattern.
      */
     public static function split($pattern)

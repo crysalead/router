@@ -10,12 +10,12 @@
     ],
     "require": {
         "php": ">=7",
-        "crysalead/collection": "~3.0",
-        "crysalead/net": "dev-master",
         "psr/http-message": "~1.0"
     },
     "require-dev": {
-        "kahlan/kahlan": "~3.0"
+        "kahlan/kahlan": "~3.0",
+        "crysalead/net": "dev-master",
+        "squizlabs/php_codesniffer": "^3.0@dev"
     },
     "autoload": {
         "psr-4": {
