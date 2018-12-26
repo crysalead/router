@@ -1,7 +1,7 @@
 <?php
 namespace Lead\Router\Spec\Suite;
 
-use Lead\Router\RouterException;
+use Lead\Router\Exception\RouterException;
 use Lead\Router\Host;
 
 describe("Host", function() {

@@ -1,10 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace Lead\Router;
+namespace Lead\Router\Exception;
 
 use RuntimeException;
 
+/**
+ * ParserException
+ */
 class ParserException extends RuntimeException
 {
     const SQUARE_BRACKET_MISMATCH = 1;

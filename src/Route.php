@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Lead\Router;
 
 use Closure;
+use Lead\Router\Exception\RouterException;
 
 /**
  * The Route class.

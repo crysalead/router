@@ -2,7 +2,7 @@
 namespace Lead\Router\Spec\Suite;
 
 use stdClass;
-use Lead\Router\RouterException;
+use Lead\Router\Exception\RouterException;
 use Lead\Router\Router;
 use Lead\Router\Route;
 use Lead\Net\Http\Cgi\Request;

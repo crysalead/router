@@ -1,9 +1,14 @@
 <?php
 declare(strict_types=1);
 
-namespace Lead\Router;
+namespace Lead\Router\Exception;
 
-class RouterException extends \RuntimeException
+use RuntimeException;
+
+/**
+ * RouterException
+ */
+class RouterException extends RuntimeException
 {
     /**
      * The error code.

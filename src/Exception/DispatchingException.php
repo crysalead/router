@@ -1,8 +1,11 @@
 <?php
 declare(strict_types=1);
 
-namespace Lead\Router;
+namespace Lead\Router\Exception;
 
+/**
+ * DispatchingException
+ */
 class DispatchingException extends \RuntimeException
 {
     /**

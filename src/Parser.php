@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Lead\Router;
 
+use Lead\Router\Exception\ParserException;
+
 /**
  * Parses route pattern.
  *

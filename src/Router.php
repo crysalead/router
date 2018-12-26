@@ -5,14 +5,17 @@ namespace Lead\Router;
 
 use Closure;
 use Psr\Http\Message\RequestInterface;
-use Lead\Router\ParseException;
-use Lead\Router\RouterException;
+use Lead\Router\Exception\ParseException;
+use Lead\Router\Exception\RouterException;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * The Router class.
  */
 class Router implements \ArrayAccess, \Iterator, \Countable
 {
+
+    protected $_skipNext;
 
     protected $_data = [];
 
@@ -66,6 +69,13 @@ class Router implements \ArrayAccess, \Iterator, \Countable
     protected $_defaults = [];
 
     /**
+     * Default handler
+     *
+     * @var callable|null
+     */
+    protected $defaultHandler = null;
+
+    /**
      * Constructor
      *
      * @param array $config
@@ -73,20 +83,22 @@ class Router implements \ArrayAccess, \Iterator, \Countable
     public function __construct($config = [])
     {
         $defaults = [
-        'basePath' => '',
-        'scope' => [],
-        'strategies' => [],
-        'classes' => [
-        'parser' => 'Lead\Router\Parser',
-        'host' => 'Lead\Router\Host',
-        'route' => 'Lead\Router\Route',
-        'scope' => 'Lead\Router\Scope'
-        ]
+            'basePath'       => '',
+            'scope'          => [],
+            'strategies'     => [],
+            'defaultHandler' => null,
+            'classes'        => [
+                'parser'     => 'Lead\Router\Parser',
+                'host'       => 'Lead\Router\Host',
+                'route'      => 'Lead\Router\Route',
+                'scope'      => 'Lead\Router\Scope'
+            ]
         ];
         $config += $defaults;
         $this->_classes = $config['classes'];
         $this->_strategies = $config['strategies'];
-        $this->basePath($config['basePath']);
+        $this->_defaultHandler = $config['defaultHandler'];
+        $this->setBasePath($config['basePath']);
 
         $scope = $this->_classes['scope'];
         $this->_scopes[] = new $scope(['router' => $this]);
@@ -126,20 +138,44 @@ class Router implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
-     * Gets/sets the base path of the router.
+     * Gets the base path
      *
      * @param  string $basePath The base path to set or none to get the setted one.
-     * @return string|self
+     * @return string
      */
-    public function basePath($basePath = null)
+    public function getBasePath(): string
     {
-        if (!func_num_args()) {
-            return $this->_basePath;
-        }
+        return $this->_basePath;
+    }
+
+    /**
+     * Sets the base path
+     *
+     * @param  string $basePath Base Path
+     * @return $this
+     */
+    public function setBasePath(string $basePath): self
+    {
         $basePath = trim($basePath, '/');
         $this->_basePath = $basePath ? '/' . $basePath : '';
 
         return $this;
+    }
+
+    /**
+     * Gets/sets the base path of the router.
+     *
+     * @deprecated Use setBasePath() and getBasePath() instead
+     * @param      string|null $basePath The base path to set or none to get the setted one.
+     * @return     string|self
+     */
+    public function basePath(?string $basePath = null)
+    {
+        if ($basePath === null) {
+            return $this->_basePath;
+        }
+
+        return $this->setBasePath($basePath);
     }
 
     /**
@@ -155,6 +191,9 @@ class Router implements \ArrayAccess, \Iterator, \Countable
         if (!is_array($options)) {
             $handler = $options;
             $options = [];
+        }
+        if (empty($handler) && !empty($this->_defaultHandler)) {
+            $handler = $this->_defaultHandler;
         }
         if (!$handler instanceof Closure && !method_exists($handler, '__invoke')) {
             throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
@@ -255,7 +294,7 @@ class Router implements \ArrayAccess, \Iterator, \Countable
 
         $this->_defaults = [];
 
-        if ($request instanceof RequestInterface) {
+        if ($request instanceof ServerRequestInterface) {
             $uri = $request->getUri();
             $r = [
             'scheme' => $uri->getScheme(),
@@ -264,7 +303,7 @@ class Router implements \ArrayAccess, \Iterator, \Countable
             'path' => $uri->getPath()
             ];
             if (method_exists($request, 'basePath')) {
-                $this->basePath($request->basePath());
+                $this->setBasePath($request->basePath());
             }
         } elseif (!is_array($request)) {
             $r = array_combine(array_keys($defaults), func_get_args() + array_values($defaults));
@@ -378,11 +417,53 @@ class Router implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
+     *
+     */
+    public function setStrategy(string $name, callable $handler)
+    {
+        $this->_strategies[$name] = $handler;
+
+        return $this;
+    }
+
+    /**
+     * Get a strategy
+     *
+     * @return callable
+     */
+    public function getStrategy(string $name): callable
+    {
+        if (isset($this->_strategies[$name])) {
+            return $this->_strategies[$name];
+        }
+
+        throw new \RuntimeException(sprintf('Strategy `%s` not found.', $name));
+    }
+
+    /**
+     * Unsets a strategy
+     *
+     * @param  string $name
+     * @return $this
+     */
+    public function unsetStrategy(string $name)
+    {
+        if (isset($this->_strategies[$name])) {
+            unset($this->_strategies[$name]);
+
+            return $this;
+        }
+
+        throw new \RuntimeException(sprintf('Strategy `%s` not found.', $name));
+    }
+
+    /**
      * Gets/sets router's strategies.
      *
-     * @param  string $name    A routing strategy name.
-     * @param  mixed  $handler The strategy handler or none to get the setted one.
-     * @return mixed           The strategy handler (or `null` if not found) on get or `$this` on set.
+     * @deprecated Use setStrategy(), unsetStrategy() and getStrategy()
+     * @param      string $name    A routing strategy name.
+     * @param      mixed  $handler The strategy handler or none to get the setted one.
+     * @return     mixed           The strategy handler (or `null` if not found) on get or `$this` on set.
      */
     public function strategy($name, $handler = null)
     {
@@ -401,9 +482,8 @@ class Router implements \ArrayAccess, \Iterator, \Countable
         if (!$handler instanceof Closure && !method_exists($handler, '__invoke')) {
             throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
         }
-        $this->_strategies[$name] = $handler;
 
-        return $this;
+        return $this->setStrategy($name, $handler);
     }
 
     /**
@@ -423,6 +503,7 @@ class Router implements \ArrayAccess, \Iterator, \Countable
             $params[2] = $params[1];
             $params[1] = [];
         }
+
         $params[1]['methods'] = [$name];
 
         return call_user_func_array([$this, 'bind'], $params);
@@ -496,7 +577,7 @@ class Router implements \ArrayAccess, \Iterator, \Countable
         $value = $this->_skipNext ? current($this->_data) : next($this->_data);
         $this->_skipNext = false;
 
-        return key($this->_data) !== null ? $value : null;
+        key($this->_data) !== null ? $value : null;
     }
 
     /**
@@ -535,7 +616,7 @@ class Router implements \ArrayAccess, \Iterator, \Countable
     {
         $this->_skipNext = false;
 
-        return reset($this->_data);
+        reset($this->_data);
     }
 
     /**
@@ -591,10 +672,11 @@ class Router implements \ArrayAccess, \Iterator, \Countable
     public function offsetSet($offset, $value)
     {
         if (is_null($offset)) {
-            return $this->_data[] = $value;
+            $this->_data[] = $value;
+            return;
         }
 
-        return $this->_data[$offset] = $value;
+        $this->_data[$offset] = $value;
     }
 
     /**
