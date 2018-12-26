@@ -166,24 +166,24 @@ class Route
     public function __construct($config = [])
     {
         $defaults = [
-            'error'          => static::FOUND,
-            'message'        => 'OK',
-            'scheme'         => '*',
-            'host'           => null,
-            'methods'        => '*',
-            'prefix'         => '',
-            'pattern'        => '',
-            'name'           => '',
-            'namespace'      => '',
-            'handler'        => null,
-            'params'         => [],
-            'persist'        => [],
-            'scope'          => null,
-            'middleware'     => [],
-            'classes'        => [
-                'parser' => 'Lead\Router\Parser',
-                'host'   => 'Lead\Router\Host'
-            ]
+        'error' => static::FOUND,
+        'message' => 'OK',
+        'scheme' => '*',
+        'host' => null,
+        'methods' => '*',
+        'prefix' => '',
+        'pattern' => '',
+        'name' => '',
+        'namespace' => '',
+        'handler' => null,
+        'params' => [],
+        'persist' => [],
+        'scope' => null,
+        'middleware' => [],
+        'classes' => [
+        'parser' => 'Lead\Router\Parser',
+        'host' => 'Lead\Router\Host'
+        ]
         ];
         $config += $defaults;
 
@@ -204,7 +204,7 @@ class Route
         $this->methods($config['methods']);
 
         $this->_scope = $config['scope'];
-        $this->_middleware = (array) $config['middleware'];
+        $this->_middleware = (array)$config['middleware'];
         $this->_error = $config['error'];
         $this->_message = $config['message'];
 
@@ -214,53 +214,81 @@ class Route
     /**
      * Gets/sets the route host.
      *
-     * @param  object $host The host instance to set or none to get the setted one.
+     * @param  object $host   The host instance to set or none to get the set one.
+     * @param  string $scheme HTTP Scheme
      * @return object|self       The current host on get or `$this` on set.
      */
-    public function host($host = null, $scheme = '*')
+    public function host($host = null, string $scheme = '*')
     {
         if (!func_num_args()) {
             return $this->_host;
         }
         if (!is_string($host)) {
             $this->_host = $host;
+
             return $this;
         }
         if ($host !== '*' || $scheme !== '*') {
             $class = $this->_classes['host'];
             $this->_host = new $class(['scheme' => $scheme, 'pattern' => $host]);
         }
+
+        return $this;
+    }
+
+    /**
+     * Gets allowed methods
+     *
+     * @return array
+     */
+    public function getMethods(): array
+    {
+        return array_keys($this->_methods);
+    }
+
+    /**
+     * Sets methods
+     *
+     * @param  array $methods
+     * @return $this
+     */
+    public function setMethods($methods): self
+    {
+        $methods = $methods ? (array)$methods : [];
+        $methods = array_map('strtoupper', $methods);
+        $this->_methods = array_fill_keys($methods, true);
+
         return $this;
     }
 
     /**
      * Gets/sets the allowed methods.
      *
-     * @param  string|array $allowedMethods The allowed methods set or none to get the setted one.
-     * @return array|self                   The allowed methods on get or `$this` on set.
+     * @deprecated Use setMethods() and getMethods() instead.
+     * @param      string|array $allowedMethods The allowed methods set or none to get the setted one.
+     * @return     array|self                   The allowed methods on get or `$this` on set.
      */
     public function methods($methods = null)
     {
         if (!func_num_args()) {
-            return array_keys($this->_methods);
+            return $this->getMethods();
         }
-        $methods = $methods ? (array) $methods : [];
-        $methods = array_map('strtoupper', $methods);
-        $this->_methods = array_fill_keys($methods, true);
-        return $this;
+
+        return $this->setMethods($methods);
     }
 
     /**
-     * Allows additionnal methods.
+     * Allows additional methods.
      *
      * @param  string|array $methods The methods to allow.
      * @return self
      */
     public function allow($methods = [])
     {
-        $methods = $methods ? (array) $methods : [];
+        $methods = $methods ? (array)$methods : [];
         $methods = array_map('strtoupper', $methods);
         $this->_methods = array_fill_keys($methods, true) + $this->_methods;
+
         return $this;
     }
 
@@ -276,40 +304,69 @@ class Route
             return $this->_scope;
         }
         $this->_scope = $scope;
+
         return $this;
     }
 
     /**
-     * Gets the routing error number.
+     * Gets the routing error number
      *
-     * @return integer The routing error number.
+     * @return int
      */
-    public function error()
+    public function getError(): int
     {
         return $this->_error;
     }
 
     /**
-     * Gets the routing error message.
+     * Gets the routing error number.
      *
-     * @return string The routing error message.
+     * @deprecated Use getError() instead
+     * @return     integer The routing error number.
      */
-    public function message()
+    public function error()
+    {
+        return $this->getError();
+    }
+
+    /**
+     * Gets the routing error message
+     *
+     * @return string
+     */
+    public function getErrorMessage(): string
     {
         return $this->_message;
     }
 
     /**
-     * Gets the route's pattern.
+     * Gets the routing error message.
      *
-     * @return array The route's pattern.
+     * @deprecated use getErrorMessage() instead
+     * @return     string The routing error message.
      */
-    public function pattern($pattern = null)
+    public function message()
     {
-        if (!func_num_args()) {
-            return $this->_pattern;
-        }
+        return $this->getErrorMessage();
+    }
 
+    /**
+     * Gets the routes pattern
+     *
+     * @return string
+     */
+    public function getPattern(): string
+    {
+        return $this->_pattern;
+    }
+
+    /**
+     * Sets the routes pattern
+     *
+     * @return $this
+     */
+    public function setPattern(string $pattern): self
+    {
         $this->_token = null;
         $this->_regex = null;
         $this->_variables = null;
@@ -324,11 +381,24 @@ class Route
     }
 
     /**
+     * Gets the route's pattern.
+     *
+     * @return string The route's pattern.
+     */
+    public function pattern(?string $pattern = null)
+    {
+        if ($pattern === null) {
+            return $this->getPattern();
+        }
+
+        return $this->setPattern($pattern);
+    }
+    /**
      * Returns the route's token structures.
      *
      * @return array A collection route's token structure.
      */
-    public function token()
+    public function getToken()
     {
         if ($this->_token === null) {
             $parser = $this->_classes['parser'];
@@ -337,20 +407,42 @@ class Route
             $this->_variables = null;
             $this->_token = $parser::tokenize($this->_pattern, '/');
         }
+
         return $this->_token;
+    }
+    /**
+     * Returns the route's token structures.
+     *
+     * @deprecated Use getToken() instead
+     * @return     array A collection route's token structure.
+     */
+    public function token()
+    {
+        return $this->getToken();
     }
 
     /**
      * Gets the route's regular expression pattern.
      *
-     * @return string the route's regular expression pattern.
+     * @deprecated Use getRegex() instead
+     * @return     string the route's regular expression pattern.
      */
     public function regex()
+    {
+        return $this->getRegex();
+    }
+    /**
+     * Gets the route's regular expression pattern.
+     *
+     * @return string the route's regular expression pattern.
+     */
+    public function getRegex()
     {
         if ($this->_regex !== null) {
             return $this->_regex;
         }
         $this->_compile();
+
         return $this->_regex;
     }
 
@@ -359,13 +451,24 @@ class Route
      *
      * @return array The route's variables and their associated pattern.
      */
-    public function variables()
+    public function getVariables()
     {
         if ($this->_variables !== null) {
             return $this->_variables;
         }
         $this->_compile();
+
         return $this->_variables;
+    }
+    /**
+     * Gets the route's variables and their associated pattern in case of array variables.
+     *
+     * @deprecated use getVariables() instead
+     * @return     array The route's variables and their associated pattern.
+     */
+    public function variables()
+    {
+        return $this->getVariables();
     }
 
     /**
@@ -380,18 +483,42 @@ class Route
     }
 
     /**
+     * Gets the routes handler
+     *
+     * @return mixed
+     */
+    public function getHandler()
+    {
+        return $this->_handler;
+    }
+
+    /**
      * Gets/sets the route's handler.
      *
+     * @param  mixed $handler The route handler.
+     * @return self
+     */
+    public function setHandler($handler)
+    {
+        $this->_handler = $handler;
+
+        return $this;
+    }
+
+    /**
+     * Gets/sets the route's handler.
+     *
+     * @deprecated Use getHandler() and setHandler() instead
      * @param  array $handler The route handler.
      * @return array|self
      */
     public function handler($handler = null)
     {
-        if (func_num_args() === 0) {
-            return $this->_handler;
+        if ($handler === null) {
+            return $this->getHandler();
         }
-        $this->_handler = $handler;
-        return $this;
+
+        return $this->setHandler($handler);
     }
 
     /**
@@ -424,6 +551,7 @@ class Route
         }
         $variables = $this->_buildVariables($matches);
         $this->params = $hostVariables + $variables;
+
         return true;
     }
 
@@ -464,6 +592,7 @@ class Route
             }
             $i++;
         }
+
         return $variables;
     }
 
@@ -486,8 +615,10 @@ class Route
         $next = function () use ($request, $response, $generator, &$next) {
             $handler = $generator->current();
             $generator->next();
+
             return $handler($request, $response, $next);
         };
+
         return $next();
     }
 
@@ -510,6 +641,7 @@ class Route
 
         yield function () {
             $handler = $this->handler();
+
             return $handler($this, $this->response);
         };
     }
@@ -524,34 +656,34 @@ class Route
         foreach (func_get_args() as $mw) {
             array_unshift($this->_middleware, $mw);
         }
+
         return $this;
     }
 
     /**
      * Returns the route's link.
      *
-     * @param array $params  The route parameters.
-     * @param array $options Options for generating the proper prefix. Accepted values are:
-     *                       - `'absolute'` _boolean_: `true` or `false`. - `'scheme'`  
-     *                       _string_ : The scheme. - `'host'`     _string_ : The host
-     *                       name. - `'basePath'` _string_ : The base path. - `'query'`   
-     *                       _string_ : The query string. - `'fragment'` _string_ : The
-     *                       fragment string.
-     *
+     * @param  array $params  The route parameters.
+     * @param  array $options Options for generating the proper prefix. Accepted values are:
+     *                        - `'absolute'` _boolean_: `true` or `false`. - `'scheme'`
+     *                        _string_ : The scheme. - `'host'`     _string_ : The host
+     *                        name. - `'basePath'` _string_ : The base path. - `'query'`
+     *                        _string_ : The query string. - `'fragment'` _string_ : The
+     *                        fragment string.
      * @return string          The link.
      */
     public function link($params = [], $options = [])
     {
         $defaults = [
-            'absolute' => false,
-            'basePath' => '',
-            'query'    => '',
-            'fragment' => ''
+        'absolute' => false,
+        'basePath' => '',
+        'query' => '',
+        'fragment' => ''
         ];
 
         $options = array_filter(
             $options, function ($value) {
-                return $value !== '*'; 
+                return $value !== '*';
             }
         );
         $options += $defaults;
@@ -600,7 +732,7 @@ class Route
             if (isset($child['tokens'])) {
                 if ($child['repeat']) {
                     $name = $child['repeat'];
-                    $values = isset($params[$name]) && $params[$name] !== null ? (array) $params[$name] : [];
+                    $values = isset($params[$name]) && $params[$name] !== null ? (array)$params[$name] : [];
                     if (!$values && !$child['optional']) {
                         throw new RouterException("Missing parameters `'{$name}'` for route: `'{$this->name}#{$this->_pattern}'`.");
                     }
@@ -617,6 +749,7 @@ class Route
                 if (!$token['optional']) {
                     throw new RouterException("Missing parameters `'{$child['name']}'` for route: `'{$this->name}#{$this->_pattern}'`.");
                 }
+
                 return '';
             }
 
@@ -635,6 +768,7 @@ class Route
             }
             $link .= $value;
         }
+
         return $link;
     }
 }
