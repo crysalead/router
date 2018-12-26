@@ -27,9 +27,9 @@ Route pattern are path string with curly brace placeholders. Possible placeholde
 
 * `'{name}'`       - placeholder
 * `'{name:regex}'` - placeholder with regex definition.
-* `'[{name}]'`     - optionnal placeholder
+* `'[{name}]'`     - optional placeholder
 * `'[{name}]+'`    - recurring placeholder
-* `'[{name}]*'`    - optionnal recurring placeholder
+* `'[{name}]*'`    - optional recurring placeholder
 
 Variable placeholders may contain only word characters (latin letters, digits, and underscore) and must be unique within the pattern. For placeholders without an explicit regex, a variable placeholder matches any number of characters other than '/' (i.e `[^/]+`).
 
