@@ -8,6 +8,7 @@ use Closure;
 use Countable;
 use Iterator;
 use Lead\Router\Exception\ParserException;
+use Lead\Router\Exception\RouteNotFoundException;
 use Lead\Router\Exception\RouterException;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -294,9 +295,9 @@ class Router implements ArrayAccess, Iterator, Countable, RouteInterface
      *
      * @todo   Remove none PSR7 requests
      * @param  mixed $request The request to route.
-     * @return object          A route matching the request or a "route not found" route.
+     * @return object A route matching the request or a "route not found" route.
      */
-    public function route($request)
+    public function route($request): Route
     {
         $defaults = [
         'path' => '',
@@ -335,10 +336,8 @@ class Router implements ArrayAccess, Iterator, Countable, RouteInterface
                 }
             }
         } else {
-            $route = $this->_classes['route'];
-            $error = $route::NOT_FOUND;
             $message = "No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:/{$r['path']}`.";
-            $route = new $route(compact('error', 'message'));
+            throw new RouteNotFoundException($message);
         }
 
         return $route;

@@ -1,6 +1,7 @@
 <?php
 namespace Lead\Router\Spec\Suite;
 
+use Lead\Router\Exception\RouteNotFoundException;
 use Lead\Router\Exception\RouterException;
 use Lead\Router\Router;
 use Lead\Router\Route;
@@ -76,10 +77,11 @@ describe("Router", function() {
             expect($route->methods())->toBe(['POST', 'PUT']);
             expect($route->error())->not->toBe(Route::NOT_FOUND);
 
-            $route = $r->route('foo/bar', 'GET');
-            expect($route->error())->toBe(Route::NOT_FOUND);
-            expect($route->message())->toBe("No route found for `*:*:GET:/foo/bar`.");
-
+            try {
+                $route = $r->route('bar/foo', 'GET');
+            } catch (RouteNotFoundException $e) {
+                expect($e->getMessage())->toBe("No route found for `*:*:GET:/bar/foo`.");
+            }
         });
 
         it("supports lowercase method names", function() {
@@ -95,10 +97,11 @@ describe("Router", function() {
             expect($route->methods())->toBe(['POST', 'PUT']);
             expect($route->error())->not->toBe(Route::NOT_FOUND);
 
-            $route = $r->route('foo/bar', 'get');
-            expect($route->error())->toBe(Route::NOT_FOUND);
-            expect($route->message())->toBe("No route found for `*:*:GET:/foo/bar`.");
-
+            try {
+                $route = $r->route('bar/foo', 'GET');
+            } catch (RouteNotFoundException $e) {
+                expect($e->getMessage())->toBe("No route found for `*:*:GET:/bar/foo`.");
+            }
         });
 
         it("throws an exception when the handler is not a closure", function() {
@@ -228,10 +231,11 @@ describe("Router", function() {
                 'path'   => 'foo/bar'
             ]);
 
-            $route = $r->route('foo/baz', 'GET');
-            expect($route->error())->toBe(Route::NOT_FOUND);
-            expect($route->message())->toBe("No route found for `*:*:GET:/foo/baz`.");
-
+            try {
+                $route = $r->route('bar/foo', 'GET');
+            } catch (RouteNotFoundException $e) {
+                expect($e->getMessage())->toBe("No route found for `*:*:GET:/bar/foo`.");
+            }
         });
 
         it("routes on a named route", function() {
@@ -242,10 +246,11 @@ describe("Router", function() {
             $route = $r->route('foo/bar', 'GET');
             expect($route->name)->toBe('foo');
 
-            $route = $r->route('foo/baz', 'GET');
-            expect($route->error())->toBe(Route::NOT_FOUND);
-            expect($route->message())->toBe("No route found for `*:*:GET:/foo/baz`.");
-
+            try {
+                $route = $r->route('bar/foo', 'GET');
+            } catch (RouteNotFoundException $e) {
+                expect($e->getMessage())->toBe("No route found for `*:*:GET:/bar/foo`.");
+            }
         });
 
         it("supports empty as index route", function() {
@@ -286,10 +291,11 @@ describe("Router", function() {
             $route = $r->route('foo/bar', 'GET');
             expect($route->params)->toBe(['param' => 'bar']);
 
-            $route = $r->route('bar/foo', 'GET');
-            expect($route->error())->toBe(Route::NOT_FOUND);
-            expect($route->message())->toBe("No route found for `*:*:GET:/bar/foo`.");
-
+            try {
+                $route = $r->route('bar/foo', 'GET');
+            } catch (RouteNotFoundException $e) {
+                expect($e->getMessage())->toBe("No route found for `*:*:GET:/bar/foo`.");
+            }
         });
 
         it("supports constrained route variables", function() {
@@ -300,10 +306,11 @@ describe("Router", function() {
             $route = $r->route('foo/25', 'GET');
             expect($route->params)->toBe(['var1' => '25']);
 
-            $route = $r->route('foo/bar', 'GET');
-            expect($route->error())->toBe(Route::NOT_FOUND);
-            expect($route->message())->toBe("No route found for `*:*:GET:/foo/bar`.");
-
+            try {
+                $route = $r->route('foo/bar', 'GET');
+            } catch (RouteNotFoundException $e) {
+                expect($e->getMessage())->toBe("No route found for `*:*:GET:/foo/bar`.");
+            }
         });
 
         it("supports optional segments with variables", function() {
@@ -341,7 +348,6 @@ describe("Router", function() {
                 'var1' => ['bar', 'baz'],
                 'var2' => ['fuz']
             ]);
-
         });
 
         it("supports optional segments with custom variable regex", function() {
@@ -355,10 +361,11 @@ describe("Router", function() {
             $route = $r->route('foo/25', 'GET');
             expect($route->params)->toBe(['var1' => '25']);
 
-            $route = $r->route('foo/baz', 'GET');
-            expect($route->error())->toBe(Route::NOT_FOUND);
-            expect($route->message())->toBe("No route found for `*:*:GET:/foo/baz`.");
-
+            try {
+                $route = $r->route('foo/baz', 'GET');
+            } catch (RouteNotFoundException $e) {
+                expect($e->getMessage())->toBe("No route found for `*:*:GET:/foo/baz`.");
+            }
         });
 
         it("supports multiple optional segments", function() {
@@ -408,10 +415,11 @@ describe("Router", function() {
             $route = $r->route('foo/25', 'GET', 'foo.biz.bar');
             expect($route->params)->toBe([ 'subdomain' => 'foo', 'domain' => 'biz', 'var1' => '25']);
 
-            $route = $r->route('foo/bar', 'GET', 'foo.biz.bar');
-            expect($route->error())->toBe(Route::NOT_FOUND);
-            expect($route->message())->toBe("No route found for `*:foo.biz.bar:GET:/foo/bar`.");
-
+            try {
+                $route = $r->route('foo/bar', 'GET', 'foo.biz.bar');
+            } catch (RouteNotFoundException $e) {
+                expect($e->getMessage())->toBe("No route found for `*:foo.biz.bar:GET:/foo/bar`.");
+            }
         });
 
         it("supports absolute URL", function() {
@@ -595,15 +603,15 @@ describe("Router", function() {
 
             });
 
-            it("bails out when the prefix doesn't match", function() {
+            it("throws an exception when the prefix does not match", function () {
 
-                $r = $this->router;
-                $route = $r->route('bar/foo', 'GET');
-                expect($route->error())->toBe(Route::NOT_FOUND);
-                expect($route->message())->toBe("No route found for `*:*:GET:/bar/foo`.");
+                $closure = function () {
+                    $r = $this->router;
+                    $route = $r->route('bar/foo', 'GET');
+                };
 
+                expect($closure)->toThrow(new RouteNotFoundException("No route found for `*:*:GET:/bar/foo`."));
             });
-
         });
 
         context("with a prefix contraint and an optional parameter", function() {
@@ -625,15 +633,15 @@ describe("Router", function() {
 
             });
 
-            it("bails out when the prefix doesn't match", function() {
+            it("throws an exception when the prefix does not match", function () {
 
-                $r = $this->router;
-                $route = $r->route('bar/foo', 'GET');
-                expect($route->error())->toBe(Route::NOT_FOUND);
-                expect($route->message())->toBe("No route found for `*:*:GET:/bar/foo`.");
+                $closure = function () {
+                    $r = $this->router;
+                    $route = $r->route('bar/foo', 'GET');
+                };
 
+                expect($closure)->toThrow(new RouteNotFoundException("No route found for `*:*:GET:/bar/foo`."));
             });
-
         });
 
         context("with a host constraint", function() {
@@ -660,15 +668,15 @@ describe("Router", function() {
 
             });
 
-            it("bails out when the host doesn't match", function() {
+            it("throws an exception when the host does not match", function () {
 
-                $r = $this->router;
-                $route = $r->route('http://bar.hello.foo/foo/bar/baz', 'GET');
-                expect($route->error())->toBe(Route::NOT_FOUND);
-                expect($route->message())->toBe("No route found for `http:bar.hello.foo:GET:/foo/bar/baz`.");
+                $closure = function () {
+                    $r = $this->router;
+                    $route = $r->route('http://bar.hello.foo/foo/bar/baz', 'GET');
+                };
 
+                expect($closure)->toThrow(new RouteNotFoundException("No route found for `http:bar.hello.foo:GET:/foo/bar/baz`."));
             });
-
         });
 
         context("with a scheme constraint", function() {
@@ -694,15 +702,15 @@ describe("Router", function() {
 
             });
 
-            it("bails out when the scheme doesn't match", function() {
+            it("throws an exception when route is not found", function () {
 
-                $r = $this->router;
-                $route = $r->route('https://domain.com/foo/bar/baz', 'GET');
-                expect($route->error())->toBe(Route::NOT_FOUND);
-                expect($route->message())->toBe("No route found for `https:domain.com:GET:/foo/bar/baz`.");
+                $closure = function () {
+                    $r = $this->router;
+                    $route = $r->route('https://domain.com/foo/bar/baz', 'GET');
+                };
 
+                expect($closure)->toThrow(new RouteNotFoundException("No route found for `https:domain.com:GET:/foo/bar/baz`."));
             });
-
         });
 
         it("concats namespace values", function() {

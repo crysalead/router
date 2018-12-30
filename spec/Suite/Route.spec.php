@@ -1,6 +1,7 @@
 <?php
 namespace Lead\Router\Spec\Suite;
 
+use Lead\Router\Exception\RouteNotFoundException;
 use Lead\Router\Scope;
 use stdClass;
 use Lead\Router\Exception\RouterException;
@@ -345,8 +346,7 @@ describe("Route", function() {
                 $route->dispatch();
             };
 
-            expect($closure)->toThrow(new RouterException("No route found for `*:*:GET:/bar`.", 404));
-
+            expect($closure)->toThrow(new RouteNotFoundException("No route found for `*:*:GET:/bar`.", 404));
         });
 
     });
