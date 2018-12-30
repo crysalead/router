@@ -62,7 +62,7 @@ describe("Route", function() {
 
             $scope = new Scope();
             $route = new Route();
-            expect($route->scope($scope))->toBe($route);
+            expect($route->setScope($scope))->toBe($route);
             expect($route->getScope())->toBe($scope);
 
         });

@@ -17,7 +17,7 @@ use RuntimeException;
 /**
  * The Router class.
  */
-class Router implements ArrayAccess, Iterator, Countable, RouteInterface
+class Router implements ArrayAccess, Iterator, Countable, RouterInterface
 {
 
     protected $_skipNext;

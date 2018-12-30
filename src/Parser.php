@@ -75,6 +75,7 @@ EOD;
      * @param string                                           $pattern   A route pattern
      * @param string                                           $delimiter The path delimiter.
      * @param array             The tokens structure root node.
+     * @return array
      */
     public static function tokenize(string $pattern, string $delimiter = '/'): array
     {
@@ -99,6 +100,7 @@ EOD;
      * @param string                                         $pattern   A route pattern
      * @param string                                         $delimiter The path delimiter.
      * @param array             An array of tokens structure.
+     * @return array
      */
     protected static function _tokenizePattern(string $pattern, string $delimiter, &$variable = null): array
     {
@@ -138,6 +140,7 @@ EOD;
      * @param string                                         $pattern   A route pattern with no optional segments.
      * @param string                                         $delimiter The path delimiter.
      * @param array             An array of tokens structure.
+     * @return array
      */
     protected static function _tokenizeSegment($pattern, $delimiter, &$variable = null): array
     {

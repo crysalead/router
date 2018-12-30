@@ -4,12 +4,13 @@ declare(strict_types=1);
 namespace Lead\Router;
 
 use Closure;
+use InvalidArgumentException;
 use Lead\Router\Exception\RouterException;
 
 /**
  * The Route class.
  */
-class Route
+class Route implements RouteInterface
 {
     /**
      * Class dependencies.
@@ -70,14 +71,14 @@ class Route
     /**
      * The route scope.
      *
-     * @var array
+     * @var \Lead\Router\Scope|null
      */
     protected $_scope = null;
 
     /**
      * The route's host.
      *
-     * @var object
+     * @var \Lead\Router\Host
      */
     protected $_host = null;
 
@@ -171,7 +172,7 @@ class Route
         $this->namespace = $config['namespace'];
         $this->params = $config['params'];
         $this->persist = $config['persist'];
-        $this->handler($config['handler']);
+        $this->setHandler($config['handler']);
 
         $this->_classes = $config['classes'];
 
@@ -183,7 +184,7 @@ class Route
         $this->host($config['host'], $config['scheme']);
         $this->setMethods($config['methods']);
 
-        $this->_scope = $config['scope'];
+        $this->setScope($config['scope']);
         $this->_middleware = (array)$config['middleware'];
 
         $this->setPattern($config['pattern']);
@@ -292,26 +293,8 @@ class Route
      * @param  \Lead\Router\Scope|null $scope Scope
      * @return $this;
      */
-    public function setScope(array $scope): self
+    public function setScope(?Scope $scope): self
     {
-        $this->_scope = $scope;
-
-        return $this;
-    }
-
-    /**
-     * Gets/sets the route scope.
-     *
-     * @deprecated Use getScope() and setScope() instead
-     * @param      object $scope The scope instance to set or none to get the setted one.
-     * @return     object|self        The current scope on get or `$this` on set.
-     */
-    public function scope(?Scope $scope = null)
-    {
-        if ($scope === null) {
-            return $this->getScope();
-        }
-
         $this->_scope = $scope;
 
         return $this;
@@ -419,30 +402,18 @@ class Route
     /**
      * Gets/sets the route's handler.
      *
-     * @param  mixed $handler The route handler.
+     * @param mixed $handler The route handler.
      * @return self
      */
     public function setHandler($handler)
     {
+        if (!is_callable($handler) && !is_string($handler) && $handler !== null) {
+            throw new InvalidArgumentException('Handler must be a callable, string or null');
+        }
+
         $this->_handler = $handler;
 
         return $this;
-    }
-
-    /**
-     * Gets/sets the route's handler.
-     *
-     * @deprecated Use getHandler() and setHandler() instead
-     * @param      array $handler The route handler.
-     * @return     array|self
-     */
-    public function handler($handler = null)
-    {
-        if ($handler === null) {
-            return $this->getHandler();
-        }
-
-        return $this->setHandler($handler);
     }
 
     /**
@@ -554,14 +525,14 @@ class Route
             yield $middleware;
         }
 
-        if ($scope = $this->scope()) {
+        if ($scope = $this->getScope()) {
             foreach ($scope->middleware() as $middleware) {
                 yield $middleware;
             }
         }
 
         yield function () {
-            $handler = $this->handler();
+            $handler = $this->getHandler();
 
             return $handler($this, $this->response);
         };
