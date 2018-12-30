@@ -74,12 +74,13 @@ class Host
         $this->_classes = $config['classes'];
 
         $this->setScheme($config['scheme']);
-        $this->pattern($config['pattern']);
+        $this->setPattern($config['pattern']);
     }
 
     /**
      * Sets the scheme
      *
+     * @param string $scheme Scheme to set.
      * @return $this
      */
     public function setScheme(string $scheme)
@@ -100,37 +101,29 @@ class Host
     }
 
     /**
-     * Get/sets the host's scheme.
+     * Sets the hosts pattern
      *
-     * @deprecated Use getScheme() and setScheme();
-     * @param      string $scheme The scheme on set or none to get the setted one.
-     * @return     string|self         The scheme on get or `$this` on set.
+     * @param string $pattern Pattern
+     * @return $this
      */
-    public function scheme(?string $scheme = null)
+    public function setPattern(string $pattern)
     {
-        if ($scheme === null) {
-            return $this->getScheme();
-        }
-
-        return $this->setScheme($scheme);
-    }
-
-    /**
-     * Get/sets the host's pattern.
-     *
-     * @param  string $pattern The pattern on set or none to get the setted one.
-     * @return string|self          The pattern on get or `$this` on set.
-     */
-    public function pattern($pattern = null)
-    {
-        if (!func_num_args()) {
-            return $this->_pattern;
-        }
         $this->_token = null;
         $this->_regex = null;
         $this->_variables = null;
         $this->_pattern = $pattern;
+
         return $this;
+    }
+
+    /**
+     * Gets the hosts pattern
+     *
+     * @return string
+     */
+    public function getPattern(): string
+    {
+        return $this->_pattern;
     }
 
     /**
@@ -138,7 +131,7 @@ class Host
      *
      * @return array A collection route's token structure.
      */
-    public function token()
+    public function getToken()
     {
         if ($this->_token === null) {
             $parser = $this->_classes['parser'];
@@ -166,22 +159,11 @@ class Host
     }
 
     /**
-     * Gets the route's regular expression pattern.
-     *
-     * @deprecated Use getRegex() instead
-     * @return string the route's regular expression pattern.
-     */
-    public function regex(): string
-    {
-        return $this->getRegex();
-    }
-
-    /**
      * Gets the route's variables and their associated pattern in case of array variables.
      *
      * @return array The route's variables and their associated pattern.
      */
-    public function variables()
+    public function getVariables()
     {
         if ($this->_variables !== null) {
             return $this->_variables;
@@ -195,11 +177,11 @@ class Host
      */
     protected function _compile()
     {
-        if ($this->pattern() === '*') {
+        if ($this->getPattern() === '*') {
             return;
         }
         $parser = $this->_classes['parser'];
-        $rule = $parser::compile($this->token());
+        $rule = $parser::compile($this->getToken());
         $this->_regex = $rule[0];
         $this->_variables = $rule[1];
     }
@@ -223,28 +205,28 @@ class Host
 
         $hostVariables = [];
 
-        $anyHost = $this->pattern() === '*' || $host === '*';
-        $anyScheme = $this->scheme() === '*' || $scheme === '*';
+        $anyHost = $this->getPattern() === '*' || $host === '*';
+        $anyScheme = $this->getScheme() === '*' || $scheme === '*';
 
 
         if ($anyHost) {
-            if ($this->variables()) {
-                $hostVariables = array_fill_keys(array_keys($this->variables()), null);
+            if ($this->getVariables()) {
+                $hostVariables = array_fill_keys(array_keys($this->getVariables()), null);
             }
-            return $anyScheme || $this->scheme() === $scheme;
+            return $anyScheme || $this->getScheme() === $scheme;
         }
 
-        if (!$anyScheme && $this->scheme() !== $scheme) {
+        if (!$anyScheme && $this->getScheme() !== $scheme) {
             return false;
         }
 
-        if (!preg_match('~^' . $this->regex() . '$~', $host, $matches)) {
+        if (!preg_match('~^' . $this->getRegex() . '$~', $host, $matches)) {
             $hostVariables = null;
             return false;
         }
         $i = 0;
 
-        foreach ($this->variables() as $name => $pattern) {
+        foreach ($this->getVariables() as $name => $pattern) {
             $hostVariables[$name] = $matches[++$i];
         }
         return true;
@@ -258,7 +240,7 @@ class Host
      *                       - `'scheme'`   _string_ : The scheme. - `'host'`     _string_
      *                       : The host name.
      *
-     * @return string          The link.
+     * @return string The link.
      */
     public function link($params = [], $options = []): string
     {
@@ -268,7 +250,7 @@ class Host
         $options += $defaults;
 
         if (!isset($options['host'])) {
-            $options['host'] = $this->_link($this->token(), $params);
+            $options['host'] = $this->_link($this->getToken(), $params);
         }
 
         $scheme = $options['scheme'] !== '*' ? $options['scheme'] . '://' : '//';

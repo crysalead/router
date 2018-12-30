@@ -71,11 +71,9 @@ describe("Router", function() {
 
             $route = $r->route('foo/bar', 'POST');
             expect($route->methods())->toBe(['POST', 'PUT']);
-            expect($route->error())->not->toBe(Route::NOT_FOUND);
 
             $route = $r->route('foo/bar', 'PUT');
             expect($route->methods())->toBe(['POST', 'PUT']);
-            expect($route->error())->not->toBe(Route::NOT_FOUND);
 
             try {
                 $route = $r->route('bar/foo', 'GET');
@@ -91,11 +89,9 @@ describe("Router", function() {
 
             $route = $r->route('foo/bar', 'post');
             expect($route->methods())->toBe(['POST', 'PUT']);
-            expect($route->error())->not->toBe(Route::NOT_FOUND);
 
             $route = $r->route('foo/bar', 'put');
             expect($route->methods())->toBe(['POST', 'PUT']);
-            expect($route->error())->not->toBe(Route::NOT_FOUND);
 
             try {
                 $route = $r->route('bar/foo', 'GET');
@@ -398,11 +394,11 @@ describe("Router", function() {
             $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function() {});
 
             $route = $r->route('foo/25', 'GET', 'foo.biz.bar');
-            expect($route->host()->pattern())->toBe('foo.{domain}.bar');
+            expect($route->host()->getPattern())->toBe('foo.{domain}.bar');
             expect($route->params)->toBe(['domain' => 'biz', 'var1' => '25']);
 
             $route = $r->route('foo/50', 'GET', 'foo.buz.baz');
-            expect($route->host()->pattern())->toBe('foo.{domain}.baz');
+            expect($route->host()->getPattern())->toBe('foo.{domain}.baz');
             expect($route->params)->toBe(['domain' => 'buz', 'var1' => '50']);
 
         });
@@ -429,11 +425,11 @@ describe("Router", function() {
             $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function() {});
 
             $route = $r->route('http://foo.biz.bar/foo/25', 'GET');
-            expect($route->host()->pattern())->toBe('foo.{domain}.bar');
+            expect($route->host()->getPattern())->toBe('foo.{domain}.bar');
             expect($route->params)->toBe(['domain' => 'biz', 'var1' => '25']);
 
             $route = $r->route('http://foo.buz.baz/foo/50', 'GET');
-            expect($route->host()->pattern())->toBe('foo.{domain}.baz');
+            expect($route->host()->getPattern())->toBe('foo.{domain}.baz');
             expect($route->params)->toBe(['domain' => 'buz', 'var1' => '50']);
 
         });

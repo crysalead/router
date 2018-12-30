@@ -11,30 +11,12 @@ use Lead\Router\Exception\RouterException;
  */
 class Route
 {
-    const FOUND = 0;
-
-    const NOT_FOUND = 404;
-
     /**
      * Class dependencies.
      *
      * @var array
      */
     protected $_classes = [];
-
-    /**
-     * The route's error.
-     *
-     * @var integer
-     */
-    protected $_error = 0;
-
-    /**
-     * The route's message.
-     *
-     * @var string
-     */
-    protected $_message = 'OK';
 
     /**
      * Route's name.
@@ -166,24 +148,22 @@ class Route
     public function __construct($config = [])
     {
         $defaults = [
-        'error' => static::FOUND,
-        'message' => 'OK',
-        'scheme' => '*',
-        'host' => null,
-        'methods' => '*',
-        'prefix' => '',
-        'pattern' => '',
-        'name' => '',
-        'namespace' => '',
-        'handler' => null,
-        'params' => [],
-        'persist' => [],
-        'scope' => null,
-        'middleware' => [],
-        'classes' => [
-        'parser' => 'Lead\Router\Parser',
-        'host' => 'Lead\Router\Host'
-        ]
+            'scheme' => '*',
+            'host' => null,
+            'methods' => '*',
+            'prefix' => '',
+            'pattern' => '',
+            'name' => '',
+            'namespace' => '',
+            'handler' => null,
+            'params' => [],
+            'persist' => [],
+            'scope' => null,
+            'middleware' => [],
+            'classes' => [
+                'parser' => 'Lead\Router\Parser',
+                'host' => 'Lead\Router\Host'
+            ]
         ];
         $config += $defaults;
 
@@ -205,8 +185,6 @@ class Route
 
         $this->_scope = $config['scope'];
         $this->_middleware = (array)$config['middleware'];
-        $this->_error = $config['error'];
-        $this->_message = $config['message'];
 
         $this->setPattern($config['pattern']);
     }
@@ -343,48 +321,6 @@ class Route
         $this->_scope = $scope;
 
         return $this;
-    }
-
-    /**
-     * Gets the routing error number
-     *
-     * @return int
-     */
-    public function getError(): int
-    {
-        return $this->_error;
-    }
-
-    /**
-     * Gets the routing error number.
-     *
-     * @deprecated Use getError() instead
-     * @return     integer The routing error number.
-     */
-    public function error()
-    {
-        return $this->getError();
-    }
-
-    /**
-     * Gets the routing error message
-     *
-     * @return string
-     */
-    public function getErrorMessage(): string
-    {
-        return $this->_message;
-    }
-
-    /**
-     * Gets the routing error message.
-     *
-     * @deprecated use getErrorMessage() instead
-     * @return     string The routing error message.
-     */
-    public function message()
-    {
-        return $this->getErrorMessage();
     }
 
     /**
@@ -585,7 +521,7 @@ class Route
 
         $path = '/' . trim($path, '/');
 
-        if (!preg_match('~^' . $this->regex() . '$~', $path, $matches)) {
+        if (!preg_match('~^' . $this->getRegex() . '$~', $path, $matches)) {
             return false;
         }
         $variables = $this->_buildVariables($matches);
@@ -643,9 +579,6 @@ class Route
      */
     public function dispatch($response = null)
     {
-        if ($error = $this->getError()) {
-            throw new RouterException($this->message(), $error);
-        }
         $this->response = $response;
         $request = $this->request;
 
@@ -714,10 +647,10 @@ class Route
     public function link(array $params = [], array $options = []): string
     {
         $defaults = [
-        'absolute' => false,
-        'basePath' => '',
-        'query' => '',
-        'fragment' => ''
+            'absolute' => false,
+            'basePath' => '',
+            'query' => '',
+            'fragment' => ''
         ];
 
         $options = array_filter(
@@ -758,9 +691,9 @@ class Route
      *
      * @param  array $token  The token structure array.
      * @param  array $params The route parameters.
-     * @return string           The URL path representation of the token structure array.
+     * @return string The URL path representation of the token structure array.
      */
-    protected function _link($token, $params)
+    protected function _link(array $token, array $params): string
     {
         $link = '';
         foreach ($token['tokens'] as $child) {

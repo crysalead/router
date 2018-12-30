@@ -11,9 +11,9 @@ describe("Host", function() {
         it("gets/sets the scheme", function() {
 
             $host = new Host();
-            expect($host->scheme())->toBe('*');
-            expect($host->scheme('https'))->toBe($host);
-            expect($host->scheme())->toBe('https');
+            expect($host->getScheme())->toBe('*');
+            expect($host->setScheme('https'))->toBe($host);
+            expect($host->getScheme())->toBe('https');
 
         });
 
@@ -24,11 +24,11 @@ describe("Host", function() {
         it("gets/sets the pattern", function() {
 
             $host = new Host();
-            expect($host->pattern())->toBe('*');
-            expect($host->pattern('foo.{domain}.bar'))->toBe($host);
-            expect($host->pattern())->toBe('foo.{domain}.bar');
-            expect($host->regex())->toBe('foo\\.([^.]+)\\.bar');
-            expect($host->variables())->toBe([
+            expect($host->getPattern())->toBe('*');
+            expect($host->setPattern('foo.{domain}.bar'))->toBe($host);
+            expect($host->getPattern())->toBe('foo.{domain}.bar');
+            expect($host->getRegex())->toBe('foo\\.([^.]+)\\.bar');
+            expect($host->getVariables())->toBe([
                 'domain'    => false
             ]);
 
@@ -37,23 +37,23 @@ describe("Host", function() {
         it("updates the regex", function() {
 
             $host = new Host();
-            expect($host->pattern('foo.{domain}.bar'))->toBe($host);
-            expect($host->regex())->toBe('foo\\.([^.]+)\\.bar');
+            expect($host->setPattern('foo.{domain}.bar'))->toBe($host);
+            expect($host->getRegex())->toBe('foo\\.([^.]+)\\.bar');
 
-            expect($host->pattern('foo.{domain}.baz'))->toBe($host);
-            expect($host->regex())->toBe('foo\\.([^.]+)\\.baz');
+            expect($host->setPattern('foo.{domain}.baz'))->toBe($host);
+            expect($host->getRegex())->toBe('foo\\.([^.]+)\\.baz');
         });
 
         it("updates the variables", function() {
 
             $host = new Host();
-            expect($host->pattern('foo.{domain}.bar'))->toBe($host);
-            expect($host->variables())->toBe([
+            expect($host->setPattern('foo.{domain}.bar'))->toBe($host);
+            expect($host->getVariables())->toBe([
                 'domain'    => false
             ]);
 
-            expect($host->pattern('foo.{baz}.bar'))->toBe($host);
-            expect($host->variables())->toBe([
+            expect($host->setPattern('foo.{baz}.bar'))->toBe($host);
+            expect($host->getVariables())->toBe([
                 'baz'    => false
             ]);
         });
