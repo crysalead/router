@@ -201,14 +201,24 @@ class Route
         }
 
         $this->host($config['host'], $config['scheme']);
-        $this->methods($config['methods']);
+        $this->setMethods($config['methods']);
 
         $this->_scope = $config['scope'];
         $this->_middleware = (array)$config['middleware'];
         $this->_error = $config['error'];
         $this->_message = $config['message'];
 
-        $this->pattern($config['pattern']);
+        $this->setPattern($config['pattern']);
+    }
+
+    /**
+     * Gets the routes name
+     *
+     * @return string
+     */
+    public function getName(): string
+    {
+        return $this->name;
     }
 
     /**
@@ -223,11 +233,13 @@ class Route
         if (!func_num_args()) {
             return $this->_host;
         }
+
         if (!is_string($host)) {
             $this->_host = $host;
 
             return $this;
         }
+
         if ($host !== '*' || $scheme !== '*') {
             $class = $this->_classes['host'];
             $this->_host = new $class(['scheme' => $scheme, 'pattern' => $host]);
@@ -293,16 +305,41 @@ class Route
     }
 
     /**
+     * Gets the routes Scope
+     *
+     * @return \Lead\Router\Scope
+     */
+    public function getScope(): ?Scope
+    {
+        return $this->_scope;
+    }
+
+    /**
+     * Sets a routes scope
+     *
+     * @param  \Lead\Router\Scope|null $scope Scope
+     * @return $this;
+     */
+    public function setScope(array $scope): self
+    {
+        $this->_scope = $scope;
+
+        return $this;
+    }
+
+    /**
      * Gets/sets the route scope.
      *
-     * @param  object $scope The scope instance to set or none to get the setted one.
-     * @return object|self        The current scope on get or `$this` on set.
+     * @deprecated Use getScope() and setScope() instead
+     * @param      object $scope The scope instance to set or none to get the setted one.
+     * @return     object|self        The current scope on get or `$this` on set.
      */
-    public function scope($scope = null)
+    public function scope(?Scope $scope = null)
     {
-        if (!func_num_args()) {
-            return $this->_scope;
+        if ($scope === null) {
+            return $this->getScope();
         }
+
         $this->_scope = $scope;
 
         return $this;
@@ -383,7 +420,8 @@ class Route
     /**
      * Gets the route's pattern.
      *
-     * @return string The route's pattern.
+     * @deprecated Use setPattern() and getPattern() instead.
+     * @return     string The route's pattern.
      */
     public function pattern(?string $pattern = null)
     {
@@ -398,7 +436,7 @@ class Route
      *
      * @return array A collection route's token structure.
      */
-    public function getToken()
+    public function getToken(): array
     {
         if ($this->_token === null) {
             $parser = $this->_classes['parser'];
@@ -410,13 +448,14 @@ class Route
 
         return $this->_token;
     }
+
     /**
      * Returns the route's token structures.
      *
      * @deprecated Use getToken() instead
      * @return     array A collection route's token structure.
      */
-    public function token()
+    public function token(): array
     {
         return $this->getToken();
     }
@@ -427,7 +466,7 @@ class Route
      * @deprecated Use getRegex() instead
      * @return     string the route's regular expression pattern.
      */
-    public function regex()
+    public function regex(): string
     {
         return $this->getRegex();
     }
@@ -436,7 +475,7 @@ class Route
      *
      * @return string the route's regular expression pattern.
      */
-    public function getRegex()
+    public function getRegex(): string
     {
         if ($this->_regex !== null) {
             return $this->_regex;
@@ -451,7 +490,7 @@ class Route
      *
      * @return array The route's variables and their associated pattern.
      */
-    public function getVariables()
+    public function getVariables(): array
     {
         if ($this->_variables !== null) {
             return $this->_variables;
@@ -466,7 +505,7 @@ class Route
      * @deprecated use getVariables() instead
      * @return     array The route's variables and their associated pattern.
      */
-    public function variables()
+    public function variables(): array
     {
         return $this->getVariables();
     }
@@ -477,7 +516,7 @@ class Route
     protected function _compile()
     {
         $parser = $this->_classes['parser'];
-        $rule = $parser::compile($this->token());
+        $rule = $parser::compile($this->getToken());
         $this->_regex = $rule[0];
         $this->_variables = $rule[1];
     }
@@ -509,8 +548,8 @@ class Route
      * Gets/sets the route's handler.
      *
      * @deprecated Use getHandler() and setHandler() instead
-     * @param  array $handler The route handler.
-     * @return array|self
+     * @param      array $handler The route handler.
+     * @return     array|self
      */
     public function handler($handler = null)
     {
@@ -527,7 +566,7 @@ class Route
      * @param  array $request a request.
      * @return boolean
      */
-    public function match($request, &$variables = null, &$hostVariables = null)
+    public function match($request, &$variables = null, &$hostVariables = null): bool
     {
         $hostVariables = [];
 
@@ -562,13 +601,13 @@ class Route
      * @param  array $values   The matched values.
      * @return array           The route's variables.
      */
-    protected function _buildVariables($values)
+    protected function _buildVariables(array $values): array
     {
         $variables = [];
         $parser = $this->_classes['parser'];
 
         $i = 1;
-        foreach ($this->variables() as $name => $pattern) {
+        foreach ($this->getVariables() as $name => $pattern) {
             if (!isset($values[$i])) {
                 $variables[$name] = !$pattern ? null : [];
                 continue;
@@ -604,7 +643,7 @@ class Route
      */
     public function dispatch($response = null)
     {
-        if ($error = $this->error()) {
+        if ($error = $this->getError()) {
             throw new RouterException($this->message(), $error);
         }
         $this->response = $response;
@@ -672,7 +711,7 @@ class Route
      *                        fragment string.
      * @return string          The link.
      */
-    public function link($params = [], $options = [])
+    public function link(array $params = [], array $options = []): string
     {
         $defaults = [
         'absolute' => false,
@@ -690,7 +729,7 @@ class Route
 
         $params = $params + $this->params;
 
-        $link = $this->_link($this->token(), $params);
+        $link = $this->_link($this->getToken(), $params);
 
         $basePath = trim($options['basePath'], '/');
         if ($basePath) {

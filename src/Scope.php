@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace Lead\Router;
 
+/**
+ * Scope
+ */
 class Scope
 {
     /**
@@ -66,9 +69,9 @@ class Scope
      * Creates a new sub scope based on the instance scope.
      *
      * @param  array $options The route options to scopify.
-     * @return object          The new sub scope.
+     * @return $this          The new sub scope.
      */
-    public function seed($options)
+    public function seed(array $options): self
     {
         return new static(
             [
@@ -85,7 +88,7 @@ class Scope
      * @param  array $options The options to scope.
      * @return array          The scoped options.
      */
-    public function scopify($options)
+    public function scopify(array $options): array
     {
         $scope = $this->_scope;
 

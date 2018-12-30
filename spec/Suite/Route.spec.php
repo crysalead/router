@@ -1,6 +1,7 @@
 <?php
 namespace Lead\Router\Spec\Suite;
 
+use Lead\Router\Scope;
 use stdClass;
 use Lead\Router\Exception\RouterException;
 use Lead\Router\Router;
@@ -58,7 +59,7 @@ describe("Route", function() {
 
         it("gets/sets route scope", function() {
 
-            $scope = new stdClass();
+            $scope = new Scope();
             $route = new Route();
             expect($route->scope($scope))->toBe($route);
             expect($route->scope())->toBe($scope);

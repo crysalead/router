@@ -76,7 +76,7 @@ EOD;
      * @param string                                           $delimiter The path delimiter.
      * @param array             The tokens structure root node.
      */
-    public static function tokenize($pattern, $delimiter = '/')
+    public static function tokenize(string $pattern, string $delimiter = '/'): array
     {
         // Checks if the pattern has some optional segments.
         if (count(preg_split('~' . static::PLACEHOLDER_REGEX . '(*SKIP)(*F)|\[~x', $pattern)) > 1) {
@@ -100,7 +100,7 @@ EOD;
      * @param string                                         $delimiter The path delimiter.
      * @param array             An array of tokens structure.
      */
-    protected static function _tokenizePattern($pattern, $delimiter, &$variable = null)
+    protected static function _tokenizePattern(string $pattern, string $delimiter, &$variable = null): array
     {
         $tokens = [];
         $index = 0;
@@ -139,7 +139,7 @@ EOD;
      * @param string                                         $delimiter The path delimiter.
      * @param array             An array of tokens structure.
      */
-    protected static function _tokenizeSegment($pattern, $delimiter, &$variable = null)
+    protected static function _tokenizeSegment($pattern, $delimiter, &$variable = null): array
     {
         $tokens = [];
         $index = 0;
@@ -186,10 +186,11 @@ EOD;
      *
      * Unfortunately recursive regex matcher can't help here so this function is required.
      *
-     * @param string                               $pattern A route pattern.
-     * @param array           The splitted pattern.
+     * @param  string                               $pattern A route pattern.
+     * @param  array           The splitted pattern.
+     * @return array
      */
-    public static function split($pattern)
+    public static function split(string $pattern): array
     {
         $segments = [];
         $len = strlen($pattern);
@@ -246,7 +247,7 @@ EOD;
      * @param  array $token A tokens structure root node.
      * @return array        An array containing the regex pattern and its associated variable names.
      */
-    public static function compile($token)
+    public static function compile($token): array
     {
         $variables = [];
         $regex = '';

@@ -3,21 +3,27 @@ declare(strict_types=1);
 
 namespace Lead\Router;
 
+use ArrayAccess;
 use Closure;
-use Psr\Http\Message\RequestInterface;
-use Lead\Router\Exception\ParseException;
+use Countable;
+use Iterator;
+use Lead\Router\Exception\ParserException;
 use Lead\Router\Exception\RouterException;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use RuntimeException;
 
 /**
  * The Router class.
  */
-class Router implements \ArrayAccess, \Iterator, \Countable
+class Router implements ArrayAccess, Iterator, Countable, RouteInterface
 {
 
     protected $_skipNext;
 
     protected $_data = [];
+
+    protected $_pattern = [];
 
     /**
      * Class dependencies.
@@ -94,14 +100,20 @@ class Router implements \ArrayAccess, \Iterator, \Countable
                 'scope'      => 'Lead\Router\Scope'
             ]
         ];
+
         $config += $defaults;
         $this->_classes = $config['classes'];
         $this->_strategies = $config['strategies'];
-        $this->_defaultHandler = $config['defaultHandler'];
+        $this->setDefaultHandler($config['defaultHandler']);
         $this->setBasePath($config['basePath']);
 
         $scope = $this->_classes['scope'];
         $this->_scopes[] = new $scope(['router' => $this]);
+    }
+
+    public function setDefaultHandler($handler)
+    {
+        $this->_defaultHandler = $handler;
     }
 
     /**
@@ -280,6 +292,7 @@ class Router implements \ArrayAccess, \Iterator, \Countable
     /**
      * Routes a Request.
      *
+     * @todo   Remove none PSR7 requests
      * @param  mixed $request The request to route.
      * @return object          A route matching the request or a "route not found" route.
      */
@@ -305,11 +318,13 @@ class Router implements \ArrayAccess, \Iterator, \Countable
             if (method_exists($request, 'basePath')) {
                 $this->setBasePath($request->basePath());
             }
+            // @todo Remove non PSR7 requests
         } elseif (!is_array($request)) {
             $r = array_combine(array_keys($defaults), func_get_args() + array_values($defaults));
         } else {
             $r = $request + $defaults;
         }
+
         $r = $this->_normalizeRequest($r);
 
         if ($route = $this->_route($r)) {
@@ -405,7 +420,8 @@ class Router implements \ArrayAccess, \Iterator, \Countable
     /**
      * Adds a middleware to the list of middleware.
      *
-     * @param object|Closure A callable middleware.
+     * @param  object|Closure A callable middleware.
+     * @return $this
      */
     public function apply($middleware)
     {
@@ -417,7 +433,11 @@ class Router implements \ArrayAccess, \Iterator, \Countable
     }
 
     /**
+     * Sets a dispatcher strategy
      *
+     * @param  string   $name    Name
+     * @param  callable $handler Handler
+     * @return $this
      */
     public function setStrategy(string $name, callable $handler)
     {
@@ -437,7 +457,7 @@ class Router implements \ArrayAccess, \Iterator, \Countable
             return $this->_strategies[$name];
         }
 
-        throw new \RuntimeException(sprintf('Strategy `%s` not found.', $name));
+        throw new RuntimeException(sprintf('Strategy `%s` not found.', $name));
     }
 
     /**
@@ -454,7 +474,7 @@ class Router implements \ArrayAccess, \Iterator, \Countable
             return $this;
         }
 
-        throw new \RuntimeException(sprintf('Strategy `%s` not found.', $name));
+        throw new RuntimeException(sprintf('Strategy `%s` not found.', $name));
     }
 
     /**
@@ -468,17 +488,21 @@ class Router implements \ArrayAccess, \Iterator, \Countable
     public function strategy($name, $handler = null)
     {
         if (func_num_args() === 1) {
-            if (!isset($this->_strategies[$name])) {
-                return;
+            try {
+                return $this->getStrategy($name);
+            } catch (RuntimeException $e) {
+                return null;
             }
-
-            return $this->_strategies[$name];
         }
+
         if ($handler === false) {
-            unset($this->_strategies[$name]);
-
-            return;
+            try {
+                return $this->unsetStrategy($name);
+            } catch (RuntimeException $e) {
+                return null;
+            }
         }
+
         if (!$handler instanceof Closure && !method_exists($handler, '__invoke')) {
             throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
         }
@@ -499,6 +523,7 @@ class Router implements \ArrayAccess, \Iterator, \Countable
 
             return call_user_func_array($strategy, $params);
         }
+
         if (is_callable($params[1])) {
             $params[2] = $params[1];
             $params[1] = [];
@@ -523,10 +548,10 @@ class Router implements \ArrayAccess, \Iterator, \Countable
      *
      * @return string          The link.
      */
-    public function link($name, $params = [], $options = [])
+    public function link(string $name, array $params = [], array $options = []): string
     {
         $defaults = [
-        'basePath' => $this->basePath()
+            'basePath' => $this->getBasePath()
         ];
         $options += $defaults;
 

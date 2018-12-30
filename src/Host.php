@@ -6,7 +6,7 @@ namespace Lead\Router;
 use Lead\Router\Exception\RouterException;
 
 /**
- * The Route class.
+ * Defines a Host Pattern to match
  */
 class Host
 {
@@ -73,23 +73,46 @@ class Host
 
         $this->_classes = $config['classes'];
 
-        $this->scheme($config['scheme']);
+        $this->setScheme($config['scheme']);
         $this->pattern($config['pattern']);
+    }
+
+    /**
+     * Sets the scheme
+     *
+     * @return $this
+     */
+    public function setScheme(string $scheme)
+    {
+        $this->_scheme = $scheme;
+
+        return $this;
+    }
+
+    /**
+     * Gets the scheme
+     *
+     * @return string|null
+     */
+    public function getScheme(): ?string
+    {
+        return $this->_scheme;
     }
 
     /**
      * Get/sets the host's scheme.
      *
-     * @param  string $scheme The scheme on set or none to get the setted one.
-     * @return string|self         The scheme on get or `$this` on set.
+     * @deprecated Use getScheme() and setScheme();
+     * @param      string $scheme The scheme on set or none to get the setted one.
+     * @return     string|self         The scheme on get or `$this` on set.
      */
-    public function scheme($scheme = null)
+    public function scheme(?string $scheme = null)
     {
-        if (!func_num_args()) {
-            return $this->_scheme;
+        if ($scheme === null) {
+            return $this->getScheme();
         }
-        $this->_scheme = $scheme;
-        return $this;
+
+        return $this->setScheme($scheme);
     }
 
     /**
@@ -132,13 +155,25 @@ class Host
      *
      * @return string the route's regular expression pattern.
      */
-    public function regex()
+    public function getRegex(): string
     {
         if ($this->_regex !== null) {
             return $this->_regex;
         }
         $this->_compile();
+
         return $this->_regex;
+    }
+
+    /**
+     * Gets the route's regular expression pattern.
+     *
+     * @deprecated Use getRegex() instead
+     * @return string the route's regular expression pattern.
+     */
+    public function regex(): string
+    {
+        return $this->getRegex();
     }
 
     /**
@@ -176,7 +211,7 @@ class Host
      * @param  string $hostVariables The matches host variables
      * @return boolean                Returns `true` on success, false otherwise.
      */
-    public function match($request, &$hostVariables = null)
+    public function match($request, &$hostVariables = null): bool
     {
         $defaults = [
             'host'   => '*',
@@ -225,10 +260,10 @@ class Host
      *
      * @return string          The link.
      */
-    public function link($params = [], $options = [])
+    public function link($params = [], $options = []): string
     {
         $defaults = [
-            'scheme'   => $this->scheme()
+            'scheme'   => $this->getScheme()
         ];
         $options += $defaults;
 
@@ -245,9 +280,9 @@ class Host
      *
      * @param  array $token  The token structure array.
      * @param  array $params The route parameters.
-     * @return string           The URL path representation of the token structure array.
+     * @return string The URL path representation of the token structure array.
      */
-    protected function _link($token, $params)
+    protected function _link($token, $params): string
     {
         $link = '';
         foreach ($token['tokens'] as $child) {
