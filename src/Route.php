@@ -200,6 +200,16 @@ class Route
     }
 
     /**
+     * Gets the host
+     *
+     * @return mixed
+     */
+    public function getHost(): ?Host
+    {
+        return $this->_host;
+    }
+
+    /**
      * Gets/sets the route host.
      *
      * @param  object $host   The host instance to set or none to get the set one.
@@ -208,8 +218,8 @@ class Route
      */
     public function host($host = null, string $scheme = '*')
     {
-        if (!func_num_args()) {
-            return $this->_host;
+        if ($host === null) {
+            return $this->getHost();
         }
 
         if (!is_string($host)) {
@@ -249,22 +259,6 @@ class Route
         $this->_methods = array_fill_keys($methods, true);
 
         return $this;
-    }
-
-    /**
-     * Gets/sets the allowed methods.
-     *
-     * @deprecated Use setMethods() and getMethods() instead.
-     * @param      string|array $allowedMethods The allowed methods set or none to get the setted one.
-     * @return     array|self                   The allowed methods on get or `$this` on set.
-     */
-    public function methods($methods = null)
-    {
-        if (!func_num_args()) {
-            return $this->getMethods();
-        }
-
-        return $this->setMethods($methods);
     }
 
     /**
@@ -354,20 +348,6 @@ class Route
     }
 
     /**
-     * Gets the route's pattern.
-     *
-     * @deprecated Use setPattern() and getPattern() instead.
-     * @return     string The route's pattern.
-     */
-    public function pattern(?string $pattern = null)
-    {
-        if ($pattern === null) {
-            return $this->getPattern();
-        }
-
-        return $this->setPattern($pattern);
-    }
-    /**
      * Returns the route's token structures.
      *
      * @return array A collection route's token structure.
@@ -385,27 +365,6 @@ class Route
         return $this->_token;
     }
 
-    /**
-     * Returns the route's token structures.
-     *
-     * @deprecated Use getToken() instead
-     * @return     array A collection route's token structure.
-     */
-    public function token(): array
-    {
-        return $this->getToken();
-    }
-
-    /**
-     * Gets the route's regular expression pattern.
-     *
-     * @deprecated Use getRegex() instead
-     * @return     string the route's regular expression pattern.
-     */
-    public function regex(): string
-    {
-        return $this->getRegex();
-    }
     /**
      * Gets the route's regular expression pattern.
      *
@@ -434,16 +393,6 @@ class Route
         $this->_compile();
 
         return $this->_variables;
-    }
-    /**
-     * Gets the route's variables and their associated pattern in case of array variables.
-     *
-     * @deprecated use getVariables() instead
-     * @return     array The route's variables and their associated pattern.
-     */
-    public function variables(): array
-    {
-        return $this->getVariables();
     }
 
     /**

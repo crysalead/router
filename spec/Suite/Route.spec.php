@@ -16,10 +16,10 @@ describe("Route", function() {
         it("gets/sets the pattern", function() {
 
             $route = new Route();
-            expect($route->pattern('/foo/bar/{id}[/{paths}]*'))->toBe($route);
-            expect($route->pattern())->toBe('/foo/bar/{id}[/{paths}]*');
-            expect($route->regex())->toBe('/foo/bar/([^/]+)((?:/[^/]+)*)');
-            expect($route->variables())->toBe([
+            expect($route->setPattern('/foo/bar/{id}[/{paths}]*'))->toBe($route);
+            expect($route->getPattern())->toBe('/foo/bar/{id}[/{paths}]*');
+            expect($route->getRegex())->toBe('/foo/bar/([^/]+)((?:/[^/]+)*)');
+            expect($route->getVariables())->toBe([
                 'id'    => false,
                 'paths' => '/{paths}'
             ]);
@@ -29,25 +29,25 @@ describe("Route", function() {
         it("updates the regex", function() {
 
             $route = new Route();
-            expect($route->pattern('/foo/bar/{id}[/{paths}]*'))->toBe($route);
-            expect($route->regex())->toBe('/foo/bar/([^/]+)((?:/[^/]+)*)');
+            expect($route->setPattern('/foo/bar/{id}[/{paths}]*'))->toBe($route);
+            expect($route->getRegex())->toBe('/foo/bar/([^/]+)((?:/[^/]+)*)');
 
-            expect($route->pattern('/foo/baz/{id}[/{paths}]*'))->toBe($route);
-            expect($route->regex())->toBe('/foo/baz/([^/]+)((?:/[^/]+)*)');
+            expect($route->setPattern('/foo/baz/{id}[/{paths}]*'))->toBe($route);
+            expect($route->getRegex())->toBe('/foo/baz/([^/]+)((?:/[^/]+)*)');
 
         });
 
         it("updates the variables", function() {
 
             $route = new Route();
-            expect($route->pattern('/foo/bar/{id}[/{paths}]*'))->toBe($route);
-            expect($route->variables())->toBe([
+            expect($route->setPattern('/foo/bar/{id}[/{paths}]*'))->toBe($route);
+            expect($route->getVariables())->toBe([
                 'id'    => false,
                 'paths' => '/{paths}'
             ]);
 
-            expect($route->pattern('/foo/bar/{baz}[/{paths}]'))->toBe($route);
-            expect($route->variables())->toBe([
+            expect($route->setPattern('/foo/bar/{baz}[/{paths}]'))->toBe($route);
+            expect($route->getVariables())->toBe([
                 'baz'   => false,
                 'paths' => false
             ]);
@@ -63,7 +63,7 @@ describe("Route", function() {
             $scope = new Scope();
             $route = new Route();
             expect($route->scope($scope))->toBe($route);
-            expect($route->scope())->toBe($scope);
+            expect($route->getScope())->toBe($scope);
 
         });
 
@@ -74,16 +74,16 @@ describe("Route", function() {
         it("gets/sets route methods", function() {
 
             $route = new Route();
-            expect($route->methods(['POST', 'PUT']))->toBe($route);
-            expect($route->methods())->toBe(['POST', 'PUT']);
+            expect($route->setMethods(['POST', 'PUT']))->toBe($route);
+            expect($route->getMethods())->toBe(['POST', 'PUT']);
 
         });
 
         it("formats method names", function() {
 
             $route = new Route();
-            expect($route->methods(['post', 'put']))->toBe($route);
-            expect($route->methods())->toBe(['POST', 'PUT']);
+            expect($route->setMethods(['post', 'put']))->toBe($route);
+            expect($route->getMethods())->toBe(['POST', 'PUT']);
 
         });
 
@@ -95,7 +95,7 @@ describe("Route", function() {
 
             $route = new Route(['methods' => []]);
             expect($route->allow(['POST', 'PUT']))->toBe($route);
-            expect($route->methods())->toBe(['POST', 'PUT']);
+            expect($route->getMethods())->toBe(['POST', 'PUT']);
 
         });
 
@@ -103,7 +103,7 @@ describe("Route", function() {
 
             $route = new Route(['methods' => []]);
             expect($route->allow(['post', 'put']))->toBe($route);
-            expect($route->methods())->toBe(['POST', 'PUT']);
+            expect($route->getMethods())->toBe(['POST', 'PUT']);
 
         });
 

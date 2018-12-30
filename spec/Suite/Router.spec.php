@@ -70,10 +70,10 @@ describe("Router", function() {
             $r->bind('foo/bar', ['methods' => ['POST', 'PUT']], function () {});
 
             $route = $r->route('foo/bar', 'POST');
-            expect($route->methods())->toBe(['POST', 'PUT']);
+            expect($route->getMethods())->toBe(['POST', 'PUT']);
 
             $route = $r->route('foo/bar', 'PUT');
-            expect($route->methods())->toBe(['POST', 'PUT']);
+            expect($route->getMethods())->toBe(['POST', 'PUT']);
 
             try {
                 $route = $r->route('bar/foo', 'GET');
@@ -88,10 +88,10 @@ describe("Router", function() {
             $r->bind('foo/bar', ['methods' => ['POST', 'PUT']], function () {});
 
             $route = $r->route('foo/bar', 'post');
-            expect($route->methods())->toBe(['POST', 'PUT']);
+            expect($route->getMethods())->toBe(['POST', 'PUT']);
 
             $route = $r->route('foo/bar', 'put');
-            expect($route->methods())->toBe(['POST', 'PUT']);
+            expect($route->getMethods())->toBe(['POST', 'PUT']);
 
             try {
                 $route = $r->route('bar/foo', 'GET');
@@ -448,25 +448,25 @@ describe("Router", function() {
             $methods = ['OPTIONS', 'DELETE', 'PATCH', 'PUT', 'POST', 'HEAD', 'GET'];
 
             $route = $r->route('foo/bar', 'GET');
-            expect($route->methods())->toBe($methods);
+            expect($route->getMethods())->toBe($methods);
 
             $route = $r->route('foo/bar', 'HEAD');
-            expect($route->methods())->toBe($methods);
+            expect($route->getMethods())->toBe($methods);
 
             $route = $r->route('foo/bar', 'POST');
-            expect($route->methods())->toBe($methods);
+            expect($route->getMethods())->toBe($methods);
 
             $route = $r->route('foo/bar', 'PUT');
-            expect($route->methods())->toBe($methods);
+            expect($route->getMethods())->toBe($methods);
 
             $route = $r->route('foo/bar', 'PATCH');
-            expect($route->methods())->toBe($methods);
+            expect($route->getMethods())->toBe($methods);
 
             $route = $r->route('foo/bar', 'DELETE');
-            expect($route->methods())->toBe($methods);
+            expect($route->getMethods())->toBe($methods);
 
             $route = $r->route('foo/bar', 'OPTIONS');
-            expect($route->methods())->toBe($methods);
+            expect($route->getMethods())->toBe($methods);
 
         });
 
@@ -493,7 +493,7 @@ describe("Router", function() {
             $r->get('foo/bar', function () { return 'GET'; });
 
             $route = $r->route('foo/bar', 'HEAD');
-            expect($route->methods())->toBe(['GET']);
+            expect($route->getMethods())->toBe(['GET']);
 
         });
 
@@ -505,7 +505,7 @@ describe("Router", function() {
             $r->get('foo/bar', function () { return 'GET'; });
 
             $route = $r->route('foo/bar', 'HEAD');
-            expect($route->methods())->toBe(['GET', 'HEAD']);
+            expect($route->getMethods())->toBe(['GET', 'HEAD']);
 
         });
 
@@ -840,7 +840,7 @@ describe("Router", function() {
 
             $r->mystrategy();
             $route = $r->route('foo/bar');
-            expect($route->pattern())->toBe('/foo/bar');
+            expect($route->getPattern())->toBe('/foo/bar');
 
         });
 
