@@ -142,6 +142,13 @@ class Route implements RouteInterface
     protected $_middleware = [];
 
     /**
+     * Attributes
+     *
+     * @var array
+     */
+    protected $_attributes = [];
+
+    /**
      * Constructs a route
      *
      * @param array $config The config array.
@@ -181,6 +188,38 @@ class Route implements RouteInterface
         $this->setPattern($config['pattern']);
 
         $this->_middleware = (array)$config['middleware'];
+    }
+
+    /**
+     * Sets a route attribute
+     *
+     * This method can be used to set arbitrary date attributes to a route.
+     *
+     * @param string $name Name
+     * @param mixed $value Value
+     * @return \Lead\Router\RouteInterface
+     */
+    public function setAttribute($name, $value): RouteInterface
+    {
+        if (isset($this->_attributes[$name])) {
+            return $this->_attributes[$name];
+        }
+        return $this;
+    }
+
+    /**
+     * Gets a route attribute
+     *
+     * @param string $name Attribute name
+     * @return mixed
+     */
+    public function getAttribute(string $name)
+    {
+        if (isset($this->_attributes[$name])) {
+            return $this->_attributes[$name];
+        }
+
+        return null;
     }
 
     /**
