@@ -92,7 +92,7 @@ class Route implements RouteInterface
     /**
      * Route's prefix.
      *
-     * @var array
+     * @var string
      */
     protected $_prefix = '';
 
@@ -168,26 +168,88 @@ class Route implements RouteInterface
         ];
         $config += $defaults;
 
-        $this->name = $config['name'];
-        $this->namespace = $config['namespace'];
-        $this->params = $config['params'];
-        $this->persist = $config['persist'];
-        $this->setHandler($config['handler']);
-
         $this->_classes = $config['classes'];
-
-        $this->_prefix = trim($config['prefix'], '/');
-        if ($this->_prefix) {
-            $this->_prefix = '/' . $this->_prefix;
-        }
-
-        $this->host($config['host'], $config['scheme']);
+        $this->setNamespace($config['namespace']);
+        $this->setName($config['name']);
+        $this->setParams($config['params']);
+        $this->setPersistentParams($config['persist']);
+        $this->setHandler($config['handler']);
+        $this->setPrefix($config['prefix']);
+        $this->setHost($config['host'], $config['scheme']);
         $this->setMethods($config['methods']);
-
         $this->setScope($config['scope']);
-        $this->_middleware = (array)$config['middleware'];
-
         $this->setPattern($config['pattern']);
+
+        $this->_middleware = (array)$config['middleware'];
+    }
+
+    /**
+     * Sets namespace
+     *
+     * @param string $namespace Namespace
+     * @return self
+     */
+    public function setNamespace(string $namespace): self
+    {
+        $this->namespace = $namespace;
+
+        return $this;
+    }
+
+    /**
+     * Get namespace
+     *
+     * @return string
+     */
+    public function getNamespace(): string
+    {
+        return $this->namespace;
+    }
+
+    /**
+     * Sets params
+     *
+     * @param array $params Params
+     * @return self
+     */
+    public function setParams(array $params): self
+    {
+        $this->params = $params;
+
+        return $this;
+    }
+
+    /**
+     * Get parameters
+     *
+     * @return array
+     */
+    public function getParams(): array
+    {
+        return $this->params;
+    }
+
+    /**
+     * Sets persistent params
+     *
+     * @param array $params Params
+     * @return self
+     */
+    public function setPersistentParams(array $params): self
+    {
+        $this->persist = $params;
+
+        return $this;
+    }
+
+    /**
+     * Get persistent parameters
+     *
+     * @return array
+     */
+    public function getPersistentParams(): array
+    {
+        return $this->persist;
     }
 
     /**
@@ -201,6 +263,45 @@ class Route implements RouteInterface
     }
 
     /**
+     * Sets the routes name
+     *
+     * @param string $name Name
+     * @return self
+     */
+    public function setName(string $name): RouteInterface
+    {
+        $this->name = $name;
+
+        return $this;
+    }
+
+    /**
+     * Gets the prefix
+     *
+     * @return string
+     */
+    public function getPrefix(): string
+    {
+        return $this->_prefix;
+    }
+
+    /**
+     * Sets the routes prefix
+     *
+     * @param string $prefix Prefix
+     * @return self
+     */
+    public function setPrefix(string $prefix): RouteInterface
+    {
+        $this->_prefix = trim($prefix, '/');
+        if ($this->_prefix) {
+            $this->_prefix = '/' . $this->_prefix;
+        }
+
+        return $this;
+    }
+
+    /**
      * Gets the host
      *
      * @return mixed
@@ -211,19 +312,19 @@ class Route implements RouteInterface
     }
 
     /**
-     * Gets/sets the route host.
+     * Sets the route host.
      *
-     * @param  object $host   The host instance to set or none to get the set one.
+     * @param  object $host The host instance to set or none to get the set one.
      * @param  string $scheme HTTP Scheme
      * @return object|self       The current host on get or `$this` on set.
      */
-    public function host($host = null, string $scheme = '*')
+    public function setHost($host = null, string $scheme = '*')
     {
-        if ($host === null) {
-            return $this->getHost();
+        if (!is_string($host) && $host instanceof Host && $host !== null) {
+            throw new InvalidArgumentException();
         }
 
-        if (!is_string($host)) {
+        if ($host instanceof Host || $host === null) {
             $this->_host = $host;
 
             return $this;
@@ -232,7 +333,10 @@ class Route implements RouteInterface
         if ($host !== '*' || $scheme !== '*') {
             $class = $this->_classes['host'];
             $this->_host = new $class(['scheme' => $scheme, 'pattern' => $host]);
+            return $this;
         }
+
+        $this->_host = null;
 
         return $this;
     }
@@ -426,7 +530,7 @@ class Route implements RouteInterface
     {
         $hostVariables = [];
 
-        if (($host = $this->host()) && !$host->match($request, $hostVariables)) {
+        if (($host = $this->getHost()) && !$host->match($request, $hostVariables)) {
             return false;
         }
 
@@ -594,7 +698,7 @@ class Route implements RouteInterface
         $fragment = $options['fragment'] ? '#' . $options['fragment'] : '';
 
         if ($options['absolute']) {
-            if ($host = $this->host()) {
+            if ($host = $this->getHost()) {
                 $link = $host->link($params, $options) . "{$link}";
             } else {
                 $scheme = !empty($options['scheme']) ? $options['scheme'] . '://' : '//';

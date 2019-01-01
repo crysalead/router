@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 namespace Lead\Router\Spec\Suite;
 
 use Lead\Router\Exception\RouterException;

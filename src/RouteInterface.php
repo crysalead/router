@@ -9,6 +9,21 @@ namespace Lead\Router;
 interface RouteInterface
 {
     /**
+     * Gets the routes name
+     *
+     * @return string
+     */
+    public function getName(): string;
+
+    /**
+     * Sets the routes name
+     *
+     * @param string $name Name
+     * @return self
+     */
+    public function setName(string $name): self;
+
+    /**
      * Checks if the route instance matches a request.
      *
      * @param  array $request a request.

@@ -19,11 +19,19 @@ use RuntimeException;
  */
 class Router implements ArrayAccess, Iterator, Countable, RouterInterface
 {
-
+    /**
+     * @var bool
+     */
     protected $_skipNext;
 
+    /**
+     * @var array
+     */
     protected $_data = [];
 
+    /**
+     * @var array
+     */
     protected $_pattern = [];
 
     /**
@@ -112,9 +120,17 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
         $this->_scopes[] = new $scope(['router' => $this]);
     }
 
-    public function setDefaultHandler($handler)
+    /**
+     * Sets the default handler for routes
+     *
+     * @param mixed $handler
+     * @return $this
+     */
+    public function setDefaultHandler($handler): self
     {
         $this->_defaultHandler = $handler;
+
+        return $this;
     }
 
     /**
@@ -143,7 +159,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     /**
      * Pops the current router scope context.
      *
-     * @return object The poped scope instance.
+     * @return object The popped scope instance.
      */
     public function popScope()
     {
@@ -234,7 +250,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
         } else {
             $route = $this->_classes['route'];
             $instance = new $route($options);
-            $this->_hosts[$scheme][$host] = $instance->host();
+            $this->_hosts[$scheme][$host] = $instance->getHost();
         }
 
         if (!isset($this->_pattern[$scheme][$host][$pattern])) {
@@ -291,6 +307,25 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     }
 
     /**
+     *
+     */
+    protected function _getRequestInformation(ServerRequestInterface $request): array
+    {
+        $uri = $request->getUri();
+
+        if (method_exists($request, 'basePath')) {
+            $this->setBasePath($request->basePath());
+        }
+
+        return [
+            'scheme' => $uri->getScheme(),
+            'host' => $uri->getHost(),
+            'method' => $request->getMethod(),
+            'path' => $uri->getPath()
+        ];
+    }
+
+    /**
      * Routes a Request.
      *
      * @todo   Remove none PSR7 requests
@@ -300,26 +335,16 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     public function route($request): Route
     {
         $defaults = [
-        'path' => '',
-        'method' => 'GET',
-        'host' => '*',
-        'scheme' => '*'
+            'path' => '',
+            'method' => 'GET',
+            'host' => '*',
+            'scheme' => '*'
         ];
 
         $this->_defaults = [];
 
         if ($request instanceof ServerRequestInterface) {
-            $uri = $request->getUri();
-            $r = [
-            'scheme' => $uri->getScheme(),
-            'host' => $uri->getHost(),
-            'method' => $request->getMethod(),
-            'path' => $uri->getPath()
-            ];
-            if (method_exists($request, 'basePath')) {
-                $this->setBasePath($request->basePath());
-            }
-            // @todo Remove non PSR7 requests
+            $r = $this->_getRequestInformation($request);
         } elseif (!is_array($request)) {
             $r = array_combine(array_keys($defaults), func_get_args() + array_values($defaults));
         } else {
@@ -328,19 +353,20 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
 
         $r = $this->_normalizeRequest($r);
 
-        if ($route = $this->_route($r)) {
+        $route = $this->_route($r);
+        if ($route instanceof RouteInterface) {
             $route->request = is_object($request) ? $request : $r;
-            foreach ($route->persist as $key) {
+            foreach ($route->getPersistentParams() as $key) {
                 if (isset($route->params[$key])) {
                     $this->_defaults[$key] = $route->params[$key];
                 }
             }
-        } else {
-            $message = "No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:/{$r['path']}`.";
-            throw new RouteNotFoundException($message);
+
+            return $route;
         }
 
-        return $route;
+        $message = "No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:/{$r['path']}`.";
+        throw new RouteNotFoundException($message);
     }
 
     /**
@@ -349,7 +375,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * @param  array $request The request to normalize.
      * @return array          The normalized request.
      */
-    protected function _normalizeRequest($request)
+    protected function _normalizeRequest(array $request): array
     {
         if (preg_match('~^(?:[a-z]+:)?//~i', $request['path'])) {
             $parsed = array_intersect_key(parse_url($request['path']), $request);
@@ -365,8 +391,9 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * Routes a request.
      *
      * @param array $request The request to route.
+     * @return null|\Lead\Router\RouteInterface
      */
-    protected function _route($request)
+    protected function _route($request): ?RouteInterface
     {
         $path = $request['path'];
         $httpMethod = $request['method'];
@@ -402,6 +429,8 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
                 }
             }
         }
+
+        return null;
     }
 
     /**

@@ -3,14 +3,17 @@ declare(strict_types=1);
 
 namespace Lead\Router;
 
+/**
+ * Router Interface
+ */
 interface RouterInterface
 {
     /**
      * Adds a route.
      *
-     * @param  string|array  $pattern The route's pattern.
-     * @param  Closure|array $options An array of options or the callback handler.
-     * @param  Closure|null  $handler The callback handler.
+     * @param  string|array $pattern The route's pattern.
+     * @param  callable|array $options An array of options or the callback handler.
+     * @param  callable|null $handler The callback handler.
      * @return self
      */
     public function bind($pattern, $options = [], $handler = null);
