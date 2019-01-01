@@ -47,7 +47,7 @@ use Lead\Router\Exception\ParserException;
  * ]
  * ```
  */
-class Parser
+class Parser implements ParserInterface
 {
 
     /**
@@ -137,9 +137,9 @@ EOD;
      * Tokenizes segments which are patterns with optional segments filtered out.
      * Only classic placeholder are supported.
      *
-     * @param string                                         $pattern   A route pattern with no optional segments.
-     * @param string                                         $delimiter The path delimiter.
-     * @param array             An array of tokens structure.
+     * @param string $pattern   A route pattern with no optional segments.
+     * @param string $delimiter The path delimiter.
+     * @param array  An array of tokens structure.
      * @return array
      */
     protected static function _tokenizeSegment($pattern, $delimiter, &$variable = null): array
@@ -181,6 +181,7 @@ EOD;
 
     /**
      * Splits a pattern in segments and patterns.
+     *
      * segments will be represented by string value and patterns by an array containing
      * the string pattern as first value and the greedy value as second value.
      *
@@ -189,8 +190,8 @@ EOD;
      *
      * Unfortunately recursive regex matcher can't help here so this function is required.
      *
-     * @param  string                               $pattern A route pattern.
-     * @param  array           The splitted pattern.
+     * @param string $pattern A route pattern.
+     * @param array The split  pattern.
      * @return array
      */
     public static function split(string $pattern): array
@@ -241,6 +242,7 @@ EOD;
         if ($opened) {
             throw ParserException::squareBracketMismatch();
         }
+
         return $segments;
     }
 
@@ -248,7 +250,7 @@ EOD;
      * Builds a regex from a tokens structure array.
      *
      * @param  array $token A tokens structure root node.
-     * @return array        An array containing the regex pattern and its associated variable names.
+     * @return array An array containing the regex pattern and its associated variable names.
      */
     public static function compile($token): array
     {

@@ -16,7 +16,7 @@ interface RouterInterface
      * @param  callable|null $handler The callback handler.
      * @return self
      */
-    public function bind($pattern, $options = [], $handler = null);
+    public function bind($pattern, $options = [], $handler = null): RouteInterface;
 
     /**
      * Gets the base path
@@ -33,6 +33,14 @@ interface RouterInterface
      * @return $this
      */
     public function setBasePath(string $basePath);
+
+    /**
+     * Routes a Request.
+     *
+     * @param mixed $request The request to route.
+     * @return \Lead\Router\RouteInterface A route matching the request or a "route not found" route.
+     */
+    public function route($request): RouteInterface;
 
     /**
      * Returns a route's link.

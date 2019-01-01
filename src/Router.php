@@ -126,7 +126,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * @param mixed $handler
      * @return $this
      */
-    public function setDefaultHandler($handler): self
+    public function setDefaultHandler($handler): RouterInterface
     {
         $this->_defaultHandler = $handler;
 
@@ -136,9 +136,9 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     /**
      * Returns the current router scope.
      *
-     * @return object The current scope instance.
+     * @return \Lead\Router\ScopeInterface The current scope instance.
      */
-    public function scope()
+    public function scope(): ScopeInterface
     {
         return end($this->_scopes);
     }
@@ -149,7 +149,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * @param  object $scope A scope instance.
      * @return self
      */
-    public function pushScope($scope)
+    public function pushScope($scope): RouterInterface
     {
         $this->_scopes[] = $scope;
 
@@ -159,9 +159,9 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     /**
      * Pops the current router scope context.
      *
-     * @return object The popped scope instance.
+     * @return \Lead\Router\ScopeInterface The popped scope instance.
      */
-    public function popScope()
+    public function popScope(): ScopeInterface
     {
         return array_pop($this->_scopes);
     }
@@ -215,7 +215,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * @param  Closure|null  $handler The callback handler.
      * @return self
      */
-    public function bind($pattern, $options = [], $handler = null)
+    public function bind($pattern, $options = [], $handler = null): RouteInterface
     {
         if (!is_array($options)) {
             $handler = $options;
@@ -278,7 +278,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * @param  string|array  $prefix  The group's prefix pattern or the options array.
      * @param  Closure|array $options An array of options or the callback handler.
      * @param  Closure|null  $handler The callback handler.
-     * @return object                 The newly created scope instance.
+     * @return \Lead\Router\ScopeInterface The newly created scope instance.
      */
     public function group($prefix, $options, $handler = null)
     {
@@ -307,7 +307,10 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     }
 
     /**
+     * Gets information required for routing from a server request
      *
+     * @param \Psr\Http\Message\ServerRequestInterface $request Server Request
+     * @return array
      */
     protected function _getRequestInformation(ServerRequestInterface $request): array
     {
@@ -328,11 +331,10 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     /**
      * Routes a Request.
      *
-     * @todo   Remove none PSR7 requests
-     * @param  mixed $request The request to route.
-     * @return object A route matching the request or a "route not found" route.
+     * @param mixed $request The request to route.
+     * @return \Lead\Router\RouteInterface A route matching the request or a "route not found" route.
      */
-    public function route($request): Route
+    public function route($request): RouteInterface
     {
         $defaults = [
             'path' => '',
@@ -411,12 +413,14 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             if (!isset($allowedSchemes[$scheme])) {
                 continue;
             }
+
             foreach ($hostBasedRoutes as $routeHost => $methodBasedRoutes) {
                 foreach ($methodBasedRoutes as $method => $routes) {
                     if (!isset($allowedMethods[$method]) && $httpMethod !== '*') {
                         continue;
                     }
                     foreach ($routes as $route) {
+                        /* @var $route \Lead\Router\RouteInterface */
                         if (!$route->match($request, $variables, $hostVariables)) {
                             if ($hostVariables === null) {
                                 continue 3;

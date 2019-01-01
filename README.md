@@ -12,6 +12,7 @@
  * Nested routes
  * Custom dispatching strategy
  * Advanced route pattern syntax
+ * No other dependencies than PSR standards
 
 ## Installation
 

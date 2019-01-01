@@ -58,6 +58,8 @@ interface RouteInterface
      * Checks if the route instance matches a request.
      *
      * @param  array $request a request.
+     * @param array|null $variables Variables
+     * @param array|null $hostVariables Host variables
      * @return boolean
      */
     public function match($request, &$variables = null, &$hostVariables = null): bool;
