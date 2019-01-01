@@ -316,9 +316,9 @@ class Route implements RouteInterface
      *
      * @param  object $host The host instance to set or none to get the set one.
      * @param  string $scheme HTTP Scheme
-     * @return object|self       The current host on get or `$this` on set.
+     * @return $this The current host on get or `$this` on set.
      */
-    public function setHost($host = null, string $scheme = '*')
+    public function setHost($host = null, string $scheme = '*'): RouteInterface
     {
         if (!is_string($host) && $host instanceof Host && $host !== null) {
             throw new InvalidArgumentException();
@@ -333,6 +333,7 @@ class Route implements RouteInterface
         if ($host !== '*' || $scheme !== '*') {
             $class = $this->_classes['host'];
             $this->_host = new $class(['scheme' => $scheme, 'pattern' => $host]);
+
             return $this;
         }
 
@@ -397,7 +398,7 @@ class Route implements RouteInterface
      * @param  \Lead\Router\Scope|null $scope Scope
      * @return $this;
      */
-    public function setScope(?Scope $scope): self
+    public function setScope(?Scope $scope): RouteInterface
     {
         $this->_scope = $scope;
 

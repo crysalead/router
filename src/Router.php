@@ -543,6 +543,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      *
      * @param string $name   The HTTP verb to define a route on.
      * @param array  $params The route's parameters.
+     * @return mixed
      */
     public function __call($name, $params)
     {

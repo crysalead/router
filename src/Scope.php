@@ -6,7 +6,7 @@ namespace Lead\Router;
 /**
  * Scope
  */
-class Scope
+class Scope implements ScopeInterface
 {
     /**
      * The router instance.
@@ -71,7 +71,7 @@ class Scope
      * @param  array $options The route options to scopify.
      * @return $this          The new sub scope.
      */
-    public function seed(array $options): self
+    public function seed(array $options): ScopeInterface
     {
         return new static(
             [

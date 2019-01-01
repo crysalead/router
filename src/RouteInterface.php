@@ -21,7 +21,38 @@ interface RouteInterface
      * @param string $name Name
      * @return self
      */
-    public function setName(string $name): self;
+    public function setName(string $name): RouteInterface;
+
+    /**
+     * Gets the host
+     *
+     * @return mixed
+     */
+    public function getHost(): ?Host;
+
+    /**
+     * Sets the route host.
+     *
+     * @param  object $host The host instance to set or none to get the set one.
+     * @param  string $scheme HTTP Scheme
+     * @return object|self       The current host on get or `$this` on set.
+     */
+    public function setHost($host = null, string $scheme = '*'): RouteInterface;
+
+    /**
+     * Gets the routes Scope
+     *
+     * @return \Lead\Router\Scope
+     */
+    public function getScope(): ?Scope;
+
+    /**
+     * Sets a routes scope
+     *
+     * @param  \Lead\Router\Scope|null $scope Scope
+     * @return $this;
+     */
+    public function setScope(?Scope $scope): RouteInterface;
 
     /**
      * Checks if the route instance matches a request.

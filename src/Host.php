@@ -8,7 +8,7 @@ use Lead\Router\Exception\RouterException;
 /**
  * Defines a Host Pattern to match
  */
-class Host
+class Host implements HostInterface
 {
     /**
      * Class dependencies.
@@ -131,7 +131,7 @@ class Host
      *
      * @return array A collection route's token structure.
      */
-    public function getToken()
+    protected function getToken()
     {
         if ($this->_token === null) {
             $parser = $this->_classes['parser'];
