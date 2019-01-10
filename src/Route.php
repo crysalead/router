@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Lead\Router;
 
 use Closure;
+use Generator;
 use InvalidArgumentException;
 use Lead\Router\Exception\RouterException;
 use RuntimeException;
@@ -692,7 +693,7 @@ class Route implements RouteInterface
      * Dispatches the route.
      *
      * @param  mixed $response The outgoing response.
-     * @return mixed           The handler return value.
+     * @return mixed The handler return value.
      */
     public function dispatch($response = null)
     {
@@ -714,9 +715,9 @@ class Route implements RouteInterface
     /**
      * Middleware generator.
      *
-     * @return callable
+     * @return \Generator
      */
-    public function middleware()
+    public function middleware(): Generator
     {
         foreach ($this->_middleware as $middleware) {
             yield $middleware;
@@ -731,6 +732,9 @@ class Route implements RouteInterface
 
         yield function () {
             $handler = $this->getHandler();
+            if ($handler === null) {
+                return null;
+            }
 
             return $handler($this, $this->response);
         };

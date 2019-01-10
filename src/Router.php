@@ -259,11 +259,15 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             $handler = $options;
             $options = [];
         }
+
         if (empty($handler) && !empty($this->_defaultHandler)) {
             $handler = $this->_defaultHandler;
         }
-        if (!$handler instanceof Closure && !method_exists($handler, '__invoke')) {
-            throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
+
+        if ($handler !== null) {
+            if (!$handler instanceof Closure && !method_exists($handler, '__invoke')) {
+                throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
+            }
         }
 
         if (isset($options['method'])) {
