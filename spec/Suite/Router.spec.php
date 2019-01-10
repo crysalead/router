@@ -3,11 +3,13 @@ declare(strict_types=1);
 
 namespace Lead\Router\Spec\Suite;
 
+use Kahlan\Plugin\Double;
 use Lead\Router\Exception\RouteNotFoundException;
 use Lead\Router\Exception\RouterException;
 use Lead\Router\Router;
 use Lead\Router\Route;
-use Lead\Net\Http\Cgi\Request;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\UriInterface;
 
 describe("Router", function() {
 
@@ -527,10 +529,18 @@ describe("Router", function() {
         });
 
         it("supports requests as an object", function() {
-
             $r = $this->router;
             $r->bind('foo/bar', function () {});
-            $request = new Request(['path' =>'foo/bar']);
+
+            $request = Double::instance(['implements' => ServerRequestInterface::class]);
+            $uri = Double::instance(['implements' => UriInterface::class]);
+
+            allow($request)->toReceive('basePath')->andReturn('/');
+            allow($uri)->toReceive('getScheme')->andReturn('http');
+            allow($uri)->toReceive('getHost')->andReturn('');
+            allow($uri)->toReceive('getPath')->andReturn('foo/bar');
+            allow($request)->toReceive('getMethod')->andReturn('GET');
+            allow($request)->toReceive('getUri')->andReturn($uri);
 
             $route = $r->route($request, 'GET');
             expect($route->request)->toBe($request);
