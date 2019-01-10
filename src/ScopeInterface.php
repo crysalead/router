@@ -20,7 +20,7 @@ interface ScopeInterface
      * Scopes an options array according to the instance scope data.
      *
      * @param  array $options The options to scope.
-     * @return array          The scoped options.
+     * @return array The scoped options.
      */
     public function scopify(array $options): array;
 }

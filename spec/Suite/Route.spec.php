@@ -9,7 +9,6 @@ use stdClass;
 use Lead\Router\Exception\RouterException;
 use Lead\Router\Router;
 use Lead\Router\Route;
-use Lead\Net\Http\Cgi\Request;
 
 describe("Route", function() {
 

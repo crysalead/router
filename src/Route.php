@@ -6,12 +6,20 @@ namespace Lead\Router;
 use Closure;
 use InvalidArgumentException;
 use Lead\Router\Exception\RouterException;
+use RuntimeException;
 
 /**
  * The Route class.
  */
 class Route implements RouteInterface
 {
+    /**
+     * Valid HTTP methods.
+     *
+     * @var array
+     */
+    const VALID_METHODS = ['GET', 'PUT', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
+
     /**
      * Class dependencies.
      *
@@ -155,6 +163,43 @@ class Route implements RouteInterface
      */
     public function __construct($config = [])
     {
+        $config = $this->getDefaultConfig($config);
+
+        $this->_classes = $config['classes'];
+        $this->setNamespace($config['namespace']);
+        $this->setName($config['name']);
+        $this->setParams($config['params']);
+        $this->setPersistentParams($config['persist']);
+        $this->setHandler($config['handler']);
+        $this->setPrefix($config['prefix']);
+        $this->setHost($config['host'], $config['scheme']);
+        $this->setMethods($config['methods']);
+        $this->setScope($config['scope']);
+        $this->setPattern($config['pattern']);
+        $this->setMiddleware((array)$config['middleware']);
+    }
+
+    /**
+     * Sets the middlewares
+     *
+     * @param array $middleware Middlewares
+     * @return \Lead\Router\Route
+     */
+    public function setMiddleware(array $middleware)
+    {
+        $this->_middleware = (array)$middleware;
+
+        return $this;
+    }
+
+    /**
+     * Gets the default config
+     *
+     * @param array $config Values to merge
+     * @return array
+     */
+    protected function getDefaultConfig($config = []): array
+    {
         $defaults = [
             'scheme' => '*',
             'host' => null,
@@ -175,19 +220,7 @@ class Route implements RouteInterface
         ];
         $config += $defaults;
 
-        $this->_classes = $config['classes'];
-        $this->setNamespace($config['namespace']);
-        $this->setName($config['name']);
-        $this->setParams($config['params']);
-        $this->setPersistentParams($config['persist']);
-        $this->setHandler($config['handler']);
-        $this->setPrefix($config['prefix']);
-        $this->setHost($config['host'], $config['scheme']);
-        $this->setMethods($config['methods']);
-        $this->setScope($config['scope']);
-        $this->setPattern($config['pattern']);
-
-        $this->_middleware = (array)$config['middleware'];
+        return $config;
     }
 
     /**
@@ -345,7 +378,7 @@ class Route implements RouteInterface
      *
      * @return mixed
      */
-    public function getHost(): ?Host
+    public function getHost(): ?HostInterface
     {
         return $this->_host;
     }
@@ -353,9 +386,9 @@ class Route implements RouteInterface
     /**
      * Sets the route host.
      *
-     * @param  object $host The host instance to set or none to get the set one.
-     * @param  string $scheme HTTP Scheme
-     * @return $this The current host on get or `$this` on set.
+     * @param string|\Lead\Router\HostInterface $host The host instance to set or none to get the set one
+     * @param string $scheme HTTP Scheme
+     * @return $this The current host on get or `$this` on set
      */
     public function setHost($host = null, string $scheme = '*'): RouteInterface
     {
@@ -363,7 +396,7 @@ class Route implements RouteInterface
             throw new InvalidArgumentException();
         }
 
-        if ($host instanceof Host || $host === null) {
+        if ($host instanceof HostInterface || $host === null) {
             $this->_host = $host;
 
             return $this;
@@ -371,7 +404,11 @@ class Route implements RouteInterface
 
         if ($host !== '*' || $scheme !== '*') {
             $class = $this->_classes['host'];
-            $this->_host = new $class(['scheme' => $scheme, 'pattern' => $host]);
+            $host = new $class(['scheme' => $scheme, 'pattern' => $host]);
+            if (!$host instanceof HostInterface) {
+                throw new RuntimeException('Must be an instance of HostInterface');
+            }
+            $this->_host = $host;
 
             return $this;
         }
@@ -394,14 +431,22 @@ class Route implements RouteInterface
     /**
      * Sets methods
      *
-     * @param  array $methods
+     * @param  string|array $methods
      * @return $this
      */
     public function setMethods($methods): self
     {
         $methods = $methods ? (array)$methods : [];
         $methods = array_map('strtoupper', $methods);
-        $this->_methods = array_fill_keys($methods, true);
+        $methods = array_fill_keys($methods, true);
+
+        foreach ($methods as $method) {
+            if (!in_array($method, self::VALID_METHODS)) {
+                throw new InvalidArgumentException(sprintf('`%s` is not an allowed HTTP method', $method));
+            }
+        }
+
+        $this->_methods = $methods;
 
         return $this;
     }
@@ -416,7 +461,15 @@ class Route implements RouteInterface
     {
         $methods = $methods ? (array)$methods : [];
         $methods = array_map('strtoupper', $methods);
-        $this->_methods = array_fill_keys($methods, true) + $this->_methods;
+        $methods = array_fill_keys($methods, true) + $this->_methods;
+
+        foreach ($methods as $method) {
+            if (!in_array($method, self::VALID_METHODS)) {
+                throw new InvalidArgumentException(sprintf('`%s` is not an allowed HTTP method', $method));
+            }
+        }
+
+        $this->_methods = $methods;
 
         return $this;
     }
@@ -426,7 +479,7 @@ class Route implements RouteInterface
      *
      * @return \Lead\Router\Scope
      */
-    public function getScope(): ?Scope
+    public function getScope(): ?ScopeInterface
     {
         return $this->_scope;
     }
@@ -459,7 +512,7 @@ class Route implements RouteInterface
      *
      * @return $this
      */
-    public function setPattern(string $pattern): self
+    public function setPattern(string $pattern): RouteInterface
     {
         $this->_token = null;
         $this->_regex = null;
@@ -525,7 +578,7 @@ class Route implements RouteInterface
     /**
      * Compiles the route's patten.
      */
-    protected function _compile()
+    protected function _compile(): void
     {
         $parser = $this->_classes['parser'];
         $rule = $parser::compile($this->getToken());
@@ -549,7 +602,7 @@ class Route implements RouteInterface
      * @param mixed $handler The route handler.
      * @return self
      */
-    public function setHandler($handler)
+    public function setHandler($handler): RouteInterface
     {
         if (!is_callable($handler) && !is_string($handler) && $handler !== null) {
             throw new InvalidArgumentException('Handler must be a callable, string or null');
@@ -669,7 +722,8 @@ class Route implements RouteInterface
             yield $middleware;
         }
 
-        if ($scope = $this->getScope()) {
+        $scope = $this->getScope();
+        if ($scope !== null) {
             foreach ($scope->middleware() as $middleware) {
                 yield $middleware;
             }
@@ -686,6 +740,7 @@ class Route implements RouteInterface
      * Adds a middleware to the list of middleware.
      *
      * @param object|Closure A callable middleware.
+     * @return $this
      */
     public function apply($middleware)
     {
@@ -738,8 +793,8 @@ class Route implements RouteInterface
         $fragment = $options['fragment'] ? '#' . $options['fragment'] : '';
 
         if ($options['absolute']) {
-            if ($host = $this->getHost()) {
-                $link = $host->link($params, $options) . "{$link}";
+            if ($this->_host !== null) {
+                $link = $this->_host->link($params, $options) . "{$link}";
             } else {
                 $scheme = !empty($options['scheme']) ? $options['scheme'] . '://' : '//';
                 $host = isset($options['host']) ? $options['host'] : 'localhost';

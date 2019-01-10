@@ -28,7 +28,7 @@ interface RouteInterface
      *
      * @return mixed
      */
-    public function getHost(): ?Host;
+    public function getHost(): ?HostInterface;
 
     /**
      * Sets the route host.
@@ -44,7 +44,7 @@ interface RouteInterface
      *
      * @return \Lead\Router\Scope
      */
-    public function getScope(): ?Scope;
+    public function getScope(): ?ScopeInterface;
 
     /**
      * Sets a routes scope
@@ -53,6 +53,21 @@ interface RouteInterface
      * @return $this;
      */
     public function setScope(?Scope $scope): RouteInterface;
+
+    /**
+     * Gets the routes handler
+     *
+     * @return null|callable|\Closure
+     */
+    public function getHandler();
+
+    /**
+     * Gets/sets the route's handler.
+     *
+     * @param mixed $handler The route handler.
+     * @return self
+     */
+    public function setHandler($handler): RouteInterface;
 
     /**
      * Checks if the route instance matches a request.

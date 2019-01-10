@@ -130,29 +130,33 @@ class Scope implements ScopeInterface
     }
 
     /**
-     * Adds a middleware to the list of middleware.
+     * Adds a middleware to the list of middleware
      *
-     * @param object|Closure A callable middleware.
+     * @param object|\Closure A callable middleware
+     * @return \Lead\Router\ScopeInterface
      */
-    public function apply($middleware)
+    public function apply($middleware): ScopeInterface
     {
         foreach (func_get_args() as $mw) {
             array_unshift($this->_middleware, $mw);
         }
+
         return $this;
     }
 
     /**
-     * Delegates calls to the router instance.
+     * Delegates calls to the router instance
      *
-     * @param string $name   The method name.
-     * @param array  $params The parameters.
+     * @param string $name The method name
+     * @param array $params The parameters
+     * @return mixed
      */
-    public function __call($name, $params)
+    public function __call(string $name, array $params)
     {
         $this->_router->pushScope($this);
         $result = call_user_func_array([$this->_router, $name], $params);
         $this->_router->popScope();
+
         return $result;
     }
 }

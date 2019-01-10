@@ -208,6 +208,44 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     }
 
     /**
+     * Adds a route to the router
+     *
+     * @param \Lead\Router\RouteInterface $route Route object
+     * @return \Lead\Router\RouterInterface
+     */
+    public function addRoute(RouteInterface $route): RouterInterface {
+         $options['pattern'] = $pattern = $route->getPattern();
+         $options['handler'] = $route->getHandler();
+         $options['scope'] = $route->getScope();
+
+         $scheme = $options['scheme'];
+         $host = $options['host'];
+
+         if (isset($this->_hosts[$scheme][$host])) {
+             $options['host'] = $this->_hosts[$scheme][$host];
+         }
+
+         if (isset($this->_pattern[$scheme][$host][$pattern])) {
+             $route = $this->_pattern[$scheme][$host][$pattern];
+         } else {
+             $this->_hosts[$scheme][$host] = $route->getHost();
+         }
+
+         if (!isset($this->_pattern[$scheme][$host][$pattern])) {
+             $this->_pattern[$scheme][$host][$pattern] = $route;
+         }
+
+         $methods = $route->getMethods();
+         foreach ($methods as $method) {
+             $this->_routes[$scheme][$host][strtoupper($method)][] = $route;
+         }
+
+         $this->_data[$route->getName()] = $route;
+
+         return $this;
+    }
+
+    /**
      * Adds a route.
      *
      * @param  string|array  $pattern The route's pattern.
@@ -275,7 +313,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     /**
      * Groups some routes inside a new scope.
      *
-     * @param  string|array  $prefix  The group's prefix pattern or the options array.
+     * @param  string|array $prefix  The group's prefix pattern or the options array.
      * @param  Closure|array $options An array of options or the callback handler.
      * @param  Closure|null  $handler The callback handler.
      * @return \Lead\Router\ScopeInterface The newly created scope instance.
@@ -383,6 +421,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             $parsed = array_intersect_key(parse_url($request['path']), $request);
             $request = $parsed + $request;
         }
+
         $request['path'] = (ltrim((string)strtok($request['path'], '?'), '/'));
         $request['method'] = strtoupper($request['method']);
 
