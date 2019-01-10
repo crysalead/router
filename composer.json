@@ -1,7 +1,7 @@
 {
     "name": "crysalead/router",
     "description": "HTTP Request Router",
-    "keywords": ["Router"],
+    "keywords": ["Router", "Routing", "PSR", "PSR7"],
     "license": "MIT",
     "authors": [
         {
@@ -19,9 +19,8 @@
     },
     "require-dev": {
         "kahlan/kahlan": "~3.0",
-        "squizlabs/php_codesniffer": "^3.0",
-        "phpunit/phpunit": "^7.5",
-        "phpstan/phpstan": "^0.11.0"
+        "phpstan/phpstan": "^0.10.8",
+        "squizlabs/php_codesniffer": "^3.0"
     },
     "autoload": {
         "psr-4": {
@@ -35,7 +34,8 @@
         }
     },
     "config": {
-        "bin-dir": "bin"
+        "bin-dir": "bin",
+        "sort-packages": true
     },
-    "minimum-stability": "dev"
+    "minimum-stability": "stable"
 }
