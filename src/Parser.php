@@ -1,5 +1,9 @@
 <?php
+declare(strict_types=1);
+
 namespace Lead\Router;
+
+use Lead\Router\Exception\ParserException;
 
 /**
  * Parses route pattern.
@@ -43,7 +47,8 @@ namespace Lead\Router;
  * ]
  * ```
  */
-class Parser {
+class Parser implements ParserInterface
+{
 
     /**
      * Variable capturing block regex.
@@ -67,11 +72,12 @@ EOD;
     /**
      * Tokenizes a route pattern. Optional segments are identified by square brackets.
      *
-     * @param string $pattern   A route pattern
+     * @param string $pattern A route pattern
      * @param string $delimiter The path delimiter.
-     * @param array             The tokens structure root node.
+     * @param array The tokens structure root node.
+     * @return array
      */
-    public static function tokenize($pattern, $delimiter = '/')
+    public static function tokenize(string $pattern, string $delimiter = '/'): array
     {
         // Checks if the pattern has some optional segments.
         if (count(preg_split('~' . static::PLACEHOLDER_REGEX . '(*SKIP)(*F)|\[~x', $pattern)) > 1) {
@@ -93,9 +99,10 @@ EOD;
      *
      * @param string $pattern   A route pattern
      * @param string $delimiter The path delimiter.
-     * @param array             An array of tokens structure.
+     * @param array An array of tokens structure.
+     * @return array
      */
-    protected static function _tokenizePattern($pattern, $delimiter, &$variable = null)
+    protected static function _tokenizePattern(string $pattern, string $delimiter, &$variable = null): array
     {
         $tokens = [];
         $index = 0;
@@ -132,9 +139,10 @@ EOD;
      *
      * @param string $pattern   A route pattern with no optional segments.
      * @param string $delimiter The path delimiter.
-     * @param array             An array of tokens structure.
+     * @param array An array of tokens structure.
+     * @return array
      */
-    protected static function _tokenizeSegment($pattern, $delimiter, &$variable = null)
+    protected static function _tokenizeSegment($pattern, $delimiter, &$variable = null): array
     {
         $tokens = [];
         $index = 0;
@@ -173,6 +181,7 @@ EOD;
 
     /**
      * Splits a pattern in segments and patterns.
+     *
      * segments will be represented by string value and patterns by an array containing
      * the string pattern as first value and the greedy value as second value.
      *
@@ -182,9 +191,10 @@ EOD;
      * Unfortunately recursive regex matcher can't help here so this function is required.
      *
      * @param string $pattern A route pattern.
-     * @param array           The splitted pattern.
+     * @param array The split  pattern.
+     * @return array
      */
-    public static function split($pattern)
+    public static function split(string $pattern): array
     {
         $segments = [];
         $len = strlen($pattern);
@@ -232,16 +242,17 @@ EOD;
         if ($opened) {
             throw ParserException::squareBracketMismatch();
         }
+
         return $segments;
     }
 
     /**
      * Builds a regex from a tokens structure array.
      *
-     * @param  array $token A tokens structure root node.
-     * @return array        An array containing the regex pattern and its associated variable names.
+     * @param array $token A tokens structure root node.
+     * @return array An array containing the regex pattern and its associated variable names.
      */
-    public static function compile($token)
+    public static function compile($token): array
     {
         $variables = [];
         $regex = '';
