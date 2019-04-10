@@ -1,7 +1,8 @@
 # Router - HTTP Request Router
 
-[![Build Status](https://travis-ci.org/crysalead/router.svg?branch=master)](https://travis-ci.org/crysalead/router)
-[![Code Coverage](https://scrutinizer-ci.com/g/crysalead/router/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/crysalead/router/)
+[![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
+[![Scrutinizer Coverage](https://img.shields.io/scrutinizer/coverage/g/burzum/php-router/master.svg?style=flat-square)](https://scrutinizer-ci.com/g/burzum/php-router/)
+[![Code Quality](https://img.shields.io/scrutinizer/g/burzum/php-router/master.svg?style=flat-square)](https://scrutinizer-ci.com/g/burzum/php-router/)
 
 [Complete benchmark results can be found here.](https://github.com/jails/php-router-benchmark)
 
