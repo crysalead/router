@@ -1,7 +1,9 @@
 <?php
+declare(strict_types=1);
+
 namespace Lead\Router\Spec\Suite;
 
-use Lead\Router\ParserException;
+use Lead\Router\Exception\ParserException;
 use Lead\Router\Parser;
 
 describe("Parser", function() {

@@ -1,16 +1,25 @@
 <?php
+declare(strict_types=1);
+
 namespace Lead\Router;
 
 use Closure;
+use Generator;
+use InvalidArgumentException;
+use Lead\Router\Exception\RouterException;
+use RuntimeException;
 
 /**
  * The Route class.
  */
-class Route
+class Route implements RouteInterface
 {
-    const FOUND = 0;
-
-    const NOT_FOUND = 404;
+    /**
+     * Valid HTTP methods.
+     *
+     * @var array
+     */
+    const VALID_METHODS = ['GET', 'PUT', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
 
     /**
      * Class dependencies.
@@ -18,20 +27,6 @@ class Route
      * @var array
      */
     protected $_classes = [];
-
-    /**
-     * The route's error.
-     *
-     * @var integer
-     */
-    protected $_error = 0;
-
-    /**
-     * The route's message.
-     *
-     * @var string
-     */
-    protected $_message = 'OK';
 
     /**
      * Route's name.
@@ -85,14 +80,14 @@ class Route
     /**
      * The route scope.
      *
-     * @var array
+     * @var \Lead\Router\Scope|null
      */
     protected $_scope = null;
 
     /**
      * The route's host.
      *
-     * @var object
+     * @var \Lead\Router\Host
      */
     protected $_host = null;
 
@@ -106,7 +101,7 @@ class Route
     /**
      * Route's prefix.
      *
-     * @var array
+     * @var string
      */
     protected $_prefix = '';
 
@@ -156,156 +151,370 @@ class Route
     protected $_middleware = [];
 
     /**
+     * Attributes
+     *
+     * @var array
+     */
+    protected $_attributes = [];
+
+    /**
      * Constructs a route
      *
      * @param array $config The config array.
      */
     public function __construct($config = [])
     {
+        $config = $this->getDefaultConfig($config);
+
+        $this->_classes = $config['classes'];
+        $this->setNamespace($config['namespace']);
+        $this->setName($config['name']);
+        $this->setParams($config['params']);
+        $this->setPersistentParams($config['persist']);
+        $this->setHandler($config['handler']);
+        $this->setPrefix($config['prefix']);
+        $this->setHost($config['host'], $config['scheme']);
+        $this->setMethods($config['methods']);
+        $this->setScope($config['scope']);
+        $this->setPattern($config['pattern']);
+        $this->setMiddleware((array)$config['middleware']);
+    }
+
+    /**
+     * Sets the middlewares
+     *
+     * @param array $middleware Middlewares
+     * @return \Lead\Router\Route
+     */
+    public function setMiddleware(array $middleware)
+    {
+        $this->_middleware = (array)$middleware;
+
+        return $this;
+    }
+
+    /**
+     * Gets the default config
+     *
+     * @param array $config Values to merge
+     * @return array
+     */
+    protected function getDefaultConfig($config = []): array
+    {
         $defaults = [
-            'error'          => static::FOUND,
-            'message'        => 'OK',
-            'scheme'         => '*',
-            'host'           => null,
-            'methods'        => '*',
-            'prefix'         => '',
-            'pattern'        => '',
-            'name'           => '',
-            'namespace'      => '',
-            'handler'        => null,
-            'params'         => [],
-            'persist'        => [],
-            'scope'          => null,
-            'middleware'     => [],
-            'classes'        => [
+            'scheme' => '*',
+            'host' => null,
+            'methods' => '*',
+            'prefix' => '',
+            'pattern' => '',
+            'name' => '',
+            'namespace' => '',
+            'handler' => null,
+            'params' => [],
+            'persist' => [],
+            'scope' => null,
+            'middleware' => [],
+            'classes' => [
                 'parser' => 'Lead\Router\Parser',
-                'host'   => 'Lead\Router\Host'
+                'host' => 'Lead\Router\Host'
             ]
         ];
         $config += $defaults;
 
-        $this->name = $config['name'];
-        $this->namespace = $config['namespace'];
-        $this->params = $config['params'];
-        $this->persist = $config['persist'];
-        $this->handler($config['handler']);
+        return $config;
+    }
 
-        $this->_classes = $config['classes'];
+    /**
+     * Sets a route attribute
+     *
+     * This method can be used to set arbitrary date attributes to a route.
+     *
+     * @param string $name Name
+     * @param mixed $value Value
+     * @return \Lead\Router\RouteInterface
+     */
+    public function setAttribute($name, $value): RouteInterface
+    {
+        if (isset($this->_attributes[$name])) {
+            return $this->_attributes[$name];
+        }
+        return $this;
+    }
 
-        $this->_prefix = trim($config['prefix'], '/');
+    /**
+     * Gets a route attribute
+     *
+     * @param string $name Attribute name
+     * @return mixed
+     */
+    public function getAttribute(string $name)
+    {
+        if (isset($this->_attributes[$name])) {
+            return $this->_attributes[$name];
+        }
+
+        return null;
+    }
+
+    /**
+     * Sets namespace
+     *
+     * @param string $namespace Namespace
+     * @return self
+     */
+    public function setNamespace(string $namespace): self
+    {
+        $this->namespace = $namespace;
+
+        return $this;
+    }
+
+    /**
+     * Get namespace
+     *
+     * @return string
+     */
+    public function getNamespace(): string
+    {
+        return $this->namespace;
+    }
+
+    /**
+     * Sets params
+     *
+     * @param array $params Params
+     * @return self
+     */
+    public function setParams(array $params): self
+    {
+        $this->params = $params;
+
+        return $this;
+    }
+
+    /**
+     * Get parameters
+     *
+     * @return array
+     */
+    public function getParams(): array
+    {
+        return $this->params;
+    }
+
+    /**
+     * Sets persistent params
+     *
+     * @param array $params Params
+     * @return self
+     */
+    public function setPersistentParams(array $params): self
+    {
+        $this->persist = $params;
+
+        return $this;
+    }
+
+    /**
+     * Get persistent parameters
+     *
+     * @return array
+     */
+    public function getPersistentParams(): array
+    {
+        return $this->persist;
+    }
+
+    /**
+     * Gets the routes name
+     *
+     * @return string
+     */
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    /**
+     * Sets the routes name
+     *
+     * @param string $name Name
+     * @return self
+     */
+    public function setName(string $name): RouteInterface
+    {
+        $this->name = $name;
+
+        return $this;
+    }
+
+    /**
+     * Gets the prefix
+     *
+     * @return string
+     */
+    public function getPrefix(): string
+    {
+        return $this->_prefix;
+    }
+
+    /**
+     * Sets the routes prefix
+     *
+     * @param string $prefix Prefix
+     * @return self
+     */
+    public function setPrefix(string $prefix): RouteInterface
+    {
+        $this->_prefix = trim($prefix, '/');
         if ($this->_prefix) {
             $this->_prefix = '/' . $this->_prefix;
         }
 
-        $this->host($config['host'], $config['scheme']);
-        $this->methods($config['methods']);
-
-        $this->_scope = $config['scope'];
-        $this->_middleware = (array) $config['middleware'];
-        $this->_error = $config['error'];
-        $this->_message = $config['message'];
-
-        $this->pattern($config['pattern']);
+        return $this;
     }
 
     /**
-     * Gets/sets the route host.
+     * Gets the host
      *
-     * @param  object      $host The host instance to set or none to get the setted one.
-     * @return object|self       The current host on get or `$this` on set.
+     * @return mixed
      */
-    public function host($host = null, $scheme = '*')
+    public function getHost(): ?HostInterface
     {
-        if (!func_num_args()) {
-            return $this->_host;
+        return $this->_host;
+    }
+
+    /**
+     * Sets the route host.
+     *
+     * @param string|\Lead\Router\HostInterface $host The host instance to set or none to get the set one
+     * @param string $scheme HTTP Scheme
+     * @return $this The current host on get or `$this` on set
+     */
+    public function setHost($host = null, string $scheme = '*'): RouteInterface
+    {
+        if (!is_string($host) && $host instanceof Host && $host !== null) {
+            throw new InvalidArgumentException();
         }
-        if (!is_string($host)) {
+
+        if ($host instanceof HostInterface || $host === null) {
             $this->_host = $host;
+
             return $this;
         }
+
         if ($host !== '*' || $scheme !== '*') {
             $class = $this->_classes['host'];
-            $this->_host = new $class(['scheme' => $scheme, 'pattern' => $host]);
+            $host = new $class(['scheme' => $scheme, 'pattern' => $host]);
+            if (!$host instanceof HostInterface) {
+                throw new RuntimeException('Must be an instance of HostInterface');
+            }
+            $this->_host = $host;
+
+            return $this;
         }
+
+        $this->_host = null;
+
         return $this;
     }
 
     /**
-     * Gets/sets the allowed methods.
+     * Gets allowed methods
      *
-     * @param  string|array $allowedMethods The allowed methods set or none to get the setted one.
-     * @return array|self                   The allowed methods on get or `$this` on set.
+     * @return array
      */
-    public function methods($methods = null)
+    public function getMethods(): array
     {
-        if (!func_num_args()) {
-            return array_keys($this->_methods);
-        }
-        $methods = $methods ? (array) $methods : [];
+        return array_keys($this->_methods);
+    }
+
+    /**
+     * Sets methods
+     *
+     * @param  string|array $methods
+     * @return $this
+     */
+    public function setMethods($methods): self
+    {
+        $methods = $methods ? (array)$methods : [];
         $methods = array_map('strtoupper', $methods);
-        $this->_methods = array_fill_keys($methods, true);
+        $methods = array_fill_keys($methods, true);
+
+        foreach ($methods as $method) {
+            if (!in_array($method, self::VALID_METHODS)) {
+                throw new InvalidArgumentException(sprintf('`%s` is not an allowed HTTP method', $method));
+            }
+        }
+
+        $this->_methods = $methods;
+
         return $this;
     }
 
     /**
-     * Allows additionnal methods.
+     * Allows additional methods.
      *
      * @param  string|array $methods The methods to allow.
      * @return self
      */
     public function allow($methods = [])
     {
-        $methods = $methods ? (array) $methods : [];
+        $methods = $methods ? (array)$methods : [];
         $methods = array_map('strtoupper', $methods);
-        $this->_methods = array_fill_keys($methods, true) + $this->_methods;
+        $methods = array_fill_keys($methods, true) + $this->_methods;
+
+        foreach ($methods as $method) {
+            if (!in_array($method, self::VALID_METHODS)) {
+                throw new InvalidArgumentException(sprintf('`%s` is not an allowed HTTP method', $method));
+            }
+        }
+
+        $this->_methods = $methods;
+
         return $this;
     }
 
     /**
-     * Gets/sets the route scope.
+     * Gets the routes Scope
      *
-     * @param  object      $scope The scope instance to set or none to get the setted one.
-     * @return object|self        The current scope on get or `$this` on set.
+     * @return \Lead\Router\Scope
      */
-    public function scope($scope = null)
+    public function getScope(): ?ScopeInterface
     {
-        if (!func_num_args()) {
-            return $this->_scope;
-        }
+        return $this->_scope;
+    }
+
+    /**
+     * Sets a routes scope
+     *
+     * @param  \Lead\Router\Scope|null $scope Scope
+     * @return $this;
+     */
+    public function setScope(?Scope $scope): RouteInterface
+    {
         $this->_scope = $scope;
+
         return $this;
     }
 
     /**
-     * Gets the routing error number.
+     * Gets the routes pattern
      *
-     * @return integer The routing error number.
+     * @return string
      */
-    public function error()
+    public function getPattern(): string
     {
-        return $this->_error;
+        return $this->_pattern;
     }
 
     /**
-     * Gets the routing error message.
+     * Sets the routes pattern
      *
-     * @return string The routing error message.
+     * @return $this
      */
-    public function message()
+    public function setPattern(string $pattern): RouteInterface
     {
-        return $this->_message;
-    }
-
-    /**
-     * Gets the route's pattern.
-     *
-     * @return array The route's pattern.
-     */
-    public function pattern($pattern = null)
-    {
-        if (!func_num_args()) {
-            return $this->_pattern;
-        }
         $this->_token = null;
         $this->_regex = null;
         $this->_variables = null;
@@ -315,6 +524,7 @@ class Route
         }
 
         $this->_pattern = $this->_prefix . $pattern;
+
         return $this;
     }
 
@@ -323,7 +533,7 @@ class Route
      *
      * @return array A collection route's token structure.
      */
-    public function token()
+    public function getToken(): array
     {
         if ($this->_token === null) {
             $parser = $this->_classes['parser'];
@@ -332,6 +542,7 @@ class Route
             $this->_variables = null;
             $this->_token = $parser::tokenize($this->_pattern, '/');
         }
+
         return $this->_token;
     }
 
@@ -340,12 +551,13 @@ class Route
      *
      * @return string the route's regular expression pattern.
      */
-    public function regex()
+    public function getRegex(): string
     {
         if ($this->_regex !== null) {
             return $this->_regex;
         }
         $this->_compile();
+
         return $this->_regex;
     }
 
@@ -354,52 +566,65 @@ class Route
      *
      * @return array The route's variables and their associated pattern.
      */
-    public function variables()
+    public function getVariables(): array
     {
         if ($this->_variables !== null) {
             return $this->_variables;
         }
         $this->_compile();
+
         return $this->_variables;
     }
 
     /**
      * Compiles the route's patten.
      */
-    protected function _compile()
+    protected function _compile(): void
     {
         $parser = $this->_classes['parser'];
-        $rule = $parser::compile($this->token());
+        $rule = $parser::compile($this->getToken());
         $this->_regex = $rule[0];
         $this->_variables = $rule[1];
     }
 
     /**
+     * Gets the routes handler
+     *
+     * @return mixed
+     */
+    public function getHandler()
+    {
+        return $this->_handler;
+    }
+
+    /**
      * Gets/sets the route's handler.
      *
-     * @param  array      $handler The route handler.
-     * @return array|self
+     * @param mixed $handler The route handler.
+     * @return self
      */
-    public function handler($handler = null)
+    public function setHandler($handler): RouteInterface
     {
-        if (func_num_args() === 0) {
-            return $this->_handler;
+        if (!is_callable($handler) && !is_string($handler) && $handler !== null) {
+            throw new InvalidArgumentException('Handler must be a callable, string or null');
         }
+
         $this->_handler = $handler;
+
         return $this;
     }
 
     /**
      * Checks if the route instance matches a request.
      *
-     * @param  array   $request a request.
-     * @return boolean
+     * @param  array $request a request.
+     * @return bool
      */
-    public function match($request, &$variables = null, &$hostVariables = null)
+    public function match($request, &$variables = null, &$hostVariables = null): bool
     {
         $hostVariables = [];
 
-        if (($host = $this->host()) && !$host->match($request, $hostVariables)) {
+        if (($host = $this->getHost()) && !$host->match($request, $hostVariables)) {
             return false;
         }
 
@@ -414,11 +639,12 @@ class Route
 
         $path = '/' . trim($path, '/');
 
-        if (!preg_match('~^' . $this->regex() . '$~', $path, $matches)) {
+        if (!preg_match('~^' . $this->getRegex() . '$~', $path, $matches)) {
             return false;
         }
         $variables = $this->_buildVariables($matches);
         $this->params = $hostVariables + $variables;
+
         return true;
     }
 
@@ -429,13 +655,13 @@ class Route
      * @param  array $values   The matched values.
      * @return array           The route's variables.
      */
-    protected function _buildVariables($values)
+    protected function _buildVariables(array $values): array
     {
         $variables = [];
         $parser = $this->_classes['parser'];
 
         $i = 1;
-        foreach ($this->variables() as $name => $pattern) {
+        foreach ($this->getVariables() as $name => $pattern) {
             if (!isset($values[$i])) {
                 $variables[$name] = !$pattern ? null : [];
                 continue;
@@ -459,6 +685,7 @@ class Route
             }
             $i++;
         }
+
         return $variables;
     }
 
@@ -466,45 +693,49 @@ class Route
      * Dispatches the route.
      *
      * @param  mixed $response The outgoing response.
-     * @return mixed           The handler return value.
+     * @return mixed The handler return value.
      */
     public function dispatch($response = null)
     {
-        if ($error = $this->error()) {
-            throw new RouterException($this->message(), $error);
-        }
         $this->response = $response;
         $request = $this->request;
 
         $generator = $this->middleware();
 
-        $next = function() use ($request, $response, $generator, &$next) {
+        $next = function () use ($request, $response, $generator, &$next) {
             $handler = $generator->current();
             $generator->next();
+
             return $handler($request, $response, $next);
         };
+
         return $next();
     }
 
     /**
      * Middleware generator.
      *
-     * @return callable
+     * @return \Generator
      */
-    public function middleware()
+    public function middleware(): Generator
     {
         foreach ($this->_middleware as $middleware) {
             yield $middleware;
         }
 
-        if ($scope = $this->scope()) {
+        $scope = $this->getScope();
+        if ($scope !== null) {
             foreach ($scope->middleware() as $middleware) {
                 yield $middleware;
             }
         }
 
-        yield function() {
-            $handler = $this->handler();
+        yield function () {
+            $handler = $this->getHandler();
+            if ($handler === null) {
+                return null;
+            }
+
             return $handler($this, $this->response);
         };
     }
@@ -513,43 +744,48 @@ class Route
      * Adds a middleware to the list of middleware.
      *
      * @param object|Closure A callable middleware.
+     * @return $this
      */
     public function apply($middleware)
     {
         foreach (func_get_args() as $mw) {
             array_unshift($this->_middleware, $mw);
         }
+
         return $this;
     }
 
     /**
      * Returns the route's link.
      *
-     * @param  array  $params  The route parameters.
-     * @param  array  $options Options for generating the proper prefix. Accepted values are:
-     *                         - `'absolute'` _boolean_: `true` or `false`.
-     *                         - `'scheme'`   _string_ : The scheme.
-     *                         - `'host'`     _string_ : The host name.
-     *                         - `'basePath'` _string_ : The base path.
-     *                         - `'query'`    _string_ : The query string.
-     *                         - `'fragment'` _string_ : The fragment string.
+     * @param  array $params  The route parameters.
+     * @param  array $options Options for generating the proper prefix. Accepted values are:
+     *                        - `'absolute'` _boolean_: `true` or `false`. - `'scheme'`
+     *                        _string_ : The scheme. - `'host'`     _string_ : The host
+     *                        name. - `'basePath'` _string_ : The base path. - `'query'`
+     *                        _string_ : The query string. - `'fragment'` _string_ : The
+     *                        fragment string.
      * @return string          The link.
      */
-    public function link($params = [], $options = [])
+    public function link(array $params = [], array $options = []): string
     {
         $defaults = [
             'absolute' => false,
             'basePath' => '',
-            'query'    => '',
+            'query' => '',
             'fragment' => ''
         ];
 
-        $options = array_filter($options, function($value) { return $value !== '*'; });
+        $options = array_filter(
+            $options, function ($value) {
+                return $value !== '*';
+            }
+        );
         $options += $defaults;
 
         $params = $params + $this->params;
 
-        $link = $this->_link($this->token(), $params);
+        $link = $this->_link($this->getToken(), $params);
 
         $basePath = trim($options['basePath'], '/');
         if ($basePath) {
@@ -561,8 +797,8 @@ class Route
         $fragment = $options['fragment'] ? '#' . $options['fragment'] : '';
 
         if ($options['absolute']) {
-            if ($host = $this->host()) {
-                $link = $host->link($params, $options) . "{$link}";
+            if ($this->_host !== null) {
+                $link = $this->_host->link($params, $options) . "{$link}";
             } else {
                 $scheme = !empty($options['scheme']) ? $options['scheme'] . '://' : '//';
                 $host = isset($options['host']) ? $options['host'] : 'localhost';
@@ -576,11 +812,11 @@ class Route
     /**
      * Helper for `Route::link()`.
      *
-     * @param  array  $token    The token structure array.
-     * @param  array  $params   The route parameters.
-     * @return string           The URL path representation of the token structure array.
+     * @param  array $token  The token structure array.
+     * @param  array $params The route parameters.
+     * @return string The URL path representation of the token structure array.
      */
-    protected function _link($token, $params)
+    protected function _link(array $token, array $params): string
     {
         $link = '';
         foreach ($token['tokens'] as $child) {
@@ -591,7 +827,7 @@ class Route
             if (isset($child['tokens'])) {
                 if ($child['repeat']) {
                     $name = $child['repeat'];
-                    $values = isset($params[$name]) && $params[$name] !== null ? (array) $params[$name] : [];
+                    $values = isset($params[$name]) && $params[$name] !== null ? (array)$params[$name] : [];
                     if (!$values && !$child['optional']) {
                         throw new RouterException("Missing parameters `'{$name}'` for route: `'{$this->name}#{$this->_pattern}'`.");
                     }
@@ -608,6 +844,7 @@ class Route
                 if (!$token['optional']) {
                     throw new RouterException("Missing parameters `'{$child['name']}'` for route: `'{$this->name}#{$this->_pattern}'`.");
                 }
+
                 return '';
             }
 
@@ -617,7 +854,7 @@ class Route
                 $parts = [];
             }
             foreach ($parts as $key => $value) {
-                $parts[$key] = rawurlencode($value);
+                $parts[$key] = rawurlencode((string)$value);
             }
             $value = join('/', $parts);
 
@@ -626,6 +863,7 @@ class Route
             }
             $link .= $value;
         }
+
         return $link;
     }
 }
