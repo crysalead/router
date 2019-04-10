@@ -72,9 +72,9 @@ EOD;
     /**
      * Tokenizes a route pattern. Optional segments are identified by square brackets.
      *
-     * @param string                                           $pattern   A route pattern
-     * @param string                                           $delimiter The path delimiter.
-     * @param array             The tokens structure root node.
+     * @param string $pattern A route pattern
+     * @param string $delimiter The path delimiter.
+     * @param array The tokens structure root node.
      * @return array
      */
     public static function tokenize(string $pattern, string $delimiter = '/'): array
@@ -97,9 +97,9 @@ EOD;
     /**
      * Tokenizes patterns.
      *
-     * @param string                                         $pattern   A route pattern
-     * @param string                                         $delimiter The path delimiter.
-     * @param array             An array of tokens structure.
+     * @param string $pattern   A route pattern
+     * @param string $delimiter The path delimiter.
+     * @param array An array of tokens structure.
      * @return array
      */
     protected static function _tokenizePattern(string $pattern, string $delimiter, &$variable = null): array
@@ -139,7 +139,7 @@ EOD;
      *
      * @param string $pattern   A route pattern with no optional segments.
      * @param string $delimiter The path delimiter.
-     * @param array  An array of tokens structure.
+     * @param array An array of tokens structure.
      * @return array
      */
     protected static function _tokenizeSegment($pattern, $delimiter, &$variable = null): array
@@ -249,7 +249,7 @@ EOD;
     /**
      * Builds a regex from a tokens structure array.
      *
-     * @param  array $token A tokens structure root node.
+     * @param array $token A tokens structure root node.
      * @return array An array containing the regex pattern and its associated variable names.
      */
     public static function compile($token): array

@@ -697,7 +697,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * Checks if current position is valid
      *
      * @link   https://php.net/manual/en/iterator.valid.php
-     * @return boolean The return value will be casted to boolean and then evaluated.
+     * @return bool The return value will be casted to boolean and then evaluated.
      * Returns true on success or false on failure.
      * @since  5.0.0
      */
@@ -727,7 +727,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * @param  mixed $offset <p>
      *                       An offset to check for.
      *                       </p>
-     * @return boolean true on success or false on failure.
+     * @return bool true on success or false on failure.
      * </p>
      * <p>
      * The return value will be casted to boolean if non-boolean was returned.

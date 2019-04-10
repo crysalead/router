@@ -26,8 +26,8 @@ interface ParserInterface
      * `/user[/{id}]*` will gives `['/user', ['id', '*']]`
      * Unfortunately recursive regex matcher can't help here so this function is required.
      *
-     * @param  string $pattern A route pattern.
-     * @param  array The split pattern.
+     * @param string $pattern A route pattern.
+     * @param array The split pattern.
      * @return array
      */
     public static function split(string $pattern): array;
@@ -35,7 +35,7 @@ interface ParserInterface
     /**
      * Builds a regex from a tokens structure array.
      *
-     * @param  array $token A tokens structure root node.
+     * @param array $token A tokens structure root node.
      * @return array An array containing the regex pattern and its associated variable names.
      */
     public static function compile($token): array;

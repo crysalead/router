@@ -75,7 +75,7 @@ interface RouteInterface
      * @param  array $request a request.
      * @param array|null $variables Variables
      * @param array|null $hostVariables Host variables
-     * @return boolean
+     * @return bool
      */
     public function match($request, &$variables = null, &$hostVariables = null): bool;
 

@@ -1,5 +1,5 @@
 {
-    "name": "crysalead/router",
+    "name": "burzum/php-router",
     "description": "HTTP Request Router",
     "keywords": ["Router", "Routing", "PSR", "PSR7"],
     "license": "MIT",

@@ -618,7 +618,7 @@ class Route implements RouteInterface
      * Checks if the route instance matches a request.
      *
      * @param  array $request a request.
-     * @return boolean
+     * @return bool
      */
     public function match($request, &$variables = null, &$hostVariables = null): bool
     {
