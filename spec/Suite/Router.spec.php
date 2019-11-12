@@ -104,6 +104,18 @@ describe("Router", function() {
             }
         });
 
+        it("matches on same path different methods", function() {
+            $r = $this->router;
+            $r->bind('foo/bar', ['name' => 'foo', 'methods' => ['POST']], function () {});
+            $r->bind('foo/bar', ['name' => 'bar', 'methods' => ['PUT']], function () {});
+
+            $route = $r->route('foo/bar', 'POST');
+            expect($route->name)->toBe('foo');
+
+            $route = $r->route('foo/bar', 'PUT');
+            expect($route->name)->toBe('bar');
+        });
+
         it("throws an exception when the handler is not a closure", function() {
 
             $closure = function() {
