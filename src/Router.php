@@ -225,14 +225,16 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
              $options['host'] = $this->_hosts[$scheme][$host];
          }
 
-         if (isset($this->_pattern[$scheme][$host][$pattern])) {
-             $route = $this->_pattern[$scheme][$host][$pattern];
+         $patternKey = md5($options['pattern'] . '-' . $options['name']);
+
+         if (isset($this->_pattern[$scheme][$host][$patternKey])) {
+             $route = $this->_pattern[$scheme][$host][$patternKey];
          } else {
              $this->_hosts[$scheme][$host] = $route->getHost();
          }
 
-         if (!isset($this->_pattern[$scheme][$host][$pattern])) {
-             $this->_pattern[$scheme][$host][$pattern] = $route;
+         if (!isset($this->_pattern[$scheme][$host][$patternKey])) {
+             $this->_pattern[$scheme][$host][$patternKey] = $route;
          }
 
          $methods = $route->getMethods();
@@ -287,16 +289,18 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             $options['host'] = $this->_hosts[$scheme][$host];
         }
 
-        if (isset($this->_pattern[$scheme][$host][$pattern])) {
-            $instance = $this->_pattern[$scheme][$host][$pattern];
+        $patternKey = md5($options['pattern'] . '-' . $options['name']);
+
+        if (isset($this->_pattern[$scheme][$host][$patternKey])) {
+            $instance = $this->_pattern[$scheme][$host][$patternKey];
         } else {
             $route = $this->_classes['route'];
             $instance = new $route($options);
             $this->_hosts[$scheme][$host] = $instance->getHost();
         }
 
-        if (!isset($this->_pattern[$scheme][$host][$pattern])) {
-            $this->_pattern[$scheme][$host][$pattern] = $instance;
+        if (!isset($this->_pattern[$scheme][$host][$patternKey])) {
+            $this->_pattern[$scheme][$host][$patternKey] = $instance;
         }
 
         $methods = $options['methods'] ? (array)$options['methods'] : [];
@@ -616,9 +620,9 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * @param string $name    A route name.
      * @param array  $params  The route parameters.
      * @param array  $options Options for generating the proper prefix. Accepted values are:
-     *                        - `'absolute'` _boolean_: `true` or `false`. - `'scheme'`  
+     *                        - `'absolute'` _boolean_: `true` or `false`. - `'scheme'`
      *                        _string_ : The scheme. - `'host'`     _string_ : The host
-     *                        name. - `'basePath'` _string_ : The base path. - `'query'`   
+     *                        name. - `'basePath'` _string_ : The base path. - `'query'`
      *                        _string_ : The query string. - `'fragment'` _string_ : The
      *                        fragment string.
      *
