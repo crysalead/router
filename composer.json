@@ -15,7 +15,7 @@
         "psr/http-message": "~1.0"
     },
     "require-dev": {
-        "kahlan/kahlan": "~3.0"
+        "kahlan/kahlan": "~4.6"
     },
     "autoload": {
         "psr-4": {

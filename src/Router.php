@@ -170,21 +170,14 @@ class Router extends \Lead\Collection\Collection
             $options['host'] = $this->_hosts[$scheme][$host];
         }
 
-        if (isset($this->_pattern[$scheme][$host][$pattern])) {
-            $instance = $this->_pattern[$scheme][$host][$pattern];
-        } else {
-            $route = $this->_classes['route'];
-            $instance = new $route($options);
-            $this->_hosts[$scheme][$host] = $instance->host();
-        }
-
-        if (!isset($this->_pattern[$scheme][$host][$pattern])) {
-            $this->_pattern[$scheme][$host][$pattern] = $instance;
-        }
-
+        $route = $this->_classes['route'];
+        $instance = new $route($options);
+        $this->_hosts[$scheme][$host] = $instance->host();
         $methods = $options['methods'] ? (array) $options['methods'] : [];
 
-        $instance->allow($methods);
+        if (!isset($this->_routes[$scheme][$host])) {
+            $this->_routes[$scheme][$host]['HEAD'] = [];
+        }
 
         foreach ($methods as $method) {
             $this->_routes[$scheme][$host][strtoupper($method)][] = $instance;

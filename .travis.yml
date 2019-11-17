@@ -1,11 +1,11 @@
-sudo: required
-dist: xenial
-group: edge
+sudo: false
 language: php
 
 php:
   - 7.0
   - 7.1
+  - 7.2
+  - 7.3
 
 before_script:
   - if [[ $TRAVIS_SECURE_ENV_VARS = "true" ]]; then composer config -g github-oauth.github.com $GITHUB_COMPOSER_AUTH; fi
@@ -14,11 +14,11 @@ before_script:
   - if [[ $TRAVIS_PHP_VERSION =~ ^hhvm ]]; then echo 'hhvm.php7.all = 1' >> /etc/hhvm/php.ini; fi
   - if [[ $TRAVIS_PHP_VERSION =~ ^7 ]]; then git clone git://github.com/xdebug/xdebug.git && cd xdebug && phpize && ./configure --enable-xdebug  && make && make install && echo "zend_extension = xdebug.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini && cd ..; fi
 
-script: bin/kahlan --coverage=3 --clover=clover.xml
+script: bin/kahlan --coverage=3 --clover=clover.xml --reporter=verbose
 
 after_success:
-  - "if [ $(phpenv version-name) = '5.6' ]; then wget https://scrutinizer-ci.com/ocular.phar; fi"
-  - "if [ $(phpenv version-name) = '5.6' ]; then php ocular.phar code-coverage:upload --format=php-clover 'clover.xml'; fi"
+  - "if [ $(phpenv version-name) = '7.3' ]; then wget https://scrutinizer-ci.com/ocular.phar; fi"
+  - "if [ $(phpenv version-name) = '7.3' ]; then php ocular.phar code-coverage:upload --format=php-clover 'clover.xml'; fi"
 
 env:
   global:

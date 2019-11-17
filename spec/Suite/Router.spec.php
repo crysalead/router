@@ -433,36 +433,41 @@ describe("Router", function() {
         it("supports RESTful routes", function() {
 
             $r = $this->router;
-            $r->get('foo/bar', function () {});
-            $r->head('foo/bar', function () {});
-            $r->post('foo/bar', function () {});
-            $r->put('foo/bar', function () {});
-            $r->patch('foo/bar', function () {});
-            $r->delete('foo/bar', function () {});
-            $r->options('foo/bar', function () {});
-
-            $methods = ['OPTIONS', 'DELETE', 'PATCH', 'PUT', 'POST', 'HEAD', 'GET'];
+            $r->get('foo/bar', function () { return 'GET'; });
+            $r->head('foo/bar', function () { return 'HEAD'; });
+            $r->post('foo/bar', function () { return 'POST'; });
+            $r->put('foo/bar', function () { return 'PUT'; });
+            $r->patch('foo/bar', function () { return 'PATCH'; });
+            $r->delete('foo/bar', function () { return 'DELETE'; });
+            $r->options('foo/bar', function () { return 'OPTIONS'; });
 
             $route = $r->route('foo/bar', 'GET');
-            expect($route->methods())->toBe($methods);
+            expect($route->methods())->toBe(['GET']);
+            expect($route->dispatch())->toBe('GET');
 
             $route = $r->route('foo/bar', 'HEAD');
-            expect($route->methods())->toBe($methods);
+            expect($route->methods())->toBe(['HEAD']);
+            expect($route->dispatch())->toBe('HEAD');
 
             $route = $r->route('foo/bar', 'POST');
-            expect($route->methods())->toBe($methods);
+            expect($route->methods())->toBe(['POST']);
+            expect($route->dispatch())->toBe('POST');
 
             $route = $r->route('foo/bar', 'PUT');
-            expect($route->methods())->toBe($methods);
+            expect($route->methods())->toBe(['PUT']);
+            expect($route->dispatch())->toBe('PUT');
 
             $route = $r->route('foo/bar', 'PATCH');
-            expect($route->methods())->toBe($methods);
+            expect($route->methods())->toBe(['PATCH']);
+            expect($route->dispatch())->toBe('PATCH');
 
             $route = $r->route('foo/bar', 'DELETE');
-            expect($route->methods())->toBe($methods);
+            expect($route->methods())->toBe(['DELETE']);
+            expect($route->dispatch())->toBe('DELETE');
 
             $route = $r->route('foo/bar', 'OPTIONS');
-            expect($route->methods())->toBe($methods);
+            expect($route->methods())->toBe(['OPTIONS']);
+            expect($route->dispatch())->toBe('OPTIONS');
 
         });
 
@@ -501,7 +506,7 @@ describe("Router", function() {
             $r->get('foo/bar', function () { return 'GET'; });
 
             $route = $r->route('foo/bar', 'HEAD');
-            expect($route->methods())->toBe(['GET', 'HEAD']);
+            expect($route->methods())->toBe(['HEAD']);
 
         });
 
@@ -544,6 +549,18 @@ describe("Router", function() {
                 'path'   => 'foo/bar'
             ]);
 
+        });
+
+        it("supports same path with different methods", function() {
+            $r = $this->router;
+            $r->bind('foo/bar', ['name' => 'foo', 'methods' => ['POST']], function () {});
+            $r->bind('foo/bar', ['name' => 'bar', 'methods' => ['PUT']], function () {});
+
+            $route = $r->route(['path' => 'foo/bar', 'method' => 'POST']);
+            expect($route->name)->toBe('foo');
+
+            $route = $r->route(['path' => 'foo/bar', 'method' => 'PUT']);
+            expect($route->name)->toBe('bar');
         });
 
     });
