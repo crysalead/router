@@ -18,7 +18,8 @@ interface ParserInterface
      * @return array
      */
     public static function tokenize(string $pattern, string $delimiter = '/'): array;
-/**
+
+    /**
      * Splits a pattern in segments and patterns.
      * segments will be represented by string value and patterns by an array containing
      * the string pattern as first value and the greedy value as second value.
@@ -31,7 +32,8 @@ interface ParserInterface
      * @return array
      */
     public static function split(string $pattern): array;
-/**
+
+    /**
      * Builds a regex from a tokens structure array.
      *
      * @param array $token A tokens structure root node.
