@@ -15,21 +15,21 @@ class Host implements HostInterface
      *
      * @var array
      */
-    protected $_classes = [];
+    protected $classes = [];
 
     /**
      * The matching scheme.
      *
      * @var string
      */
-    protected $_scheme = '*';
+    protected $scheme = '*';
 
     /**
      * The matching host.
      *
      * @var string
      */
-    protected $_pattern = '*';
+    protected $pattern = '*';
 
     /**
      * The tokens structure extracted from host's pattern.
@@ -37,7 +37,7 @@ class Host implements HostInterface
      * @see Parser::tokenize()
      * @var array
      */
-    protected $_token = null;
+    protected $token = null;
 
     /**
      * The host's regular expression pattern.
@@ -45,7 +45,7 @@ class Host implements HostInterface
      * @see Parser::compile()
      * @var string
      */
-    protected $_regex = null;
+    protected $regex = null;
 
     /**
      * The host's variables.
@@ -53,7 +53,7 @@ class Host implements HostInterface
      * @see Parser::compile()
      * @var array
      */
-    protected $_variables = null;
+    protected $variables = null;
 
     /**
      * Constructs a route
@@ -64,14 +64,14 @@ class Host implements HostInterface
     {
         $defaults = [
             'scheme'     => '*',
-            'pattern'     => '*',
+            'pattern'    => '*',
             'classes'    => [
                 'parser' => 'Lead\Router\Parser'
             ]
         ];
         $config += $defaults;
 
-        $this->_classes = $config['classes'];
+        $this->classes = $config['classes'];
 
         $this->setScheme($config['scheme']);
         $this->setPattern($config['pattern']);
@@ -85,7 +85,7 @@ class Host implements HostInterface
      */
     public function setScheme(string $scheme)
     {
-        $this->_scheme = $scheme;
+        $this->scheme = $scheme;
 
         return $this;
     }
@@ -97,7 +97,7 @@ class Host implements HostInterface
      */
     public function getScheme(): ?string
     {
-        return $this->_scheme;
+        return $this->scheme;
     }
 
     /**
@@ -108,10 +108,10 @@ class Host implements HostInterface
      */
     public function setPattern(string $pattern)
     {
-        $this->_token = null;
-        $this->_regex = null;
-        $this->_variables = null;
-        $this->_pattern = $pattern;
+        $this->token = null;
+        $this->regex = null;
+        $this->variables = null;
+        $this->pattern = $pattern;
 
         return $this;
     }
@@ -123,7 +123,7 @@ class Host implements HostInterface
      */
     public function getPattern(): string
     {
-        return $this->_pattern;
+        return $this->pattern;
     }
 
     /**
@@ -133,14 +133,14 @@ class Host implements HostInterface
      */
     protected function getToken()
     {
-        if ($this->_token === null) {
-            $parser = $this->_classes['parser'];
-            $this->_token = [];
-            $this->_regex = null;
-            $this->_variables = null;
-            $this->_token = $parser::tokenize($this->_pattern, '.');
+        if ($this->token === null) {
+            $parser = $this->classes['parser'];
+            $this->token = [];
+            $this->regex = null;
+            $this->variables = null;
+            $this->token = $parser::tokenize($this->pattern, '.');
         }
-        return $this->_token;
+        return $this->token;
     }
 
     /**
@@ -150,12 +150,12 @@ class Host implements HostInterface
      */
     public function getRegex(): string
     {
-        if ($this->_regex !== null) {
-            return $this->_regex;
+        if ($this->regex !== null) {
+            return $this->regex;
         }
-        $this->_compile();
+        $this->compile();
 
-        return $this->_regex;
+        return $this->regex;
     }
 
     /**
@@ -165,25 +165,26 @@ class Host implements HostInterface
      */
     public function getVariables()
     {
-        if ($this->_variables !== null) {
-            return $this->_variables;
+        if ($this->variables !== null) {
+            return $this->variables;
         }
-        $this->_compile();
-        return $this->_variables;
+        $this->compile();
+        return $this->variables;
     }
 
     /**
      * Compiles the host's patten.
      */
-    protected function _compile()
+    protected function compile()
     {
         if ($this->getPattern() === '*') {
             return;
         }
-        $parser = $this->_classes['parser'];
+
+        $parser = $this->classes['parser'];
         $rule = $parser::compile($this->getToken());
-        $this->_regex = $rule[0];
-        $this->_variables = $rule[1];
+        $this->regex = $rule[0];
+        $this->variables = $rule[1];
     }
 
     /**
@@ -275,7 +276,7 @@ class Host implements HostInterface
             }
             if (!array_key_exists($child['name'], $params)) {
                 if (!$token['optional']) {
-                    throw new RouterException("Missing parameters `'{$child['name']}'` for host: `'{$this->_pattern}'`.");
+                    throw new RouterException("Missing parameters `'{$child['name']}'` for host: `'{$this->pattern}'`.");
                 }
                 return '';
             }

@@ -13,28 +13,28 @@ class Scope implements ScopeInterface
      *
      * @var object
      */
-    protected $_router = null;
+    protected $router = null;
 
     /**
      * The parent instance.
      *
      * @var object
      */
-    protected $_parent = null;
+    protected $parent = null;
 
     /**
      * The middleware array.
      *
      * @var array
      */
-    protected $_middleware = [];
+    protected $middleware = [];
 
     /**
      * The scope data.
      *
      * @var array
      */
-    protected $_scope = [];
+    protected $scope = [];
 
     /**
      * The constructor.
@@ -51,10 +51,10 @@ class Scope implements ScopeInterface
         ];
         $config += $defaults;
 
-        $this->_router = $config['router'];
-        $this->_parent = $config['parent'];
-        $this->_middleware = $config['middleware'];
-        $this->_scope = $config['scope'] + [
+        $this->router = $config['router'];
+        $this->parent = $config['parent'];
+        $this->middleware = $config['middleware'];
+        $this->scope = $config['scope'] + [
             'name'           => '',
             'scheme'         => '*',
             'host'           => '*',
@@ -75,7 +75,7 @@ class Scope implements ScopeInterface
     {
         return new static(
             [
-            'router' => $this->_router,
+            'router' => $this->router,
             'parent' => $this,
             'scope'  => $this->scopify($options)
             ]
@@ -90,7 +90,7 @@ class Scope implements ScopeInterface
      */
     public function scopify(array $options): array
     {
-        $scope = $this->_scope;
+        $scope = $this->scope;
 
         if (!empty($options['name'])) {
             $options['name'] = $scope['name'] ? $scope['name'] . '.' . $options['name'] : $options['name'];
@@ -119,11 +119,11 @@ class Scope implements ScopeInterface
      */
     public function middleware()
     {
-        foreach ($this->_middleware as $middleware) {
+        foreach ($this->middleware as $middleware) {
             yield $middleware;
         }
-        if ($this->_parent) {
-            foreach ($this->_parent->middleware() as $middleware) {
+        if ($this->parent) {
+            foreach ($this->parent->middleware() as $middleware) {
                 yield $middleware;
             }
         }
@@ -138,7 +138,7 @@ class Scope implements ScopeInterface
     public function apply($middleware): ScopeInterface
     {
         foreach (func_get_args() as $mw) {
-            array_unshift($this->_middleware, $mw);
+            array_unshift($this->middleware, $mw);
         }
 
         return $this;
@@ -153,9 +153,9 @@ class Scope implements ScopeInterface
      */
     public function __call(string $name, array $params)
     {
-        $this->_router->pushScope($this);
-        $result = call_user_func_array([$this->_router, $name], $params);
-        $this->_router->popScope();
+        $this->router->pushScope($this);
+        $result = call_user_func_array([$this->router, $name], $params);
+        $this->router->popScope();
 
         return $result;
     }

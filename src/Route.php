@@ -26,7 +26,7 @@ class Route implements RouteInterface
      *
      * @var array
      */
-    protected $_classes = [];
+    protected $classes = [];
 
     /**
      * Route's name.
@@ -82,35 +82,35 @@ class Route implements RouteInterface
      *
      * @var \Lead\Router\Scope|null
      */
-    protected $_scope = null;
+    protected $scope = null;
 
     /**
      * The route's host.
      *
      * @var \Lead\Router\Host
      */
-    protected $_host = null;
+    protected $host = null;
 
     /**
      * Route's allowed methods.
      *
      * @var array
      */
-    protected $_methods = [];
+    protected $methods = [];
 
     /**
      * Route's prefix.
      *
      * @var string
      */
-    protected $_prefix = '';
+    protected $prefix = '';
 
     /**
      * Route's pattern.
      *
      * @var string
      */
-    protected $_pattern = '';
+    protected $pattern = '';
 
     /**
      * The tokens structure extracted from route's pattern.
@@ -118,7 +118,7 @@ class Route implements RouteInterface
      * @see Parser::tokenize()
      * @var array
      */
-    protected $_token = null;
+    protected $token = null;
 
     /**
      * The route's regular expression pattern.
@@ -126,7 +126,7 @@ class Route implements RouteInterface
      * @see Parser::compile()
      * @var string
      */
-    protected $_regex = null;
+    protected $regex = null;
 
     /**
      * The route's variables.
@@ -134,7 +134,7 @@ class Route implements RouteInterface
      * @see Parser::compile()
      * @var array
      */
-    protected $_variables = null;
+    protected $variables = null;
 
     /**
      * The route's handler to execute when a request match.
@@ -166,7 +166,7 @@ class Route implements RouteInterface
     {
         $config = $this->getDefaultConfig($config);
 
-        $this->_classes = $config['classes'];
+        $this->classes = $config['classes'];
         $this->setNamespace($config['namespace']);
         $this->setName($config['name']);
         $this->setParams($config['params']);
@@ -355,7 +355,7 @@ class Route implements RouteInterface
      */
     public function getPrefix(): string
     {
-        return $this->_prefix;
+        return $this->prefix;
     }
 
     /**
@@ -366,9 +366,9 @@ class Route implements RouteInterface
      */
     public function setPrefix(string $prefix): RouteInterface
     {
-        $this->_prefix = trim($prefix, '/');
-        if ($this->_prefix) {
-            $this->_prefix = '/' . $this->_prefix;
+        $this->prefix = trim($prefix, '/');
+        if ($this->prefix) {
+            $this->prefix = '/' . $this->prefix;
         }
 
         return $this;
@@ -381,7 +381,7 @@ class Route implements RouteInterface
      */
     public function getHost(): ?HostInterface
     {
-        return $this->_host;
+        return $this->host;
     }
 
     /**
@@ -398,23 +398,23 @@ class Route implements RouteInterface
         }
 
         if ($host instanceof HostInterface || $host === null) {
-            $this->_host = $host;
+            $this->host = $host;
 
             return $this;
         }
 
         if ($host !== '*' || $scheme !== '*') {
-            $class = $this->_classes['host'];
+            $class = $this->classes['host'];
             $host = new $class(['scheme' => $scheme, 'pattern' => $host]);
             if (!$host instanceof HostInterface) {
                 throw new RuntimeException('Must be an instance of HostInterface');
             }
-            $this->_host = $host;
+            $this->host = $host;
 
             return $this;
         }
 
-        $this->_host = null;
+        $this->host = null;
 
         return $this;
     }
@@ -426,7 +426,7 @@ class Route implements RouteInterface
      */
     public function getMethods(): array
     {
-        return array_keys($this->_methods);
+        return array_keys($this->methods);
     }
 
     /**
@@ -442,12 +442,12 @@ class Route implements RouteInterface
         $methods = array_fill_keys($methods, true);
 
         foreach ($methods as $method) {
-            if (!in_array($method, self::VALID_METHODS)) {
+            if (is_string($method) && !in_array($method, self::VALID_METHODS, true)) {
                 throw new InvalidArgumentException(sprintf('`%s` is not an allowed HTTP method', $method));
             }
         }
 
-        $this->_methods = $methods;
+        $this->methods = $methods;
 
         return $this;
     }
@@ -462,7 +462,7 @@ class Route implements RouteInterface
     {
         $methods = $methods ? (array)$methods : [];
         $methods = array_map('strtoupper', $methods);
-        $methods = array_fill_keys($methods, true) + $this->_methods;
+        $methods = array_fill_keys($methods, true) + $this->methods;
 
         foreach ($methods as $method) {
             if (!in_array($method, self::VALID_METHODS)) {
@@ -470,7 +470,7 @@ class Route implements RouteInterface
             }
         }
 
-        $this->_methods = $methods;
+        $this->methods = $methods;
 
         return $this;
     }
@@ -482,7 +482,7 @@ class Route implements RouteInterface
      */
     public function getScope(): ?ScopeInterface
     {
-        return $this->_scope;
+        return $this->scope;
     }
 
     /**
@@ -493,7 +493,7 @@ class Route implements RouteInterface
      */
     public function setScope(?Scope $scope): RouteInterface
     {
-        $this->_scope = $scope;
+        $this->scope = $scope;
 
         return $this;
     }
@@ -505,7 +505,7 @@ class Route implements RouteInterface
      */
     public function getPattern(): string
     {
-        return $this->_pattern;
+        return $this->pattern;
     }
 
     /**
@@ -515,15 +515,15 @@ class Route implements RouteInterface
      */
     public function setPattern(string $pattern): RouteInterface
     {
-        $this->_token = null;
-        $this->_regex = null;
-        $this->_variables = null;
+        $this->token = null;
+        $this->regex = null;
+        $this->variables = null;
 
         if (!$pattern || $pattern[0] !== '[') {
             $pattern = '/' . trim($pattern, '/');
         }
 
-        $this->_pattern = $this->_prefix . $pattern;
+        $this->pattern = $this->prefix . $pattern;
 
         return $this;
     }
@@ -535,15 +535,15 @@ class Route implements RouteInterface
      */
     public function getToken(): array
     {
-        if ($this->_token === null) {
-            $parser = $this->_classes['parser'];
-            $this->_token = [];
-            $this->_regex = null;
-            $this->_variables = null;
-            $this->_token = $parser::tokenize($this->_pattern, '/');
+        if ($this->token === null) {
+            $parser = $this->classes['parser'];
+            $this->token = [];
+            $this->regex = null;
+            $this->variables = null;
+            $this->token = $parser::tokenize($this->pattern, '/');
         }
 
-        return $this->_token;
+        return $this->token;
     }
 
     /**
@@ -553,12 +553,12 @@ class Route implements RouteInterface
      */
     public function getRegex(): string
     {
-        if ($this->_regex !== null) {
-            return $this->_regex;
+        if ($this->regex !== null) {
+            return $this->regex;
         }
-        $this->_compile();
+        $this->compile();
 
-        return $this->_regex;
+        return $this->regex;
     }
 
     /**
@@ -568,23 +568,23 @@ class Route implements RouteInterface
      */
     public function getVariables(): array
     {
-        if ($this->_variables !== null) {
-            return $this->_variables;
+        if ($this->variables !== null) {
+            return $this->variables;
         }
-        $this->_compile();
+        $this->compile();
 
-        return $this->_variables;
+        return $this->variables;
     }
 
     /**
      * Compiles the route's patten.
      */
-    protected function _compile(): void
+    protected function compile(): void
     {
-        $parser = $this->_classes['parser'];
+        $parser = $this->classes['parser'];
         $rule = $parser::compile($this->getToken());
-        $this->_regex = $rule[0];
-        $this->_variables = $rule[1];
+        $this->regex = $rule[0];
+        $this->variables = $rule[1];
     }
 
     /**
@@ -631,8 +631,8 @@ class Route implements RouteInterface
         $path = isset($request['path']) ? $request['path'] : '';
         $method = isset($request['method']) ? $request['method'] : '*';
 
-        if (!isset($this->_methods['*']) && $method !== '*' && !isset($this->_methods[$method])) {
-            if ($method !== 'HEAD' && !isset($this->_methods['GET'])) {
+        if (!isset($this->methods['*']) && $method !== '*' && !isset($this->methods[$method])) {
+            if ($method !== 'HEAD' && !isset($this->methods['GET'])) {
                 return false;
             }
         }
@@ -658,7 +658,7 @@ class Route implements RouteInterface
     protected function _buildVariables(array $values): array
     {
         $variables = [];
-        $parser = $this->_classes['parser'];
+        $parser = $this->classes['parser'];
 
         $i = 1;
         foreach ($this->getVariables() as $name => $pattern) {
@@ -797,8 +797,8 @@ class Route implements RouteInterface
         $fragment = $options['fragment'] ? '#' . $options['fragment'] : '';
 
         if ($options['absolute']) {
-            if ($this->_host !== null) {
-                $link = $this->_host->link($params, $options) . "{$link}";
+            if ($this->host !== null) {
+                $link = $this->host->link($params, $options) . "{$link}";
             } else {
                 $scheme = !empty($options['scheme']) ? $options['scheme'] . '://' : '//';
                 $host = isset($options['host']) ? $options['host'] : 'localhost';
@@ -829,7 +829,7 @@ class Route implements RouteInterface
                     $name = $child['repeat'];
                     $values = isset($params[$name]) && $params[$name] !== null ? (array)$params[$name] : [];
                     if (!$values && !$child['optional']) {
-                        throw new RouterException("Missing parameters `'{$name}'` for route: `'{$this->name}#{$this->_pattern}'`.");
+                        throw new RouterException("Missing parameters `'{$name}'` for route: `'{$this->name}#{$this->pattern}'`.");
                     }
                     foreach ($values as $value) {
                         $link .= $this->_link($child, [$name => $value] + $params);
@@ -842,7 +842,7 @@ class Route implements RouteInterface
 
             if (!isset($params[$child['name']])) {
                 if (!$token['optional']) {
-                    throw new RouterException("Missing parameters `'{$child['name']}'` for route: `'{$this->name}#{$this->_pattern}'`.");
+                    throw new RouterException("Missing parameters `'{$child['name']}'` for route: `'{$this->name}#{$this->pattern}'`.");
                 }
 
                 return '';
