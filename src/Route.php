@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Lead\Router;
@@ -19,7 +20,9 @@ class Route implements RouteInterface
      *
      * @var array
      */
-    const VALID_METHODS = ['GET', 'PUT', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
+    protected const VALID_METHODS = [
+        'GET', 'PUT', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'
+    ];
 
     /**
      * Class dependencies.
@@ -162,7 +165,7 @@ class Route implements RouteInterface
      *
      * @param array $config The config array.
      */
-    public function __construct($config = [])
+    public function __construct(array $config = [])
     {
         $config = $this->getDefaultConfig($config);
 
@@ -777,7 +780,8 @@ class Route implements RouteInterface
         ];
 
         $options = array_filter(
-            $options, function ($value) {
+            $options,
+            function ($value) {
                 return $value !== '*';
             }
         );

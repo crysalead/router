@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Lead\Router;
@@ -16,8 +17,7 @@ interface HostInterface
      * @return bool Returns `true` on success, false otherwise.
      */
     public function match($request, &$hostVariables = null): bool;
-
-    /**
+/**
      * Returns the host's link.
      *
      * @param array $params  The host parameters.

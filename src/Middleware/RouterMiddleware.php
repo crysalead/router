@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Lead\Router\Middleware;
@@ -21,36 +22,31 @@ class RouterMiddleware implements MiddlewareInterface
      * @var \Lead\Router\Router
      */
     protected $router;
-
-    /**
+/**
      * Not found callback
      *
      * @var callable
      */
     protected $notFoundCallback = null;
-
-    /**
+/**
      * Ignore the exception
      *
      * @var bool
      */
     protected $ignoreNotFoundException = false;
-
-    /**
+/**
      * The request attribute name for the route
      *
      * @var string
      */
     protected $routeAttribute = 'route';
-
-    /**
+/**
      * Constructor
      *
      * @param \Lead\Router\RouterInterface $router Router
      */
-    public function __construct(
-        RouterInterface $router
-    ) {
+    public function __construct(RouterInterface $router)
+    {
         $this->router = $router;
     }
 
@@ -63,7 +59,6 @@ class RouterMiddleware implements MiddlewareInterface
     public function setRouteAttribute(string $name): self
     {
         $this->routeAttribute = $name;
-
         return $this;
     }
 
@@ -76,7 +71,6 @@ class RouterMiddleware implements MiddlewareInterface
     public function setIgnoreException(bool $ignore): self
     {
         $this->ignoreNotFoundException = $ignore;
-
         return $this;
     }
 

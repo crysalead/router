@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Lead\Router\Exception;
@@ -11,26 +12,21 @@ use RuntimeException;
 class ParserException extends RuntimeException
 {
     const SQUARE_BRACKET_MISMATCH = 1;
-
     const DUPLICATE_PLACEHOLDER = 2;
-
     const PLACEHOLDER_EXCEEDED = 3;
-
-    /**
+/**
      * The missing placeholder name.
      *
      * @var string
      */
     public $placeholder = '';
-
-    /**
+/**
      * The error code.
      *
      * @var integer
      */
     protected $code = 500;
-
-    /**
+/**
      * Creates a square bracket mismatch exception.
      *
      * @return $this

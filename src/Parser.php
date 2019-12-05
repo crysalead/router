@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Lead\Router;
@@ -68,8 +69,7 @@ class Parser implements ParserInterface
     )?
 \}
 EOD;
-
-    /**
+/**
      * Tokenizes a route pattern. Optional segments are identified by square brackets.
      *
      * @param string $pattern A route pattern
@@ -108,7 +108,6 @@ EOD;
         $index = 0;
         $path = '';
         $parts = static::split($pattern);
-
         foreach ($parts as $part) {
             if (is_string($part)) {
                 $tokens = array_merge($tokens, static::_tokenizeSegment($part, $delimiter, $variable));
@@ -118,9 +117,7 @@ EOD;
             $greedy = $part[1];
             $repeat = $greedy === '+' || $greedy === '*';
             $optional = $greedy === '?' || $greedy === '*';
-
             $children = static::_tokenizePattern($part[0], $delimiter, $variable);
-
             $tokens[] = [
                 'optional' => $optional,
                 'greedy'   => $greedy ?: '?',
@@ -128,7 +125,6 @@ EOD;
                 'pattern'  => $part[0],
                 'tokens'   => $children
             ];
-
         }
         return $tokens;
     }
@@ -147,14 +143,11 @@ EOD;
         $tokens = [];
         $index = 0;
         $path = '';
-
         if (preg_match_all('~' . static::PLACEHOLDER_REGEX . '()~x', $pattern, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER)) {
             foreach ($matches as $match) {
                 $offset = $match[0][1];
-
                 $path .= substr($pattern, $index, $offset - $index);
                 $index = $offset + strlen($match[0][0]);
-
                 if ($path) {
                     $tokens[] = $path;
                     $path = '';
@@ -162,7 +155,6 @@ EOD;
 
                 $variable = $match[1][0];
                 $capture = $match[2][0] ?: '[^' . $delimiter . ']+';
-
                 $tokens[] = [
                     'name'      => $variable,
                     'pattern'   => $capture
@@ -200,13 +192,15 @@ EOD;
         $len = strlen($pattern);
         $buffer = '';
         $opened = 0;
-        for ($i = 0; $i < $len; $i++) {
+        for (
+            $i = 0; $i < $len; $i++
+        ) {
             if ($pattern[$i] === '{') {
                 do {
                     $buffer .= $pattern[$i++];
                     if ($pattern[$i] === '}') {
-                        $buffer .= $pattern[$i];
-                        break;
+                            $buffer .= $pattern[$i];
+                            break;
                     }
                 } while ($i < $len);
             } elseif ($pattern[$i] === '[') {
@@ -221,7 +215,7 @@ EOD;
                 $opened--;
                 if ($opened === 0) {
                     $greedy = '?';
-                    if ($i < $len -1) {
+                    if ($i < $len - 1) {
                         if ($pattern[$i + 1] === '*' || $pattern[$i + 1] === '+') {
                             $greedy = $pattern[$i + 1];
                             $i++;
@@ -278,7 +272,7 @@ EOD;
             } else {
                 $name = $child['name'];
                 if (isset($variables[$name])) {
-                    throw ParserException::duplicatePlaceholder($name);
+                            throw ParserException::duplicatePlaceholder($name);
                 }
                 if ($token['repeat']) {
                     $variables[$name] = $token['pattern'];

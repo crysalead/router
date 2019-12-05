@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Lead\Router;
@@ -15,8 +16,7 @@ interface ScopeInterface
      * @return $this          The new sub scope.
      */
     public function seed(array $options): ScopeInterface;
-
-    /**
+/**
      * Scopes an options array according to the instance scope data.
      *
      * @param  array $options The options to scope.

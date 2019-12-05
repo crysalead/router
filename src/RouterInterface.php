@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Lead\Router;
@@ -17,32 +18,28 @@ interface RouterInterface
      * @return self
      */
     public function bind($pattern, $options = [], $handler = null): RouteInterface;
-
-    /**
+/**
      * Gets the base path
      *
      * @param  string $basePath The base path to set or none to get the setted one.
      * @return string
      */
     public function getBasePath(): string;
-
-    /**
+/**
      * Sets the base path
      *
      * @param  string $basePath Base Path
      * @return $this
      */
     public function setBasePath(string $basePath);
-
-    /**
+/**
      * Routes a Request.
      *
      * @param mixed $request The request to route.
      * @return \Lead\Router\RouteInterface A route matching the request or a "route not found" route.
      */
     public function route($request): RouteInterface;
-
-    /**
+/**
      * Returns a route's link.
      *
      * @param  string $name    A route name.
@@ -52,7 +49,7 @@ interface RouterInterface
      *                         _string_ : The scheme. - `'host'`     _string_ : The host
      *                         name. - `'basePath'` _string_ : The base path. - `'query'`
      *                         _string_ : The query string. - `'fragment'` _string_ : The
-     *                         fragment string.                         
+     *                         fragment string.
      * @return string The link.
      */
     public function link(string $name, array $params = [], array $options = []): string;
