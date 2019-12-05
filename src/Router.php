@@ -23,64 +23,75 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     /**
      * @var bool
      */
-    protected $_skipNext;
-/**
+    protected $skipNext;
+
+    /**
      * @var array
      */
-    protected $_data = [];
-/**
+    protected $data = [];
+
+    /**
      * @var array
      */
-    protected $_pattern = [];
-/**
+    protected $pattern = [];
+
+    /**
      * Class dependencies.
      *
      * @var array
      */
-    protected $_classes = [];
-/**
+    protected $classes = [];
+
+    /**
      * Hosts.
      *
      * @var array
      */
-    protected $_hosts = [];
-/**
+    protected $hosts = [];
+
+    /**
      * Routes.
      *
      * @var array
      */
-    protected $_routes = [];
-/**
+    protected $routes = [];
+
+    /**
      * Scopes stack.
      *
      * @var array
      */
-    protected $_scopes = [];
-/**
+    protected $scopes = [];
+
+    /**
      * Base path.
      *
      * @param string
      */
-    protected $_basePath = '';
-/**
+    protected $basePath = '';
+
+    /**
      * Dispatching strategies.
      *
      * @param array
      */
-    protected $_strategies = [];
-/**
+    protected $strategies = [];
+
+    /**
      * Defaults parameters to use when generating URLs in a dispatching context.
      *
      * @var array
      */
-    protected $_defaults = [];
-/**
+    protected $defaults = [];
+
+    /**
      * Default handler
      *
      * @var callable|null
      */
     protected $defaultHandler = null;
-/**
+
+    /**
      * Constructor
      *
      * @param array $config
@@ -100,12 +111,12 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             ]
         ];
         $config += $defaults;
-        $this->_classes = $config['classes'];
-        $this->_strategies = $config['strategies'];
+        $this->classes = $config['classes'];
+        $this->strategies = $config['strategies'];
         $this->setDefaultHandler($config['defaultHandler']);
         $this->setBasePath($config['basePath']);
-        $scope = $this->_classes['scope'];
-        $this->_scopes[] = new $scope(['router' => $this]);
+        $scope = $this->classes['scope'];
+        $this->scopes[] = new $scope(['router' => $this]);
     }
 
     /**
@@ -116,7 +127,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function setDefaultHandler($handler): RouterInterface
     {
-        $this->_defaultHandler = $handler;
+        $this->defaultHandler = $handler;
         return $this;
     }
 
@@ -127,7 +138,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function scope(): ScopeInterface
     {
-        return end($this->_scopes);
+        return end($this->scopes);
     }
 
     /**
@@ -138,7 +149,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function pushScope($scope): RouterInterface
     {
-        $this->_scopes[] = $scope;
+        $this->scopes[] = $scope;
         return $this;
     }
 
@@ -149,7 +160,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function popScope(): ScopeInterface
     {
-        return array_pop($this->_scopes);
+        return array_pop($this->scopes);
     }
 
     /**
@@ -160,7 +171,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function getBasePath(): string
     {
-        return $this->_basePath;
+        return $this->basePath;
     }
 
     /**
@@ -172,7 +183,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     public function setBasePath(string $basePath): self
     {
         $basePath = trim($basePath, '/');
-        $this->_basePath = $basePath ? '/' . $basePath : '';
+        $this->basePath = $basePath ? '/' . $basePath : '';
         return $this;
     }
 
@@ -186,7 +197,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     public function basePath(?string $basePath = null)
     {
         if ($basePath === null) {
-            return $this->_basePath;
+            return $this->basePath;
         }
 
         return $this->setBasePath($basePath);
@@ -205,27 +216,27 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
         $options['scope'] = $route->getScope();
         $scheme = $options['scheme'];
         $host = $options['host'];
-        if (isset($this->_hosts[$scheme][$host])) {
-            $options['host'] = $this->_hosts[$scheme][$host];
+        if (isset($this->hosts[$scheme][$host])) {
+            $options['host'] = $this->hosts[$scheme][$host];
         }
 
          $patternKey = md5($options['pattern'] . '-' . $options['name']);
-        if (isset($this->_pattern[$scheme][$host][$patternKey])) {
-            $route = $this->_pattern[$scheme][$host][$patternKey];
+        if (isset($this->pattern[$scheme][$host][$patternKey])) {
+            $route = $this->pattern[$scheme][$host][$patternKey];
         } else {
-            $this->_hosts[$scheme][$host] = $route->getHost();
+            $this->hosts[$scheme][$host] = $route->getHost();
         }
 
-        if (!isset($this->_pattern[$scheme][$host][$patternKey])) {
-            $this->_pattern[$scheme][$host][$patternKey] = $route;
+        if (!isset($this->pattern[$scheme][$host][$patternKey])) {
+            $this->pattern[$scheme][$host][$patternKey] = $route;
         }
 
          $methods = $route->getMethods();
         foreach ($methods as $method) {
-            $this->_routes[$scheme][$host][strtoupper($method)][] = $route;
+            $this->routes[$scheme][$host][strtoupper($method)][] = $route;
         }
 
-         $this->_data[$route->getName()] = $route;
+         $this->data[$route->getName()] = $route;
         return $this;
     }
 
@@ -258,38 +269,38 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             throw new RouterException("Use the `'methods'` option to limit HTTP verbs on a route binding definition.");
         }
 
-        $scope = end($this->_scopes);
+        $scope = end($this->scopes);
         $options = $scope->scopify($options);
         $options['pattern'] = $pattern;
         $options['handler'] = $handler;
         $options['scope'] = $scope;
         $scheme = $options['scheme'];
         $host = $options['host'];
-        if (isset($this->_hosts[$scheme][$host])) {
-            $options['host'] = $this->_hosts[$scheme][$host];
+        if (isset($this->hosts[$scheme][$host])) {
+            $options['host'] = $this->hosts[$scheme][$host];
         }
 
         $patternKey = md5($options['pattern'] . '-' . $options['name']);
-        if (isset($this->_pattern[$scheme][$host][$patternKey])) {
-            $instance = $this->_pattern[$scheme][$host][$patternKey];
+        if (isset($this->pattern[$scheme][$host][$patternKey])) {
+            $instance = $this->pattern[$scheme][$host][$patternKey];
         } else {
-            $route = $this->_classes['route'];
+            $route = $this->classes['route'];
             $instance = new $route($options);
-            $this->_hosts[$scheme][$host] = $instance->getHost();
+            $this->hosts[$scheme][$host] = $instance->getHost();
         }
 
-        if (!isset($this->_pattern[$scheme][$host][$patternKey])) {
-            $this->_pattern[$scheme][$host][$patternKey] = $instance;
+        if (!isset($this->pattern[$scheme][$host][$patternKey])) {
+            $this->pattern[$scheme][$host][$patternKey] = $instance;
         }
 
         $methods = $options['methods'] ? (array)$options['methods'] : [];
         $instance->allow($methods);
         foreach ($methods as $method) {
-            $this->_routes[$scheme][$host][strtoupper($method)][] = $instance;
+            $this->routes[$scheme][$host][strtoupper($method)][] = $instance;
         }
 
         if (isset($options['name'])) {
-            $this->_data[$options['name']] = $instance;
+            $this->data[$options['name']] = $instance;
         }
 
         return $instance;
@@ -360,7 +371,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             'host' => '*',
             'scheme' => '*'
         ];
-        $this->_defaults = [];
+        $this->defaults = [];
         if ($request instanceof ServerRequestInterface) {
             $r = $this->_getRequestInformation($request);
         } elseif (!is_array($request)) {
@@ -375,7 +386,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             $route->request = is_object($request) ? $request : $r;
             foreach ($route->getPersistentParams() as $key) {
                 if (isset($route->params[$key])) {
-                    $this->_defaults[$key] = $route->params[$key];
+                    $this->defaults[$key] = $route->params[$key];
                 }
             }
 
@@ -422,7 +433,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             $allowedMethods += ['GET' => 'GET'];
         }
 
-        foreach ($this->_routes as $scheme => $hostBasedRoutes) {
+        foreach ($this->routes as $scheme => $hostBasedRoutes) {
             if (!isset($allowedSchemes[$scheme])) {
                 continue;
             }
@@ -457,7 +468,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function middleware()
     {
-        foreach ($this->_scopes[0]->middleware() as $middleware) {
+        foreach ($this->scopes[0]->middleware() as $middleware) {
             yield $middleware;
         }
     }
@@ -471,7 +482,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     public function apply($middleware)
     {
         foreach (func_get_args() as $mw) {
-            $this->_scopes[0]->apply($mw);
+            $this->scopes[0]->apply($mw);
         }
 
         return $this;
@@ -486,7 +497,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function setStrategy(string $name, callable $handler)
     {
-        $this->_strategies[$name] = $handler;
+        $this->strategies[$name] = $handler;
         return $this;
     }
 
@@ -497,8 +508,8 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function getStrategy(string $name): callable
     {
-        if (isset($this->_strategies[$name])) {
-            return $this->_strategies[$name];
+        if (isset($this->strategies[$name])) {
+            return $this->strategies[$name];
         }
 
         throw new RuntimeException(sprintf('Strategy `%s` not found.', $name));
@@ -512,8 +523,8 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function unsetStrategy(string $name)
     {
-        if (isset($this->_strategies[$name])) {
-            unset($this->_strategies[$name]);
+        if (isset($this->strategies[$name])) {
+            unset($this->strategies[$name]);
             return $this;
         }
 
@@ -596,7 +607,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             'basePath' => $this->getBasePath()
         ];
         $options += $defaults;
-        $params += $this->_defaults;
+        $params += $this->defaults;
         if (!isset($this[$name])) {
             throw new RouterException("No binded route defined for `'{$name}'`, bind it first with `bind()`.");
         }
@@ -609,12 +620,12 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function clear()
     {
-        $this->_basePath = '';
-        $this->_strategies = [];
-        $this->_defaults = [];
-        $this->_routes = [];
-        $scope = $this->_classes['scope'];
-        $this->_scopes = [new $scope(['router' => $this])];
+        $this->basePath = '';
+        $this->strategies = [];
+        $this->defaults = [];
+        $this->routes = [];
+        $scope = $this->classes['scope'];
+        $this->scopes = [new $scope(['router' => $this])];
     }
 
     /**
@@ -626,7 +637,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function current()
     {
-        return current($this->_data);
+        return current($this->data);
     }
 
     /**
@@ -638,9 +649,9 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function next()
     {
-        $value = $this->_skipNext ? current($this->_data) : next($this->_data);
-        $this->_skipNext = false;
-        key($this->_data) !== null ? $value : null;
+        $value = $this->skipNext ? current($this->data) : next($this->data);
+        $this->skipNext = false;
+        key($this->data) !== null ? $value : null;
     }
 
     /**
@@ -652,7 +663,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function key()
     {
-        return array_keys($this->_data);
+        return array_keys($this->data);
     }
 
     /**
@@ -665,7 +676,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function valid()
     {
-        return key($this->_data) !== null;
+        return key($this->data) !== null;
     }
 
     /**
@@ -677,8 +688,8 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function rewind()
     {
-        $this->_skipNext = false;
-        reset($this->_data);
+        $this->skipNext = false;
+        reset($this->data);
     }
 
     /**
@@ -696,7 +707,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function offsetExists($offset)
     {
-        return array_key_exists($offset, $this->_data);
+        return array_key_exists($offset, $this->data);
     }
 
     /**
@@ -711,7 +722,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function offsetGet($offset)
     {
-        return $this->_data[$offset];
+        return $this->data[$offset];
     }
 
     /**
@@ -734,11 +745,11 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     public function offsetSet($offset, $value)
     {
         if (is_null($offset)) {
-            $this->_data[] = $value;
+            $this->data[] = $value;
             return;
         }
 
-        $this->_data[$offset] = $value;
+        $this->data[$offset] = $value;
     }
 
     /**
@@ -753,8 +764,8 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function offsetUnset($offset)
     {
-        $this->_skipNext = $offset === key($this->_data);
-        unset($this->_data[$offset]);
+        $this->skipNext = $offset === key($this->data);
+        unset($this->data[$offset]);
     }
 
     /**
@@ -774,6 +785,6 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function count()
     {
-        return count($this->_data);
+        return count($this->data);
     }
 }
