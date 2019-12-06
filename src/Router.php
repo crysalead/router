@@ -211,7 +211,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function addRoute(RouteInterface $route): RouterInterface
     {
-         $options['pattern'] = $pattern = $route->getPattern();
+        $options['pattern'] = $pattern = $route->getPattern();
         $options['handler'] = $route->getHandler();
         $options['scope'] = $route->getScope();
         $scheme = $options['scheme'];
@@ -220,7 +220,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             $options['host'] = $this->hosts[$scheme][$host];
         }
 
-         $patternKey = md5($options['pattern'] . '-' . $options['name']);
+        $patternKey = md5($options['pattern'] . '-' . $options['name']);
         if (isset($this->pattern[$scheme][$host][$patternKey])) {
             $route = $this->pattern[$scheme][$host][$patternKey];
         } else {
@@ -231,12 +231,12 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             $this->pattern[$scheme][$host][$patternKey] = $route;
         }
 
-         $methods = $route->getMethods();
+        $methods = $route->getMethods();
         foreach ($methods as $method) {
             $this->routes[$scheme][$host][strtoupper($method)][] = $route;
         }
 
-         $this->data[$route->getName()] = $route;
+        $this->data[$route->getName()] = $route;
         return $this;
     }
 

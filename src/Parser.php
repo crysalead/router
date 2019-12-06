@@ -83,7 +83,7 @@ EOD;
         if (count(preg_split('~' . static::PLACEHOLDER_REGEX . '(*SKIP)(*F)|\[~x', $pattern)) > 1) {
             $tokens = static::_tokenizePattern($pattern, $delimiter);
         } else {
-            $tokens = static::_tokenizeSegment($pattern, $delimiter);
+            $tokens = static::tokenizeSegment($pattern, $delimiter);
         }
         return [
             'optional' => false,
@@ -110,7 +110,7 @@ EOD;
         $parts = static::split($pattern);
         foreach ($parts as $part) {
             if (is_string($part)) {
-                $tokens = array_merge($tokens, static::_tokenizeSegment($part, $delimiter, $variable));
+                $tokens = array_merge($tokens, static::tokenizeSegment($part, $delimiter, $variable));
                 continue;
             }
 
@@ -138,7 +138,7 @@ EOD;
      * @param array An array of tokens structure.
      * @return array
      */
-    protected static function _tokenizeSegment($pattern, $delimiter, &$variable = null): array
+    protected static function tokenizeSegment($pattern, $delimiter, &$variable = null): array
     {
         $tokens = [];
         $index = 0;
