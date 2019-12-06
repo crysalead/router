@@ -7,7 +7,7 @@ namespace Lead\Router\Exception;
 /**
  * DispatchingException
  */
-class DispatchingException extends \RuntimeException
+class DispatchingException extends RouterException
 {
     /**
      * The error code.

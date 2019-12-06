@@ -14,7 +14,7 @@ interface RouteInterface
      *
      * @return string
      */
-    public function getName(): string;
+    public function name(): string;
 
     /**
      * Sets the routes name
@@ -27,16 +27,16 @@ interface RouteInterface
     /**
      * Gets the host
      *
-     * @return mixed
+     * @return null|\Lead\Router\HostInterface
      */
-    public function getHost(): ?HostInterface;
+    public function host(): ?HostInterface;
 
     /**
      * Sets the route host.
      *
      * @param  object $host The host instance to set or none to get the set one.
      * @param  string $scheme HTTP Scheme
-     * @return object|self       The current host on get or `$this` on set.
+     * @return \Lead\Router\RouteInterface       The current host on get or `$this` on set.
      */
     public function setHost($host = null, string $scheme = '*'): RouteInterface;
 
@@ -45,7 +45,7 @@ interface RouteInterface
      *
      * @return \Lead\Router\Scope
      */
-    public function getScope(): ?ScopeInterface;
+    public function Scope(): ?ScopeInterface;
 
     /**
      * Sets a routes scope
@@ -60,7 +60,7 @@ interface RouteInterface
      *
      * @return null|callable|\Closure
      */
-    public function getHandler();
+    public function handler();
 
     /**
      * Gets/sets the route's handler.
@@ -93,4 +93,11 @@ interface RouteInterface
       * @return string          The link.
       */
     public function link(array $params = [], array $options = []): string;
+
+    /**
+     * Gets the routes pattern
+     *
+     * @return string
+     */
+    public function pattern(): string;
 }

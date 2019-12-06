@@ -22,9 +22,9 @@ describe("Route", function () {
 
             $route = new Route();
             expect($route->setPattern('/foo/bar/{id}[/{paths}]*'))->toBe($route);
-            expect($route->getPattern())->toBe('/foo/bar/{id}[/{paths}]*');
-            expect($route->getRegex())->toBe('/foo/bar/([^/]+)((?:/[^/]+)*)');
-            expect($route->getVariables())->toBe([
+            expect($route->Pattern())->toBe('/foo/bar/{id}[/{paths}]*');
+            expect($route->Regex())->toBe('/foo/bar/([^/]+)((?:/[^/]+)*)');
+            expect($route->Variables())->toBe([
                 'id'    => false,
                 'paths' => '/{paths}'
             ]);
@@ -34,21 +34,21 @@ describe("Route", function () {
 
             $route = new Route();
             expect($route->setPattern('/foo/bar/{id}[/{paths}]*'))->toBe($route);
-            expect($route->getRegex())->toBe('/foo/bar/([^/]+)((?:/[^/]+)*)');
+            expect($route->Regex())->toBe('/foo/bar/([^/]+)((?:/[^/]+)*)');
             expect($route->setPattern('/foo/baz/{id}[/{paths}]*'))->toBe($route);
-            expect($route->getRegex())->toBe('/foo/baz/([^/]+)((?:/[^/]+)*)');
+            expect($route->Regex())->toBe('/foo/baz/([^/]+)((?:/[^/]+)*)');
         });
         it("updates the variables", function () {
 
 
             $route = new Route();
             expect($route->setPattern('/foo/bar/{id}[/{paths}]*'))->toBe($route);
-            expect($route->getVariables())->toBe([
+            expect($route->Variables())->toBe([
                 'id'    => false,
                 'paths' => '/{paths}'
             ]);
             expect($route->setPattern('/foo/bar/{baz}[/{paths}]'))->toBe($route);
-            expect($route->getVariables())->toBe([
+            expect($route->Variables())->toBe([
                 'baz'   => false,
                 'paths' => false
             ]);
@@ -63,7 +63,7 @@ describe("Route", function () {
             $scope = new Scope();
             $route = new Route();
             expect($route->setScope($scope))->toBe($route);
-            expect($route->getScope())->toBe($scope);
+            expect($route->Scope())->toBe($scope);
         });
     });
     describe("->methods()", function () {
@@ -74,14 +74,14 @@ describe("Route", function () {
 
             $route = new Route();
             expect($route->setMethods(['POST', 'PUT']))->toBe($route);
-            expect($route->getMethods())->toBe(['POST', 'PUT']);
+            expect($route->Methods())->toBe(['POST', 'PUT']);
         });
         it("formats method names", function () {
 
 
             $route = new Route();
             expect($route->setMethods(['post', 'put']))->toBe($route);
-            expect($route->getMethods())->toBe(['POST', 'PUT']);
+            expect($route->Methods())->toBe(['POST', 'PUT']);
         });
     });
     describe("->allow()", function () {
@@ -92,14 +92,14 @@ describe("Route", function () {
 
             $route = new Route(['methods' => []]);
             expect($route->allow(['POST', 'PUT']))->toBe($route);
-            expect($route->getMethods())->toBe(['POST', 'PUT']);
+            expect($route->Methods())->toBe(['POST', 'PUT']);
         });
         it("formats newly allowed method names", function () {
 
 
             $route = new Route(['methods' => []]);
             expect($route->allow(['post', 'put']))->toBe($route);
-            expect($route->getMethods())->toBe(['POST', 'PUT']);
+            expect($route->Methods())->toBe(['POST', 'PUT']);
         });
     });
     describe("->apply()", function () {

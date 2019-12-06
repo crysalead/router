@@ -15,14 +15,13 @@ interface RouterInterface
      * @param  string|array $pattern The route's pattern.
      * @param  callable|array $options An array of options or the callback handler.
      * @param  callable|null $handler The callback handler.
-     * @return self
+     * @return \Lead\Router\RouteInterface
      */
     public function bind($pattern, $options = [], $handler = null): RouteInterface;
 
     /**
      * Gets the base path
      *
-     * @param  string $basePath The base path to set or none to get the setted one.
      * @return string
      */
     public function getBasePath(): string;

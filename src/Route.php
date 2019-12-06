@@ -167,7 +167,7 @@ class Route implements RouteInterface
      */
     public function __construct(array $config = [])
     {
-        $config = $this->getDefaultConfig($config);
+        $config = $this->defaultConfig($config);
 
         $this->classes = $config['classes'];
         $this->setNamespace($config['namespace']);
@@ -202,7 +202,7 @@ class Route implements RouteInterface
      * @param array $config Values to merge
      * @return array
      */
-    protected function getDefaultConfig($config = []): array
+    protected function defaultConfig($config = []): array
     {
         $defaults = [
             'scheme' => '*',
@@ -250,7 +250,7 @@ class Route implements RouteInterface
      * @param string $name Attribute name
      * @return mixed
      */
-    public function getAttribute(string $name)
+    public function Attribute(string $name)
     {
         if (isset($this->_attributes[$name])) {
             return $this->_attributes[$name];
@@ -277,7 +277,7 @@ class Route implements RouteInterface
      *
      * @return string
      */
-    public function getNamespace(): string
+    public function namespace(): string
     {
         return $this->namespace;
     }
@@ -300,7 +300,7 @@ class Route implements RouteInterface
      *
      * @return array
      */
-    public function getParams(): array
+    public function params(): array
     {
         return $this->params;
     }
@@ -323,7 +323,7 @@ class Route implements RouteInterface
      *
      * @return array
      */
-    public function getPersistentParams(): array
+    public function persistentParams(): array
     {
         return $this->persist;
     }
@@ -333,7 +333,7 @@ class Route implements RouteInterface
      *
      * @return string
      */
-    public function getName(): string
+    public function name(): string
     {
         return $this->name;
     }
@@ -356,7 +356,7 @@ class Route implements RouteInterface
      *
      * @return string
      */
-    public function getPrefix(): string
+    public function prefix(): string
     {
         return $this->prefix;
     }
@@ -382,7 +382,7 @@ class Route implements RouteInterface
      *
      * @return mixed
      */
-    public function getHost(): ?HostInterface
+    public function host(): ?HostInterface
     {
         return $this->host;
     }
@@ -427,7 +427,7 @@ class Route implements RouteInterface
      *
      * @return array
      */
-    public function getMethods(): array
+    public function methods(): array
     {
         return array_keys($this->methods);
     }
@@ -483,7 +483,7 @@ class Route implements RouteInterface
      *
      * @return \Lead\Router\Scope
      */
-    public function getScope(): ?ScopeInterface
+    public function scope(): ?ScopeInterface
     {
         return $this->scope;
     }
@@ -506,7 +506,7 @@ class Route implements RouteInterface
      *
      * @return string
      */
-    public function getPattern(): string
+    public function pattern(): string
     {
         return $this->pattern;
     }
@@ -536,7 +536,7 @@ class Route implements RouteInterface
      *
      * @return array A collection route's token structure.
      */
-    public function getToken(): array
+    public function token(): array
     {
         if ($this->token === null) {
             $parser = $this->classes['parser'];
@@ -554,7 +554,7 @@ class Route implements RouteInterface
      *
      * @return string the route's regular expression pattern.
      */
-    public function getRegex(): string
+    public function regex(): string
     {
         if ($this->regex !== null) {
             return $this->regex;
@@ -569,7 +569,7 @@ class Route implements RouteInterface
      *
      * @return array The route's variables and their associated pattern.
      */
-    public function getVariables(): array
+    public function variables(): array
     {
         if ($this->variables !== null) {
             return $this->variables;
@@ -585,7 +585,7 @@ class Route implements RouteInterface
     protected function compile(): void
     {
         $parser = $this->classes['parser'];
-        $rule = $parser::compile($this->getToken());
+        $rule = $parser::compile($this->token());
         $this->regex = $rule[0];
         $this->variables = $rule[1];
     }
@@ -595,7 +595,7 @@ class Route implements RouteInterface
      *
      * @return mixed
      */
-    public function getHandler()
+    public function handler()
     {
         return $this->handler;
     }
@@ -627,7 +627,7 @@ class Route implements RouteInterface
     {
         $hostVariables = [];
 
-        if (($host = $this->getHost()) && !$host->match($request, $hostVariables)) {
+        if (($host = $this->host()) && !$host->match($request, $hostVariables)) {
             return false;
         }
 
@@ -642,7 +642,7 @@ class Route implements RouteInterface
 
         $path = '/' . trim($path, '/');
 
-        if (!preg_match('~^' . $this->getRegex() . '$~', $path, $matches)) {
+        if (!preg_match('~^' . $this->regex() . '$~', $path, $matches)) {
             return false;
         }
         $variables = $this->_buildVariables($matches);
@@ -664,7 +664,7 @@ class Route implements RouteInterface
         $parser = $this->classes['parser'];
 
         $i = 1;
-        foreach ($this->getVariables() as $name => $pattern) {
+        foreach ($this->variables() as $name => $pattern) {
             if (!isset($values[$i])) {
                 $variables[$name] = !$pattern ? null : [];
                 continue;
@@ -726,7 +726,7 @@ class Route implements RouteInterface
             yield $middleware;
         }
 
-        $scope = $this->getScope();
+        $scope = $this->scope();
         if ($scope !== null) {
             foreach ($scope->middleware() as $middleware) {
                 yield $middleware;
@@ -734,7 +734,7 @@ class Route implements RouteInterface
         }
 
         yield function () {
-            $handler = $this->getHandler();
+            $handler = $this->handler();
             if ($handler === null) {
                 return null;
             }
@@ -789,7 +789,7 @@ class Route implements RouteInterface
 
         $params = $params + $this->params;
 
-        $link = $this->_link($this->getToken(), $params);
+        $link = $this->_link($this->token(), $params);
 
         $basePath = trim($options['basePath'], '/');
         if ($basePath) {

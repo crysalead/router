@@ -211,9 +211,9 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function addRoute(RouteInterface $route): RouterInterface
     {
-        $options['pattern'] = $pattern = $route->getPattern();
-        $options['handler'] = $route->getHandler();
-        $options['scope'] = $route->getScope();
+        $options['pattern'] = $pattern = $route->pattern();
+        $options['handler'] = $route->handler();
+        $options['scope'] = $route->scope();
         $scheme = $options['scheme'];
         $host = $options['host'];
         if (isset($this->hosts[$scheme][$host])) {
@@ -224,19 +224,19 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
         if (isset($this->pattern[$scheme][$host][$patternKey])) {
             $route = $this->pattern[$scheme][$host][$patternKey];
         } else {
-            $this->hosts[$scheme][$host] = $route->getHost();
+            $this->hosts[$scheme][$host] = $route->host();
         }
 
         if (!isset($this->pattern[$scheme][$host][$patternKey])) {
             $this->pattern[$scheme][$host][$patternKey] = $route;
         }
 
-        $methods = $route->getMethods();
+        $methods = $route->methods();
         foreach ($methods as $method) {
             $this->routes[$scheme][$host][strtoupper($method)][] = $route;
         }
 
-        $this->data[$route->getName()] = $route;
+        $this->data[$route->name()] = $route;
         return $this;
     }
 
@@ -286,7 +286,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
         } else {
             $route = $this->classes['route'];
             $instance = new $route($options);
-            $this->hosts[$scheme][$host] = $instance->getHost();
+            $this->hosts[$scheme][$host] = $instance->host();
         }
 
         if (!isset($this->pattern[$scheme][$host][$patternKey])) {
@@ -385,7 +385,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
         $route = $this->_route($r);
         if ($route instanceof RouteInterface) {
             $route->request = is_object($request) ? $request : $r;
-            foreach ($route->getPersistentParams() as $key) {
+            foreach ($route->persistentParams() as $key) {
                 if (isset($route->params[$key])) {
                     $this->defaults[$key] = $route->params[$key];
                 }

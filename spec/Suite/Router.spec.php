@@ -74,9 +74,9 @@ describe("Router", function () {
             $r->bind('foo/bar', ['methods' => ['POST', 'PUT']], function () {
             });
             $route = $r->route('foo/bar', 'POST');
-            expect($route->getMethods())->toBe(['POST', 'PUT']);
+            expect($route->Methods())->toBe(['POST', 'PUT']);
             $route = $r->route('foo/bar', 'PUT');
-            expect($route->getMethods())->toBe(['POST', 'PUT']);
+            expect($route->Methods())->toBe(['POST', 'PUT']);
             try {
                 $route = $r->route('bar/foo', 'GET');
             } catch (RouteNotFoundException $e) {
@@ -90,9 +90,9 @@ describe("Router", function () {
             $r->bind('foo/bar', ['methods' => ['POST', 'PUT']], function () {
             });
             $route = $r->route('foo/bar', 'post');
-            expect($route->getMethods())->toBe(['POST', 'PUT']);
+            expect($route->Methods())->toBe(['POST', 'PUT']);
             $route = $r->route('foo/bar', 'put');
-            expect($route->getMethods())->toBe(['POST', 'PUT']);
+            expect($route->Methods())->toBe(['POST', 'PUT']);
             try {
                 $route = $r->route('bar/foo', 'GET');
             } catch (RouteNotFoundException $e) {
@@ -388,10 +388,10 @@ describe("Router", function () {
             $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function () {
             });
             $route = $r->route('foo/25', 'GET', 'foo.biz.bar');
-            expect($route->getHost()->getPattern())->toBe('foo.{domain}.bar');
+            expect($route->Host()->getPattern())->toBe('foo.{domain}.bar');
             expect($route->params)->toBe(['domain' => 'biz', 'var1' => '25']);
             $route = $r->route('foo/50', 'GET', 'foo.buz.baz');
-            expect($route->getHost()->getPattern())->toBe('foo.{domain}.baz');
+            expect($route->Host()->getPattern())->toBe('foo.{domain}.baz');
             expect($route->params)->toBe(['domain' => 'buz', 'var1' => '50']);
         });
         it("supports constrained host variables", function () {
@@ -417,10 +417,10 @@ describe("Router", function () {
             $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function () {
             });
             $route = $r->route('http://foo.biz.bar/foo/25', 'GET');
-            expect($route->getHost()->getPattern())->toBe('foo.{domain}.bar');
+            expect($route->Host()->getPattern())->toBe('foo.{domain}.bar');
             expect($route->params)->toBe(['domain' => 'biz', 'var1' => '25']);
             $route = $r->route('http://foo.buz.baz/foo/50', 'GET');
-            expect($route->getHost()->getPattern())->toBe('foo.{domain}.baz');
+            expect($route->Host()->getPattern())->toBe('foo.{domain}.baz');
             expect($route->params)->toBe(['domain' => 'buz', 'var1' => '50']);
         });
         it("supports RESTful routes", function () {
@@ -443,19 +443,19 @@ describe("Router", function () {
             });
             $methods = ['OPTIONS', 'DELETE', 'PATCH', 'PUT', 'POST', 'HEAD', 'GET'];
             $route = $r->route('foo/bar', 'GET');
-            expect($route->getMethods())->toBe($methods);
+            expect($route->Methods())->toBe($methods);
             $route = $r->route('foo/bar', 'HEAD');
-            expect($route->getMethods())->toBe($methods);
+            expect($route->Methods())->toBe($methods);
             $route = $r->route('foo/bar', 'POST');
-            expect($route->getMethods())->toBe($methods);
+            expect($route->Methods())->toBe($methods);
             $route = $r->route('foo/bar', 'PUT');
-            expect($route->getMethods())->toBe($methods);
+            expect($route->Methods())->toBe($methods);
             $route = $r->route('foo/bar', 'PATCH');
-            expect($route->getMethods())->toBe($methods);
+            expect($route->Methods())->toBe($methods);
             $route = $r->route('foo/bar', 'DELETE');
-            expect($route->getMethods())->toBe($methods);
+            expect($route->Methods())->toBe($methods);
             $route = $r->route('foo/bar', 'OPTIONS');
-            expect($route->getMethods())->toBe($methods);
+            expect($route->Methods())->toBe($methods);
         });
         it("matches relationships based routes", function () {
 
@@ -481,7 +481,7 @@ describe("Router", function () {
                 return 'GET';
             });
             $route = $r->route('foo/bar', 'HEAD');
-            expect($route->getMethods())->toBe(['GET']);
+            expect($route->Methods())->toBe(['GET']);
         });
         it("dispatches HEAD requests on matching HEAD routes", function () {
 
@@ -495,7 +495,7 @@ describe("Router", function () {
                 return 'GET';
             });
             $route = $r->route('foo/bar', 'HEAD');
-            expect($route->getMethods())->toBe(['GET', 'HEAD']);
+            expect($route->Methods())->toBe(['GET', 'HEAD']);
         });
         it("supports requests as a list of arguments", function () {
 
@@ -830,7 +830,7 @@ describe("Router", function () {
             expect($r->strategy('mystrategy'))->toBe($mystrategy);
             $r->mystrategy();
             $route = $r->route('foo/bar');
-            expect($route->getPattern())->toBe('/foo/bar');
+            expect($route->Pattern())->toBe('/foo/bar');
         });
         it("unsets a strategy", function () {
 

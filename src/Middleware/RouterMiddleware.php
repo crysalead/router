@@ -19,28 +19,32 @@ class RouterMiddleware implements MiddlewareInterface
     /**
      * Router
      *
-     * @var \Lead\Router\Router
+     * @var \Lead\Router\RouterInterface
      */
     protected $router;
-/**
+
+    /**
      * Not found callback
      *
      * @var callable
      */
     protected $notFoundCallback = null;
-/**
+
+    /**
      * Ignore the exception
      *
      * @var bool
      */
     protected $ignoreNotFoundException = false;
-/**
+
+    /**
      * The request attribute name for the route
      *
      * @var string
      */
     protected $routeAttribute = 'route';
-/**
+
+    /**
      * Constructor
      *
      * @param \Lead\Router\RouterInterface $router Router

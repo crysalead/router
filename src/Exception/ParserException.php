@@ -9,7 +9,7 @@ use RuntimeException;
 /**
  * ParserException
  */
-class ParserException extends RuntimeException
+class ParserException extends RouterException
 {
     public const SQUARE_BRACKET_MISMATCH = 1;
     public const DUPLICATE_PLACEHOLDER = 2;
