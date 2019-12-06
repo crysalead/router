@@ -817,7 +817,6 @@ describe("Router", function () {
 
         it("sets a strategy", function () {
 
-
             $r = $this->router;
             $mystrategy = function ($router) {
 
@@ -826,7 +825,7 @@ describe("Router", function () {
                     return 'Hello World!';
                 });
             };
-            $r->strategy('mystrategy', $mystrategy);
+            $r->setStrategy('mystrategy', $mystrategy);
             expect($r->strategy('mystrategy'))->toBe($mystrategy);
             $r->mystrategy();
             $route = $r->route('foo/bar');
@@ -834,25 +833,15 @@ describe("Router", function () {
         });
         it("unsets a strategy", function () {
 
-
             $r = $this->router;
 
             $mystrategy = function () {
             };
-            $r->strategy('mystrategy', $mystrategy);
+            $r->setStrategy('mystrategy', $mystrategy);
             expect($r->strategy('mystrategy'))->toBe($mystrategy);
-            $r->strategy('mystrategy', false);
+
+            $r->unsetStrategy('mystrategy');
             expect($r->strategy('mystrategy'))->toBe(null);
-        });
-        it("throws an exception when the handler is not a closure", function () {
-
-
-            $closure = function () {
-
-                $r = $this->router;
-                $r->strategy('mystrategy', "substr");
-            };
-            expect($closure)->toThrow(new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method."));
         });
     });
 });

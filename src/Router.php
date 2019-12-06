@@ -381,7 +381,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             $r = $request + $defaults;
         }
 
-        $r = $this->_normalizeRequest($r);
+        $r = $this->normalizeRequest($r);
         $route = $this->_route($r);
         if ($route instanceof RouteInterface) {
             $route->request = is_object($request) ? $request : $r;
@@ -404,7 +404,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * @param  array $request The request to normalize.
      * @return array          The normalized request.
      */
-    protected function _normalizeRequest(array $request): array
+    protected function normalizeRequest(array $request): array
     {
         if (preg_match('~^(?:[a-z]+:)?//~i', $request['path'])) {
             $parsed = array_intersect_key(parse_url($request['path']), $request);
@@ -413,6 +413,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
 
         $request['path'] = (ltrim((string)strtok($request['path'], '?'), '/'));
         $request['method'] = strtoupper($request['method']);
+
         return $request;
     }
 
@@ -444,8 +445,9 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
                     if (!isset($allowedMethods[$method]) && $httpMethod !== '*') {
                         continue;
                     }
+
                     foreach ($routes as $route) {
-                /* @var $route \Lead\Router\RouteInterface */
+                        /* @var $route \Lead\Router\RouteInterface */
                         if (!$route->match($request, $variables, $hostVariables)) {
                             if ($hostVariables === null) {
                                 continue 3;
@@ -499,7 +501,17 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     public function setStrategy(string $name, callable $handler)
     {
         $this->strategies[$name] = $handler;
+
         return $this;
+    }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    public function hasStrategy(string $name): bool
+    {
+        return isset($this->strategies[$name]);
     }
 
     /**
@@ -526,10 +538,9 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     {
         if (isset($this->strategies[$name])) {
             unset($this->strategies[$name]);
-            return $this;
         }
 
-        throw new RuntimeException(sprintf('Strategy `%s` not found.', $name));
+        return $this;
     }
 
     /**
@@ -542,6 +553,8 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      */
     public function strategy($name, $handler = null)
     {
+        // return $this->getStrategy($name);
+
         if (func_num_args() === 1) {
             try {
                 return $this->getStrategy($name);
@@ -572,11 +585,13 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * @param array  $params The route's parameters.
      * @return mixed
      */
-    public function __call($name, $params)
+    public function __call(string $name, array $params)
     {
-        if ($strategy = $this->strategy($name)) {
-            array_unshift($params, $this);
-            return call_user_func_array($strategy, $params);
+        if (isset($this->strategies[$name])) {
+            if ($strategy = $this->strategies[$name]) {
+                array_unshift($params, $this);
+                return call_user_func_array($strategy, $params);
+            }
         }
 
         if (is_callable($params[1])) {
