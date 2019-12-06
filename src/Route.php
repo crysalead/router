@@ -144,7 +144,7 @@ class Route implements RouteInterface
      *
      * @var Closure
      */
-    protected $_handler = null;
+    protected $handler = null;
 
     /**
      * The middlewares.
@@ -597,7 +597,7 @@ class Route implements RouteInterface
      */
     public function getHandler()
     {
-        return $this->_handler;
+        return $this->handler;
     }
 
     /**
@@ -612,7 +612,7 @@ class Route implements RouteInterface
             throw new InvalidArgumentException('Handler must be a callable, string or null');
         }
 
-        $this->_handler = $handler;
+        $this->handler = $handler;
 
         return $this;
     }

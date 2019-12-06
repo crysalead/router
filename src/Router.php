@@ -333,6 +333,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
         $scope = $this->scope();
         $this->pushScope($scope->seed($options));
         $handler($this);
+
         return $this->popScope();
     }
 
@@ -342,7 +343,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * @param \Psr\Http\Message\ServerRequestInterface $request Server Request
      * @return array
      */
-    protected function _getRequestInformation(ServerRequestInterface $request): array
+    protected function getRequestInformation(ServerRequestInterface $request): array
     {
         $uri = $request->getUri();
         if (method_exists($request, 'basePath')) {
@@ -373,7 +374,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
         ];
         $this->defaults = [];
         if ($request instanceof ServerRequestInterface) {
-            $r = $this->_getRequestInformation($request);
+            $r = $this->getRequestInformation($request);
         } elseif (!is_array($request)) {
             $r = array_combine(array_keys($defaults), func_get_args() + array_values($defaults));
         } else {
