@@ -12,14 +12,14 @@ class Scope implements ScopeInterface
     /**
      * The router instance.
      *
-     * @var object
+     * @var \Lead\Router\RouterInterface
      */
     protected $router = null;
 
     /**
      * The parent instance.
      *
-     * @var object
+     * @var \Lead\Router\ScopeInterface
      */
     protected $parent = null;
 
@@ -70,15 +70,15 @@ class Scope implements ScopeInterface
      * Creates a new sub scope based on the instance scope.
      *
      * @param  array $options The route options to scopify.
-     * @return $this          The new sub scope.
+     * @return \Lead\Router\ScopeInterface The new sub scope.
      */
     public function seed(array $options): ScopeInterface
     {
         return new static(
             [
-            'router' => $this->router,
-            'parent' => $this,
-            'scope'  => $this->scopify($options)
+                'router' => $this->router,
+                'parent' => $this,
+                'scope'  => $this->scopify($options)
             ]
         );
     }
@@ -133,7 +133,7 @@ class Scope implements ScopeInterface
     /**
      * Adds a middleware to the list of middleware
      *
-     * @param object|\Closure A callable middleware
+     * @param object|\Closure $middleware A callable middleware
      * @return \Lead\Router\ScopeInterface
      */
     public function apply($middleware): ScopeInterface

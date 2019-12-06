@@ -83,14 +83,14 @@ class Route implements RouteInterface
     /**
      * The route scope.
      *
-     * @var \Lead\Router\Scope|null
+     * @var \Lead\Router\ScopeInterface|null
      */
     protected $scope = null;
 
     /**
      * The route's host.
      *
-     * @var \Lead\Router\Host
+     * @var \Lead\Router\HostInterface|null
      */
     protected $host = null;
 
@@ -119,7 +119,7 @@ class Route implements RouteInterface
      * The tokens structure extracted from route's pattern.
      *
      * @see Parser::tokenize()
-     * @var array
+     * @var array|null
      */
     protected $token = null;
 
@@ -127,7 +127,7 @@ class Route implements RouteInterface
      * The route's regular expression pattern.
      *
      * @see Parser::compile()
-     * @var string
+     * @var string|null
      */
     protected $regex = null;
 
@@ -135,14 +135,14 @@ class Route implements RouteInterface
      * The route's variables.
      *
      * @see Parser::compile()
-     * @var array
+     * @var array|null
      */
     protected $variables = null;
 
     /**
      * The route's handler to execute when a request match.
      *
-     * @var Closure
+     * @var \Closure|null
      */
     protected $handler = null;
 
@@ -151,14 +151,14 @@ class Route implements RouteInterface
      *
      * @var array
      */
-    protected $_middleware = [];
+    protected $middleware = [];
 
     /**
      * Attributes
      *
      * @var array
      */
-    protected $_attributes = [];
+    protected $attributes = [];
 
     /**
      * Constructs a route
@@ -191,7 +191,7 @@ class Route implements RouteInterface
      */
     public function setMiddleware(array $middleware)
     {
-        $this->_middleware = (array)$middleware;
+        $this->middleware = (array)$middleware;
 
         return $this;
     }
@@ -238,8 +238,8 @@ class Route implements RouteInterface
      */
     public function setAttribute($name, $value): RouteInterface
     {
-        if (isset($this->_attributes[$name])) {
-            return $this->_attributes[$name];
+        if (isset($this->attributes[$name])) {
+            return $this->attributes[$name];
         }
         return $this;
     }
@@ -252,8 +252,8 @@ class Route implements RouteInterface
      */
     public function Attribute(string $name)
     {
-        if (isset($this->_attributes[$name])) {
-            return $this->_attributes[$name];
+        if (isset($this->attributes[$name])) {
+            return $this->attributes[$name];
         }
 
         return null;
@@ -436,7 +436,7 @@ class Route implements RouteInterface
      * Sets methods
      *
      * @param  string|array $methods
-     * @return $this
+     * @return self
      */
     public function setMethods($methods): self
     {
@@ -722,7 +722,7 @@ class Route implements RouteInterface
      */
     public function middleware(): Generator
     {
-        foreach ($this->_middleware as $middleware) {
+        foreach ($this->middleware as $middleware) {
             yield $middleware;
         }
 
@@ -752,7 +752,7 @@ class Route implements RouteInterface
     public function apply($middleware)
     {
         foreach (func_get_args() as $mw) {
-            array_unshift($this->_middleware, $mw);
+            array_unshift($this->middleware, $mw);
         }
 
         return $this;

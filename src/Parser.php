@@ -74,7 +74,6 @@ EOD;
      *
      * @param string $pattern A route pattern
      * @param string $delimiter The path delimiter.
-     * @param array The tokens structure root node.
      * @return array
      */
     public static function tokenize(string $pattern, string $delimiter = '/'): array
@@ -99,7 +98,7 @@ EOD;
      *
      * @param string $pattern   A route pattern
      * @param string $delimiter The path delimiter.
-     * @param array An array of tokens structure.
+     * @param array|null An array of tokens structure.
      * @return array
      */
     protected static function _tokenizePattern(string $pattern, string $delimiter, &$variable = null): array
@@ -135,7 +134,7 @@ EOD;
      *
      * @param string $pattern   A route pattern with no optional segments.
      * @param string $delimiter The path delimiter.
-     * @param array An array of tokens structure.
+     * @param array|null An array of tokens structure.
      * @return array
      */
     protected static function tokenizeSegment($pattern, $delimiter, &$variable = null): array
@@ -183,7 +182,6 @@ EOD;
      * Unfortunately recursive regex matcher can't help here so this function is required.
      *
      * @param string $pattern A route pattern.
-     * @param array The split  pattern.
      * @return array
      */
     public static function split(string $pattern): array
@@ -283,6 +281,7 @@ EOD;
                 }
             }
         }
+
         return [$regex, $variables];
     }
 }

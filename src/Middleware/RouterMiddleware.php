@@ -63,6 +63,7 @@ class RouterMiddleware implements MiddlewareInterface
     public function setRouteAttribute(string $name): self
     {
         $this->routeAttribute = $name;
+
         return $this;
     }
 
@@ -75,6 +76,7 @@ class RouterMiddleware implements MiddlewareInterface
     public function setIgnoreException(bool $ignore): self
     {
         $this->ignoreNotFoundException = $ignore;
+
         return $this;
     }
 
@@ -86,8 +88,10 @@ class RouterMiddleware implements MiddlewareInterface
      * @param \Psr\Http\Server\RequestHandlerInterface $requestHandler Request Handler
      * @return \Psr\Http\Message\ResponseInterface
      */
-    public function process(ServerRequestInterface $request, RequestHandlerInterface $requestHandler): ResponseInterface
-    {
+    public function process(
+        ServerRequestInterface $request,
+        RequestHandlerInterface $requestHandler
+    ): ResponseInterface {
         try {
             $route = $this->router->route($request);
             $request = $request->withAttribute($this->routeAttribute, $route);

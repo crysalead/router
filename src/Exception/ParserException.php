@@ -32,7 +32,7 @@ class ParserException extends RouterException
     /**
      * Creates a square bracket mismatch exception.
      *
-     * @return $this
+     * @return static
      */
     public static function squareBracketMismatch()
     {
@@ -42,19 +42,20 @@ class ParserException extends RouterException
     /**
      * Creates a duplicate placeholder exception.
      *
-     * @return $this
+     * @return static
      */
     public static function duplicatePlaceholder($placeholder = '')
     {
         $exception = new static("Cannot use the same placeholder `{$placeholder}` twice.", static::DUPLICATE_PLACEHOLDER);
         $exception->placeholder = $placeholder;
+
         return $exception;
     }
 
     /**
      * Creates a placeholder exceeded exception.
      *
-     * @return $this
+     * @return static
      */
     public static function placeholderExceeded()
     {

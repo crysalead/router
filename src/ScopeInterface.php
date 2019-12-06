@@ -24,4 +24,11 @@ interface ScopeInterface
      * @return array The scoped options.
      */
     public function scopify(array $options): array;
+
+    /**
+     * Middleware generator.
+     *
+     * @return callable
+     */
+    public function middleware();
 }
