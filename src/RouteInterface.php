@@ -10,6 +10,26 @@ namespace Lead\Router;
 interface RouteInterface
 {
     /**
+     * Valid HTTP methods.
+     *
+     * @var array
+     */
+    public const VALID_METHODS = [
+        'GET', 'PUT', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'
+    ];
+
+    /**
+     * HTTP verb constants
+     */
+    public const GET = 'GET';
+    public const PUT = 'PUT';
+    public const POST = 'POST';
+    public const PATCH = 'PATCH';
+    public const DELETE = 'DELETE';
+    public const OPTIONS = 'OPTIONS';
+    public const HEAD = 'HEAD';
+
+    /**
      * Gets the routes name
      *
      * @return string
@@ -58,7 +78,7 @@ interface RouteInterface
     /**
      * Gets the routes handler
      *
-     * @return null|callable|\Closure
+     * @return null|object|string|\Closure|callable
      */
     public function handler();
 

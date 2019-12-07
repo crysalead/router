@@ -16,15 +16,6 @@ use RuntimeException;
 class Route implements RouteInterface
 {
     /**
-     * Valid HTTP methods.
-     *
-     * @var array
-     */
-    protected const VALID_METHODS = [
-        'GET', 'PUT', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'
-    ];
-
-    /**
      * Class dependencies.
      *
      * @var array
