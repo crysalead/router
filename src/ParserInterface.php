@@ -14,7 +14,6 @@ interface ParserInterface
      *
      * @param string $pattern A route pattern
      * @param string $delimiter The path delimiter.
-     * @param array The tokens structure root node.
      * @return array
      */
     public static function tokenize(string $pattern, string $delimiter = '/'): array;
@@ -28,7 +27,6 @@ interface ParserInterface
      * Unfortunately recursive regex matcher can't help here so this function is required.
      *
      * @param string $pattern A route pattern.
-     * @param array The split pattern.
      * @return array
      */
     public static function split(string $pattern): array;

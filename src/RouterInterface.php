@@ -56,4 +56,19 @@ interface RouterInterface
      * @return string The link.
      */
     public function link(string $name, array $params = [], array $options = []): string;
+
+    /**
+     * Pushes a new router scope context.
+     *
+     * @param \Lead\Router\ScopeInterface $scope A scope instance.
+     * @return self
+     */
+    public function pushScope(ScopeInterface $scope): RouterInterface;
+
+    /**
+     * Pops the current router scope context.
+     *
+     * @return \Lead\Router\ScopeInterface The popped scope instance.
+     */
+    public function popScope(): ScopeInterface;
 }

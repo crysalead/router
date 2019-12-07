@@ -66,14 +66,14 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     /**
      * Base path.
      *
-     * @param string
+     * @var string
      */
     protected $basePath = '';
 
     /**
      * Dispatching strategies.
      *
-     * @param array
+     * @var array
      */
     protected $strategies = [];
 
@@ -128,6 +128,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     public function setDefaultHandler($handler): RouterInterface
     {
         $this->defaultHandler = $handler;
+
         return $this;
     }
 
@@ -144,10 +145,10 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     /**
      * Pushes a new router scope context.
      *
-     * @param  object $scope A scope instance.
+     * @param \Lead\Router\ScopeInterface $scope A scope instance.
      * @return self
      */
-    public function pushScope($scope): RouterInterface
+    public function pushScope(ScopeInterface $scope): RouterInterface
     {
         $this->scopes[] = $scope;
         return $this;
@@ -166,7 +167,6 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     /**
      * Gets the base path
      *
-     * @param  string $basePath The base path to set or none to get the setted one.
      * @return string
      */
     public function getBasePath(): string
@@ -246,7 +246,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * @param  string|array  $pattern The route's pattern.
      * @param  Closure|array $options An array of options or the callback handler.
      * @param  Closure|null  $handler The callback handler.
-     * @return self
+     * @return \Lead\Router\RouteInterface
      */
     public function bind($pattern, $options = [], $handler = null): RouteInterface
     {
@@ -319,6 +319,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
                 $prefix = '';
             }
         }
+
         if (!$handler instanceof Closure && !method_exists($handler, '__invoke')) {
             throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
         }
@@ -375,13 +376,14 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             $r = $request + $defaults;
         }
 
-        $r = $this->_normalizeRequest($r);
+        $r = $this->normalizeRequest($r);
         $route = $this->_route($r);
         if ($route instanceof RouteInterface) {
             $route->request = is_object($request) ? $request : $r;
             foreach ($route->persistentParams() as $key) {
-                if (isset($route->params[$key])) {
-                    $this->defaults[$key] = $route->params[$key];
+                $routeParams = $route->params();
+                if (isset($routeParams[$key])) {
+                    $this->defaults[$key] = $routeParams[$key];
                 }
             }
 
@@ -399,7 +401,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * @param  array $request The request to normalize.
      * @return array          The normalized request.
      */
-    protected function _normalizeRequest(array $request): array
+    protected function normalizeRequest(array $request): array
     {
         if (preg_match('~^(?:[a-z]+:)?//~i', $request['path'])) {
             $parsed = array_intersect_key(parse_url($request['path']), $request);
@@ -418,7 +420,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * @param array $request The request to route.
      * @return null|\Lead\Router\RouteInterface
      */
-    protected function _route($request): ?RouteInterface
+    protected function _route(array $request): ?RouteInterface
     {
         $path = $request['path'];
         $httpMethod = $request['method'];
@@ -440,8 +442,9 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
                     if (!isset($allowedMethods[$method]) && $httpMethod !== '*') {
                         continue;
                     }
+
                     foreach ($routes as $route) {
-                /* @var $route \Lead\Router\RouteInterface */
+                        /* @var $route \Lead\Router\RouteInterface */
                         if (!$route->match($request, $variables, $hostVariables)) {
                             if ($hostVariables === null) {
                                 continue 3;
@@ -495,7 +498,17 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     public function setStrategy(string $name, callable $handler)
     {
         $this->strategies[$name] = $handler;
+
         return $this;
+    }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    public function hasStrategy(string $name): bool
+    {
+        return isset($this->strategies[$name]);
     }
 
     /**
@@ -522,10 +535,9 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     {
         if (isset($this->strategies[$name])) {
             unset($this->strategies[$name]);
-            return $this;
         }
 
-        throw new RuntimeException(sprintf('Strategy `%s` not found.', $name));
+        return $this;
     }
 
     /**
@@ -568,11 +580,13 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
      * @param array  $params The route's parameters.
      * @return mixed
      */
-    public function __call($name, $params)
+    public function __call(string $name, array $params)
     {
-        if ($strategy = $this->strategy($name)) {
-            array_unshift($params, $this);
-            return call_user_func_array($strategy, $params);
+        if (isset($this->strategies[$name])) {
+            if ($strategy = $this->strategies[$name]) {
+                array_unshift($params, $this);
+                return call_user_func_array($strategy, $params);
+            }
         }
 
         if (is_callable($params[1])) {

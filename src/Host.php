@@ -36,7 +36,7 @@ class Host implements HostInterface
      * The tokens structure extracted from host's pattern.
      *
      * @see Parser::tokenize()
-     * @var array
+     * @var array|null
      */
     protected $token = null;
 
@@ -44,7 +44,7 @@ class Host implements HostInterface
      * The host's regular expression pattern.
      *
      * @see Parser::compile()
-     * @var string
+     * @var string|null
      */
     protected $regex = null;
 
@@ -52,7 +52,7 @@ class Host implements HostInterface
      * The host's variables.
      *
      * @see Parser::compile()
-     * @var array
+     * @var array|null
      */
     protected $variables = null;
 
@@ -169,14 +169,16 @@ class Host implements HostInterface
         if ($this->variables !== null) {
             return $this->variables;
         }
+
         $this->compile();
+
         return $this->variables;
     }
 
     /**
      * Compiles the host's patten.
      */
-    protected function compile()
+    protected function compile(): void
     {
         if ($this->getPattern() === '*') {
             return;
@@ -245,6 +247,7 @@ class Host implements HostInterface
         }
 
         $scheme = $options['scheme'] !== '*' ? $options['scheme'] . '://' : '//';
+
         return $scheme . $options['host'];
     }
 
@@ -255,7 +258,7 @@ class Host implements HostInterface
      * @param  array $params The route parameters.
      * @return string The URL path representation of the token structure array.
      */
-    protected function _link($token, $params): string
+    protected function _link(array $token, array $params): string
     {
         $link = '';
         foreach ($token['tokens'] as $child) {

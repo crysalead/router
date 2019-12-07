@@ -120,4 +120,18 @@ interface RouteInterface
      * @return string
      */
     public function pattern(): string;
+
+    /**
+     * Get persistent parameters
+     *
+     * @return array
+     */
+    public function persistentParams(): array;
+
+    /**
+     * Get parameters
+     *
+     * @return array
+     */
+    public function params(): array;
 }
