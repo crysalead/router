@@ -111,16 +111,6 @@ describe("Router", function () {
             $route = $r->route('foo/bar', 'PUT');
             expect($route->name)->toBe('bar');
         });
-        it("throws an exception when the handler is not a closure", function () {
-
-
-            $closure = function () {
-
-                $r = $this->router;
-                $r->bind('foo', 'substr');
-            };
-            expect($closure)->toThrow(new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method."));
-        });
         it("throws an exception when trying to use the `'method'` option", function () {
 
 
@@ -217,7 +207,7 @@ describe("Router", function () {
 
                 $this->router->link('not.binded.yet', []);
             };
-            expect($closure)->toThrow(new RouterException("No binded route defined for `'not.binded.yet'`, bind it first with `bind()`."));
+            expect($closure)->toThrow(new RouterException("No route defined for `'not.binded.yet'`, bind it first with `bind()`."));
         });
     });
     describe("->route()", function () {

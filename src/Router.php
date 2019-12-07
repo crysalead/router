@@ -259,12 +259,6 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             $handler = $this->_defaultHandler;
         }
 
-        if ($handler !== null) {
-            if (!$handler instanceof Closure && !method_exists($handler, '__invoke')) {
-                throw new RouterException("The handler needs to be an instance of `Closure` or implements the `__invoke()` magic method.");
-            }
-        }
-
         if (isset($options['method'])) {
             throw new RouterException("Use the `'methods'` option to limit HTTP verbs on a route binding definition.");
         }
@@ -395,6 +389,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
         }
 
         $message = "No route found for `{$r['scheme']}:{$r['host']}:{$r['method']}:/{$r['path']}`.";
+
         throw new RouteNotFoundException($message);
     }
 
@@ -413,6 +408,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
 
         $request['path'] = (ltrim((string)strtok($request['path'], '?'), '/'));
         $request['method'] = strtoupper($request['method']);
+
         return $request;
     }
 
@@ -610,9 +606,10 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
         $options += $defaults;
         $params += $this->defaults;
         if (!isset($this[$name])) {
-            throw new RouterException("No binded route defined for `'{$name}'`, bind it first with `bind()`.");
+            throw new RouterException("No route defined for `'{$name}'`, bind it first with `bind()`.");
         }
         $route = $this[$name];
+
         return $route->link($params, $options);
     }
 
