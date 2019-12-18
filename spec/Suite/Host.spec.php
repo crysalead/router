@@ -17,9 +17,9 @@ describe("Host", function () {
 
 
             $host = new Host();
-            expect($host->getScheme())->toBe('*');
+            expect($host->scheme())->toBe('*');
             expect($host->setScheme('https'))->toBe($host);
-            expect($host->getScheme())->toBe('https');
+            expect($host->scheme())->toBe('https');
         });
     });
     describe("->pattern()", function () {
@@ -29,11 +29,11 @@ describe("Host", function () {
 
 
             $host = new Host();
-            expect($host->getPattern())->toBe('*');
+            expect($host->pattern())->toBe('*');
             expect($host->setPattern('foo.{domain}.bar'))->toBe($host);
-            expect($host->getPattern())->toBe('foo.{domain}.bar');
-            expect($host->getRegex())->toBe('foo\\.([^.]+)\\.bar');
-            expect($host->getVariables())->toBe([
+            expect($host->pattern())->toBe('foo.{domain}.bar');
+            expect($host->regex())->toBe('foo\\.([^.]+)\\.bar');
+            expect($host->variables())->toBe([
                 'domain'    => false
             ]);
         });
@@ -42,20 +42,20 @@ describe("Host", function () {
 
             $host = new Host();
             expect($host->setPattern('foo.{domain}.bar'))->toBe($host);
-            expect($host->getRegex())->toBe('foo\\.([^.]+)\\.bar');
+            expect($host->regex())->toBe('foo\\.([^.]+)\\.bar');
             expect($host->setPattern('foo.{domain}.baz'))->toBe($host);
-            expect($host->getRegex())->toBe('foo\\.([^.]+)\\.baz');
+            expect($host->regex())->toBe('foo\\.([^.]+)\\.baz');
         });
         it("updates the variables", function () {
 
 
             $host = new Host();
             expect($host->setPattern('foo.{domain}.bar'))->toBe($host);
-            expect($host->getVariables())->toBe([
+            expect($host->variables())->toBe([
                 'domain'    => false
             ]);
             expect($host->setPattern('foo.{baz}.bar'))->toBe($host);
-            expect($host->getVariables())->toBe([
+            expect($host->variables())->toBe([
                 'baz'    => false
             ]);
         });

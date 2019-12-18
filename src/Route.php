@@ -238,9 +238,8 @@ class Route implements RouteInterface
      */
     public function setAttribute($name, $value): RouteInterface
     {
-        if (isset($this->attributes[$name])) {
-            return $this->attributes[$name];
-        }
+        $this->attributes[$name] = $value;
+
         return $this;
     }
 
@@ -250,7 +249,7 @@ class Route implements RouteInterface
      * @param string $name Attribute name
      * @return mixed
      */
-    public function Attribute(string $name)
+    public function attribute(string $name)
     {
         if (isset($this->attributes[$name])) {
             return $this->attributes[$name];

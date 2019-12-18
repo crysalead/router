@@ -161,3 +161,4 @@ class Scope implements ScopeInterface
         return $result;
     }
 }
+

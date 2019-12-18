@@ -352,7 +352,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
         }
 
         return [
-            'scheme' => $uri->getScheme(),
+            'scheme' => $uri->scheme(),
             'host' => $uri->getHost(),
             'method' => $request->getMethod(),
             'path' => $uri->getPath()

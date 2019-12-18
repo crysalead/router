@@ -31,27 +31,27 @@ describe("Router", function () {
 
 
             $router = new Router(['basePath' => '/']);
-            expect($router->getBasePath())->toBe('');
+            expect($router->basePath())->toBe('');
         });
     });
-    describe("->getBasePath()", function () {
+    describe("->basePath()", function () {
 
 
         it("sets an empty basePath", function () {
 
 
             expect($this->router->setBasePath('/'))->toBe($this->router);
-            expect($this->router->getBasePath())->toBe('');
+            expect($this->router->basePath())->toBe('');
             expect($this->router->setBasePath(''))->toBe($this->router);
-            expect($this->router->getBasePath())->toBe('');
+            expect($this->router->basePath())->toBe('');
         });
         it("adds an leading slash for non empty basePath", function () {
 
 
             expect($this->router->setBasePath('app'))->toBe($this->router);
-            expect($this->router->getBasePath())->toBe('/app');
+            expect($this->router->basePath())->toBe('/app');
             expect($this->router->setBasePath('/base'))->toBe($this->router);
-            expect($this->router->getBasePath())->toBe('/base');
+            expect($this->router->basePath())->toBe('/base');
         });
     });
     describe("->bind()", function () {
@@ -388,10 +388,10 @@ describe("Router", function () {
             $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function () {
             });
             $route = $r->route('foo/25', 'GET', 'foo.biz.bar');
-            expect($route->Host()->getPattern())->toBe('foo.{domain}.bar');
+            expect($route->Host()->pattern())->toBe('foo.{domain}.bar');
             expect($route->params)->toBe(['domain' => 'biz', 'var1' => '25']);
             $route = $r->route('foo/50', 'GET', 'foo.buz.baz');
-            expect($route->Host()->getPattern())->toBe('foo.{domain}.baz');
+            expect($route->Host()->pattern())->toBe('foo.{domain}.baz');
             expect($route->params)->toBe(['domain' => 'buz', 'var1' => '50']);
         });
         it("supports constrained host variables", function () {
@@ -417,10 +417,10 @@ describe("Router", function () {
             $r->get('foo/{var1:\d+}', ['host' => 'foo.{domain}.baz'], function () {
             });
             $route = $r->route('http://foo.biz.bar/foo/25', 'GET');
-            expect($route->Host()->getPattern())->toBe('foo.{domain}.bar');
+            expect($route->Host()->pattern())->toBe('foo.{domain}.bar');
             expect($route->params)->toBe(['domain' => 'biz', 'var1' => '25']);
             $route = $r->route('http://foo.buz.baz/foo/50', 'GET');
-            expect($route->Host()->getPattern())->toBe('foo.{domain}.baz');
+            expect($route->Host()->pattern())->toBe('foo.{domain}.baz');
             expect($route->params)->toBe(['domain' => 'buz', 'var1' => '50']);
         });
         it("supports RESTful routes", function () {
@@ -519,7 +519,7 @@ describe("Router", function () {
             $request = Double::instance(['implements' => ServerRequestInterface::class]);
             $uri = Double::instance(['implements' => UriInterface::class]);
             allow($request)->toReceive('basePath')->andReturn('/');
-            allow($uri)->toReceive('getScheme')->andReturn('http');
+            allow($uri)->toReceive('scheme')->andReturn('http');
             allow($uri)->toReceive('getHost')->andReturn('');
             allow($uri)->toReceive('getPath')->andReturn('foo/bar');
             allow($request)->toReceive('getMethod')->andReturn('GET');

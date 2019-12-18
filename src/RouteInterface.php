@@ -66,7 +66,7 @@ interface RouteInterface
      * Gets/sets the route's handler.
      *
      * @param mixed $handler The route handler.
-     * @return self
+     * @return RouteInterface
      */
     public function setHandler($handler): RouteInterface;
 

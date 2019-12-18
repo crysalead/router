@@ -73,7 +73,6 @@ class Host implements HostInterface
         $config += $defaults;
 
         $this->classes = $config['classes'];
-
         $this->setScheme($config['scheme']);
         $this->setPattern($config['pattern']);
     }
@@ -96,7 +95,7 @@ class Host implements HostInterface
      *
      * @return string|null
      */
-    public function getScheme(): ?string
+    public function scheme(): ?string
     {
         return $this->scheme;
     }
@@ -122,7 +121,7 @@ class Host implements HostInterface
      *
      * @return string
      */
-    public function getPattern(): string
+    public function pattern(): string
     {
         return $this->pattern;
     }
@@ -132,7 +131,7 @@ class Host implements HostInterface
      *
      * @return array A collection route's token structure.
      */
-    protected function getToken()
+    protected function token()
     {
         if ($this->token === null) {
             $parser = $this->classes['parser'];
@@ -149,7 +148,7 @@ class Host implements HostInterface
      *
      * @return string the route's regular expression pattern.
      */
-    public function getRegex(): string
+    public function regex(): string
     {
         if ($this->regex !== null) {
             return $this->regex;
@@ -164,7 +163,7 @@ class Host implements HostInterface
      *
      * @return array The route's variables and their associated pattern.
      */
-    public function getVariables()
+    public function variables()
     {
         if ($this->variables !== null) {
             return $this->variables;
@@ -180,12 +179,12 @@ class Host implements HostInterface
      */
     protected function compile(): void
     {
-        if ($this->getPattern() === '*') {
+        if ($this->pattern() === '*') {
             return;
         }
 
         $parser = $this->classes['parser'];
-        $rule = $parser::compile($this->getToken());
+        $rule = $parser::compile($this->token());
         $this->regex = $rule[0];
         $this->variables = $rule[1];
     }
@@ -205,28 +204,28 @@ class Host implements HostInterface
 
         $hostVariables = [];
 
-        $anyHost = $this->getPattern() === '*' || $host === '*';
-        $anyScheme = $this->getScheme() === '*' || $scheme === '*';
+        $anyHost = $this->pattern() === '*' || $host === '*';
+        $anyScheme = $this->scheme() === '*' || $scheme === '*';
 
 
         if ($anyHost) {
-            if ($this->getVariables()) {
-                $hostVariables = array_fill_keys(array_keys($this->getVariables()), null);
+            if ($this->variables()) {
+                $hostVariables = array_fill_keys(array_keys($this->variables()), null);
             }
-            return $anyScheme || $this->getScheme() === $scheme;
+            return $anyScheme || $this->scheme() === $scheme;
         }
 
-        if (!$anyScheme && $this->getScheme() !== $scheme) {
+        if (!$anyScheme && $this->scheme() !== $scheme) {
             return false;
         }
 
-        if (!preg_match('~^' . $this->getRegex() . '$~', $host, $matches)) {
+        if (!preg_match('~^' . $this->regex() . '$~', $host, $matches)) {
             $hostVariables = null;
             return false;
         }
         $i = 0;
 
-        foreach ($this->getVariables() as $name => $pattern) {
+        foreach ($this->variables() as $name => $pattern) {
             $hostVariables[$name] = $matches[++$i];
         }
         return true;
@@ -238,12 +237,12 @@ class Host implements HostInterface
     public function link($params = [], $options = []): string
     {
         $defaults = [
-            'scheme'   => $this->getScheme()
+            'scheme'   => $this->scheme()
         ];
         $options += $defaults;
 
         if (!isset($options['host'])) {
-            $options['host'] = $this->_link($this->getToken(), $params);
+            $options['host'] = $this->_link($this->token(), $params);
         }
 
         $scheme = $options['scheme'] !== '*' ? $options['scheme'] . '://' : '//';
