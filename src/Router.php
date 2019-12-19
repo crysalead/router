@@ -92,6 +92,26 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     protected $defaultHandler = null;
 
     /**
+     * @var string
+     */
+    protected $parserClass = Parser::class;
+
+    /**
+     * @var string
+     */
+    protected $hostClass = Host::class;
+
+    /**
+     * @var string
+     */
+    protected $routeClass = Route::class;
+
+    /**
+     * @var string
+     */
+    protected $scopeClass = Scope::class;
+
+    /**
      * Constructor
      *
      * @param array $config
@@ -104,18 +124,24 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
             'strategies'     => [],
             'defaultHandler' => null,
             'classes'        => [
-                'parser'     => 'Lead\Router\Parser',
-                'host'       => 'Lead\Router\Host',
-                'route'      => 'Lead\Router\Route',
-                'scope'      => 'Lead\Router\Scope'
+                'parser'     => $this->parserClass,
+                'host'       => $this->hostClass,
+                'route'      => $this->routeClass,
+                'scope'      => $this->scopeClass
             ]
         ];
         $config += $defaults;
-        $this->classes = $config['classes'];
+
+        $this->parserClass = $config['classes']['parser'];
+        $this->hostClass = $config['classes']['host'];
+        $this->routeClass = $config['classes']['route'];
+        $this->scopeClass = $config['classes']['scope'];
+
         $this->strategies = $config['strategies'];
         $this->setDefaultHandler($config['defaultHandler']);
         $this->setBasePath($config['basePath']);
-        $scope = $this->classes['scope'];
+
+        $scope = $this->scopeClass;
         $this->scopes[] = new $scope(['router' => $this]);
     }
 
@@ -184,6 +210,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
     {
         $basePath = trim($basePath, '/');
         $this->basePath = $basePath ? '/' . $basePath : '';
+
         return $this;
     }
 
@@ -278,7 +305,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
         if (isset($this->pattern[$scheme][$host][$patternKey])) {
             $instance = $this->pattern[$scheme][$host][$patternKey];
         } else {
-            $route = $this->classes['route'];
+            $route = $this->routeClass;
             $instance = new $route($options);
             $this->hosts[$scheme][$host] = $instance->host();
         }
@@ -636,7 +663,7 @@ class Router implements ArrayAccess, Iterator, Countable, RouterInterface
         $this->strategies = [];
         $this->defaults = [];
         $this->routes = [];
-        $scope = $this->classes['scope'];
+        $scope = $this->scopeClass;
         $this->scopes = [new $scope(['router' => $this])];
     }
 
