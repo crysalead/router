@@ -1,25 +1,20 @@
-sudo: false
 language: php
 
 php:
-  - 7.0
-  - 7.1
-  - 7.2
-  - 7.3
+  - 7.4
+  - 8.1
 
 before_script:
   - if [[ $TRAVIS_SECURE_ENV_VARS = "true" ]]; then composer config -g github-oauth.github.com $GITHUB_COMPOSER_AUTH; fi
+  - echo 'xdebug.mode = coverage' >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
   - composer install --no-interaction
-  - if [[ $TRAVIS_PHP_VERSION =~ ^hhvm ]]; then echo 'xdebug.enable = On' >> /etc/hhvm/php.ini; fi
-  - if [[ $TRAVIS_PHP_VERSION =~ ^hhvm ]]; then echo 'hhvm.php7.all = 1' >> /etc/hhvm/php.ini; fi
-  - if [[ $TRAVIS_PHP_VERSION =~ ^7 ]]; then git clone git://github.com/xdebug/xdebug.git && cd xdebug && phpize && ./configure --enable-xdebug  && make && make install && echo "zend_extension = xdebug.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini && cd ..; fi
 
 script: bin/kahlan --coverage=3 --clover=clover.xml --reporter=verbose
 
 after_success:
-  - "if [ $(phpenv version-name) = '7.3' ]; then wget https://scrutinizer-ci.com/ocular.phar; fi"
-  - "if [ $(phpenv version-name) = '7.3' ]; then php ocular.phar code-coverage:upload --format=php-clover 'clover.xml'; fi"
+  - "if [ $(phpenv version-name) = '7.4' ]; then wget https://scrutinizer-ci.com/ocular.phar; fi"
+  - "if [ $(phpenv version-name) = '7.4' ]; then php ocular.phar code-coverage:upload --format=php-clover 'clover.xml'; fi"
 
 env:
   global:
-    - secure: fKBejHRg4E9OtxYxFiCSz20RcuG96MNhYoeIiIbJ+daGX3vileCSTQkkMcDbtwRjmTdlrEijiH4MxSJ3Na4RsXQP7ROk07aQhlCrBbthW7EycwNwRvhC9auAxmqEkiUauzE1/II3+AQrWi/VWSt+1WfQqJcbK6l0wC1yJbehkEH+mzrRe5H9TkJfmdWt6j1Xwz19QwCqrsIr7OuB6udvOBpv49WbrV4ynlyO9rnAq8HzD2nO9F0QojmjAeW4ahaHisfuZyxoI8L7ODH0i0o5p+8MWxf7muaYYXhke8E3bchrxxBV4ZM0eHw+oEn1aNXkut5LWZNd3vQbb1DEWH6gS1+PyW3KKcpRRUVJYTeSBSXozPoZ6vYEyak5DFRjGzI1yXhsA/FjKbC4NNa6lvWjBUU1eQIfaZzccA0qyiC9kgZd+gMjmOwtU/NKyhX0mz04uJkiUJlYgNESk9+J5tFXaohN3O3tvIhCfK9tjPo4Bmbqu6l9e1eIebEdUvgB0ILdLihOP2XMKqUhlq5W+GWopIiScg6wJ9lGicmNJXE5vxMAh4jJlFgyyVIzkWAjqwo7lgw2t7jmoWeEQe6h/rMZDy4IlBkCxFqtB2q6U0TRnOqIu9QO+XPoTAHKpHtjO4tPuD2oZ7unCfyzlgnp62PQRptPpmepCvnvOGiO9DM9v3k=
+    - secure: lrNPTKRcMyLObZiIUFbgDBJelqkbMSixP39L3HCUxtbHRsyzccovXh4Ty4UNTUYVqk0/ihBL0ZjwKbNQKbnIxxe8GxjorrgUe++G9muV7Lkm+3QOMJlaC3MK8yDVUTvhe6SRjY9d/2lvcpOWUsb3faETzdowxN7mfkGSs7ToVyMxG2yOqCtrnqWCkJYBxnavfJRKIWhYE8uksqnuQFCBIkR4FngyHPr3GiFU5FBoTcHBPGMFcI1LVO3HiwhFt5UNcKx6KRkvmqlf9MytjZfR4bamyztwadmWcJpomtVAJqLJKBc65dzi4rjFA+sRD29LoE3ZgmZaz0bFvB5IKe8L7I0qZYp0CKzmZqpW/Vm0vZlJbihaKWz+Ow0G4P7zazkIPYt3ioqe0fo7Y2gR5oBhXe75eU3F8BMa6RNaaHD355wzBIoC2cn1rpVuDzmzYv0LTFLCkvdvHDIMHO78MqLIV2qhV8DkbkW9djJ9VHtviDtl3XCcIxnLpTmxduXGUDQLoe0ucB7ld4sNkG6ZcX3tFaLhh4fQqHKk/6HSyutrjy1FVF2xw9nDhFj/z6MzRYB9z5UmZQPe55C5Wx0pTX3JcoQveKwNVCA/UimyDZ5BYs8eTpezStE4ho7aivxIqzdAQYHesz9AwBlHWH0DmLCeGrUoVoXa6NOHKhWkobtSmAk=
